@@ -34,12 +34,12 @@ import java.util.concurrent.ExecutorService;
 public class GridEngineDaemonConfig {
     /*
        Database settings
-     */
-    private String apisrv_dbname = "geapiserver";
+     */    
     private String apisrv_dbhost = "localhost";
     private String apisrv_dbport = "3306";
     private String apisrv_dbuser = "geapiserver";
     private String apisrv_dbpass = "geapiserver_password";
+    private String apisrv_dbname = "geapiserver";
     
     /*
       GrigEngineDaemon settings
@@ -59,6 +59,14 @@ public class GridEngineDaemonConfig {
     private int     geControllerDelay       = 4000;
     private int     geControllerMaxCommands =    5;
     
+    /*
+     GridEngine UsersTracking DB
+    */    
+    private String utdb_host = "localhost";
+    private    int utdb_port = 3306;
+    private String utdb_user = "tracking_user";
+    private String utdb_pass = "usertracking";
+    private String utdb_name = "userstracking";             
 
     /**
      * Initialize the config object which uses only static settings
@@ -274,5 +282,59 @@ public class GridEngineDaemonConfig {
         this.geControllerMaxCommands = geControllerMaxCommands;
     }
     
+    /*
+      GridEngine database settings
+    */
     
+    /**
+     * Return the GridEngine' userstracking database host
+     * @return userstracking database host
+     */
+    String getGridEngine_db_host() { return this.utdb_host; }
+    /**
+     * Set the GridEngine' userstracking database host
+     * @param userstracking database host
+     */
+    void getGridEngine_db_host(String utdb_host) { this.utdb_host=utdb_host; } 
+    /**
+     * Return the GridEngine' userstracking database port
+     * @return userstracking database port
+     */
+    int getGridEngine_db_port() { return this.utdb_port; }
+    /**
+     * Set the GridEngine' userstracking database port
+     * @param userstracking database port
+     */
+    void getGridEngine_db_port(int utdb_port) { this.utdb_port=utdb_port; } 
+    /**
+     * Return the GridEngine' userstracking database user
+     * @return userstracking database user
+     */
+    String getGridEngine_db_user() { return this.utdb_user; }
+    /**
+     * Set the GridEngine' userstracking database user
+     * @param userstracking database user
+     */
+    void getGridEngine_db_user(String utdb_user) { this.utdb_user=utdb_user; } 
+    /**
+     * Return the GridEngine' userstracking database password
+     * @return userstracking database password
+     */
+    String getGridEngine_db_pass() { return this.utdb_pass; }
+    /**
+     * Set the GridEngine' userstracking database password
+     * @param userstracking database password
+     */
+    void getGridEngine_db_pass(String utdb_pass) { this.utdb_pass=utdb_pass; } 
+    /**
+     * Return the GridEngine' userstracking database name
+     * @return userstracking database name
+     */
+    String getGridEngine_db_name() { return this.utdb_name; }
+    /**
+     * Set the GridEngine' userstracking database name
+     * @param userstracking database name
+     */
+    void getGridEngine_db_name(String utdb_name) { this.utdb_name=utdb_name; } 
+               
 }

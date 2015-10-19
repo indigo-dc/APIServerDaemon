@@ -38,6 +38,18 @@ import java.util.logging.Logger;
  */
 public class GridEngineInterface {
     /*
+     GridEngine UsersTracking DB
+    */    
+    private String utdb_host;
+    private    int utdb_port;
+    private String utdb_user;
+    private String utdb_pass;
+    private String utdb_name;
+    /*
+      GridEngineDaemon config
+    */
+    GridEngineDaemonConfig gedConfig;
+    /*
       Logger
     */
     private static final Logger _log = Logger.getLogger(GridEngineDaemonLogger.class.getName());
@@ -64,6 +76,27 @@ public class GridEngineInterface {
     /*
       GridEngine interfacing methods
     */
+    
+    /**
+     * Load GridEngineDaemon configuration settings
+     * @param gedConfig GridEngineDaemon configuration object
+     */
+    public void setConfig(GridEngineDaemonConfig gedConfig) {
+        this.gedConfig=gedConfig;                
+        // Extract class specific configutation            
+        this.utdb_host = gedConfig.getGridEngine_db_host();
+        this.utdb_port = gedConfig.getGridEngine_db_port();
+        this.utdb_user = gedConfig.getGridEngine_db_user();
+        this.utdb_pass = gedConfig.getGridEngine_db_pass();
+        this.utdb_name = gedConfig.getGridEngine_db_name();
+        _log.info("GridEngine config:"                     +LS
+                 +"  [UsersTrackingDB]"                    +LS
+                 +"    db_host: '"      +this.utdb_host+"'"+LS
+                 +"    db_port: '"      +this.utdb_port+"'"+LS
+                 +"    db_user: '"      +this.utdb_user+"'"+LS
+                 +"    db_pass: '"      +this.utdb_pass+"'"+LS
+                 +"    db_name: '"      +this.utdb_name+"'"+LS);
+    }
     
     /**
      * submit the job identified by the gedCommand values

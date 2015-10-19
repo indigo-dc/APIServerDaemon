@@ -34,7 +34,12 @@ import java.util.logging.Logger;
 class GridEngineDaemonProcessCommand implements Runnable {        
     
     GridEngineDaemonCommand gedCommand;    
-    String gedConnectionURL;
+    String gedConnectionURL;        
+    
+    /*
+      GridEngineDaemon config
+    */
+    GridEngineDaemonConfig gedConfig;        
     
     /**
      * Supported commands
@@ -68,6 +73,15 @@ class GridEngineDaemonProcessCommand implements Runnable {
         this.gedConnectionURL = gedConnectionURL;
         threadName = Thread.currentThread().getName();
     }
+    
+    /**
+     * Load GridEngineDaemon configuration settings
+     * @param gedConfig GridEngineDaemon configuration object
+     */
+    public void setConfig(GridEngineDaemonConfig gedConfig) {
+        // Save all configs
+        this.gedConfig=gedConfig;                        
+    }
 
     /**
      * Execution of the GridEngineCommand
@@ -100,8 +114,9 @@ class GridEngineDaemonProcessCommand implements Runnable {
      */
     private void submit() {
         _log.info("Submitting command: "+gedCommand);
-        //GridEngineInterface geInterface = new GridEngineInterface(command);         
-        //gedCommand.setAGIId(geInterface.jobSubmit());
+        GridEngineInterface geInterface = new GridEngineInterface(gedCommand); 
+        geInterface.setConfig(gedConfig);
+        gedCommand.setAGIId(geInterface.jobSubmit());
         finalizeCommand("SUBMITTED");
     }
     

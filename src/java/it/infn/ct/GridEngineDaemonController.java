@@ -90,6 +90,8 @@ public class GridEngineDaemonController implements Runnable {
      * @param gedConfig GridEngineDaemon configuration object
      */
     public void setConfig(GridEngineDaemonConfig gedConfig) {
+        // Save configs
+        this.gedConfig=gedConfig;
         // Set configuration values for this class
         this.apisrv_dbhost = gedConfig.getApisrv_dbhost();
         this.apisrv_dbport = gedConfig.getApisrv_dbport();
@@ -158,6 +160,7 @@ public class GridEngineDaemonController implements Runnable {
                             geCommand
                            ,gedDB.getConnectionURL());
                     if (gedProcCmd != null) {
+                        gedProcCmd.setConfig(gedConfig);
                         gedExecutor.execute(gedProcCmd);
                     }
                 }

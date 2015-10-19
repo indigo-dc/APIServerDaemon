@@ -40,9 +40,7 @@ class GridEngineDaemonCommand {
     private Date   creation;
     private Date   last_change;
     private String action_info;
-    
-    public static final String LS = System.getProperty("line.separator");
-
+        
     /**
      * Empty constructor, initialize with dummy/null values
      */
@@ -71,7 +69,8 @@ class GridEngineDaemonCommand {
         this.creation    = creation;
         this.last_change = last_change;
         this.action_info = action_info;
-    }
+    }        
+    
     /**
      * Get GridEngineCommand 'task_id' field value
      * @return task_id
