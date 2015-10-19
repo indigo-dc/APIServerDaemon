@@ -40,6 +40,8 @@ class GridEngineDaemonCommand {
     private Date   creation;
     private Date   last_change;
     private String action_info;
+    
+    private static final String LS = System.getProperty("line.separator");        
         
     /**
      * Empty constructor, initialize with dummy/null values
