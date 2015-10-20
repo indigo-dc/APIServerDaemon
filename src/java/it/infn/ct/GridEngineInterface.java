@@ -27,10 +27,13 @@ package it.infn.ct;
 import it.infn.ct.GridEngine.Job.*;
 import it.infn.ct.GridEngine.JobResubmission.GEJobDescription;
 import it.infn.ct.GridEngine.Job.MultiInfrastructureJobSubmission;
-import it.infn.ct.GridEngine.UsersTracking.UsersTrackingDBInterface;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
-
 import java.util.logging.Logger;
+import net.sf.json.JSONObject; 
+import net.sf.json.JSONSerializer;
+import org.apache.commons.io.IOUtils;
 
 /**
  * This class interfaces any call to the GridEngine library
@@ -50,6 +53,10 @@ public class GridEngineInterface {
     */
     GridEngineDaemonConfig gedConfig;
     /*
+      GridEngineDaemon IP address
+    */
+    String gedIPAddress;
+    /*
       Logger
     */
     private static final Logger _log = Logger.getLogger(GridEngineDaemonLogger.class.getName());
@@ -63,6 +70,7 @@ public class GridEngineInterface {
      */
     public GridEngineInterface() {
         _log.info("Initializing empty GridEngineInterface");
+        getIP();
     }
     /**
      * Constructor for GridEngineInterface taking as input a given command
@@ -71,6 +79,7 @@ public class GridEngineInterface {
         this.gedCommand=gedCommand;
         _log.info("Initialized GridEngineInterface with command: "+LS
                   +this.gedCommand);
+        getIP();
     }
     
     /*
@@ -99,68 +108,110 @@ public class GridEngineInterface {
     }
     
     /**
-     * submit the job identified by the gedCommand values
+     * Setup machine IP address, needed by job submission
      */
-    public int jobSubmit() {
-        int agi_id=0;        
-        _log.info("Submitting job");
-/*
-        // Retrieve the full  path to the job directory
-        String jobPath = gedCommand.getActionInfo();
-        InfrastructureInfo infrastructure;
-        MultiInfrastructureJobSubmission mijs = new MultiInfrastructureJobSubmission();
-        
-        infrastructure = new InfrastructureInfo(cpinfra.name
-                                               ,cpinfra.adaptor
-                                               ,""
-                                               ,cpinfra.resourceList()
-                                               ,cpinfra.getParam("etoken_host")
-                                               ,cpinfra.getParam("etoken_port")
-                                               ,cpinfra.getParam("etoken_id")
-                                               ,cpinfra.getParam("VO")
-                                               ,cpinfra.getParam("VO_GroupRole")
-                                               ,cpinfra.getParam("ProxyRFC").equalsIgnoreCase("true")
-                                               );
-        
-        mijs.addInfrastructure(infrastructure);
-         GE_JobId = "'" + alephfileName + "'";
-        // Set job properties
-        mijs.setExecutable("aleph.sh");                              // Executable
-        mijs.setArguments("");
-        mijs.setJobOutput("stdout.txt");                             // std-output
-        mijs.setJobError("stderr.txt");                              // std-error
-        mijs.setOutputPath("/tmp/");                                 // Output path
-        mijs.setInputFiles("");                                         // InputSandbox
-        mijs.setOutputFiles("aleph_output.tar");                     // OutputSandbox
-
-        // Determine the host IP address
-        String   portalIPAddress="";
+    private void getIP() {
         try {
             InetAddress addr = InetAddress.getLocalHost();
             byte[] ipAddr=addr.getAddress();
-            portalIPAddress= ""+(short)(ipAddr[0]&0xff)
-                           +":"+(short)(ipAddr[1]&0xff)
-                           +":"+(short)(ipAddr[2]&0xff)
-                           +":"+(short)(ipAddr[3]&0xff);
+            gedIPAddress= ""+(short)(ipAddr[0]&0xff)
+                         +":"+(short)(ipAddr[1]&0xff)
+                         +":"+(short)(ipAddr[2]&0xff)
+                         +":"+(short)(ipAddr[3]&0xff);
         }
         catch(Exception e) {
             _log.severe("Unable to get the portal IP address");
         }
-
-        // Submit the job
-        // Submission uses addInfrastructure method; this call is no longer necessary
-        // mijs.submitJobAsync(infrastructure, username, portalIPAddress, alephGridOperation, GE_JobId);
-        agi_id = mijs.submitJobAsync(username, portalIPAddress, alephGridOperation, GE_JobId,true);
-
-        // Remove proxy temporary file
-        // temp.delete(); Cannot remove here the file, job submission fails
-
-        // Interactive job execution (iservices)
-        if(isAlephVMEnabled && alephAlg == null) {
-            iSrv.allocService(username,vmuuid);
-            iSrv.dumpAllocations();
-        }
-*/
+    }
+    
+    /**
+     * submit the job identified by the gedCommand values
+     * @return 
+     */
+    public int jobSubmit() {
+        int agi_id=0;        
+        _log.info("Submitting job");
+        MultiInfrastructureJobSubmission mijs =
+            new MultiInfrastructureJobSubmission(
+                    "jdbc:mysql://"+utdb_host+":"
+                                   +utdb_port+"/"
+                                   +utdb_name
+                    ,utdb_user
+                    ,utdb_pass
+            );
+        try {
+            JSONObject jsonJobDesc = loadJSONJobDesc();
+            // application
+            int geAppId = jsonJobDesc.getInt("application");
+            // commonName
+            String geCommonName = jsonJobDesc.getString("commonName");
+            // infrastructure
+            JSONObject geInfrastructure = 
+                    jsonJobDesc.getJSONObject("infrastructure");
+            // jobDescription
+            JSONObject geJobDescription = 
+                    jsonJobDesc.getJSONObject("jobDescription");
+            // credentials
+            JSONObject geCredentials = 
+                    jsonJobDesc.getJSONObject("credentials");
+            // identifier
+            String jobDescription =
+                    jsonJobDesc.getString("identifier");
+            // Loaded essential JSON components; now go through
+            // each adaptor specific setting:
+            // resourceManagers
+            String  resourceManagers = 
+                    geInfrastructure.getString("resourceManagers");
+            String adaptor = resourceManagers.split(":")[0];
+            _log.info("Adaptor is '"+adaptor+"'");
+            InfrastructureInfo infrastructures[] = new InfrastructureInfo[1];
+            switch(adaptor) {
+                // SSH Adaptor
+                case "ssh":
+                    String  username = 
+                        geCredentials.getString("username");
+                    String  password = 
+                        geCredentials.getString("username");
+                    String sshEndPoing[] = { resourceManagers };
+                    infrastructures[0] = new InfrastructureInfo(
+                             resourceManagers
+                           , "ssh"
+                           , username
+                           , password
+                           , sshEndPoing);
+                    mijs.addInfrastructure(infrastructures[0]);               
+                    // Job description
+                    GEJobDescription jobDesc = new GEJobDescription();
+                    jobDesc.setExecutable(
+                        geJobDescription.getString("executable"));
+                    jobDesc.setOutput(
+                        geJobDescription.getString("output"));
+                    jobDesc.setArguments(
+                        geJobDescription.getString("arguments"));
+                    jobDesc.setError(
+                        geJobDescription.getString("error"));
+                    jobDesc.setOutputPath(gedCommand.getActionInfo());
+                    // IO Files
+                    //description.setInputFiles("/home/mario/Documenti/hostname.sh");
+                    //description.setOutputFiles("output.README");                    
+                    // Submit asynchronously
+                    // Following function needs a new GE Version having
+                    // a boolean field at the bottom of its argument list
+                    // Setting to true the function will return tha 
+                    // corresponding job' ActiveGridInteracion value
+                    //agi_id = 
+                               mijs.submitJobAsync(geCommonName
+                                                  ,gedIPAddress
+                                                  ,geAppId
+                                                  ,jobDescription);        
+                    break;
+                default:
+                    _log.severe("Unrecognized or unsupported adaptor found!");
+            }
+        } catch(IOException e){
+            _log.severe("Unable to load GridEngine JSON job description\n"+LS
+                       +e.toString()); 
+        }       
         return agi_id;
     }
     /**
@@ -183,5 +234,24 @@ public class GridEngineInterface {
     public void jobCancel() {
         _log.info("Cancelling job");
         return;
+    }
+
+    /**
+     * Return a JSON object containing information stored in file:
+     * <action_info>/<task_id>.txt file, which contains the job
+     * description built for the GridEngine
+     */
+    private JSONObject loadJSONJobDesc() throws IOException {
+        JSONObject jsonJobDesc = null;
+        
+        String jobDescFileName = gedCommand.getActionInfo()
+                                +gedCommand.getTaskId()
+                                +".info";        
+        InputStream is = 
+                GridEngineInterface.class.getResourceAsStream(jobDescFileName);
+        String jsonTxt = IOUtils.toString(is);
+        jsonJobDesc = (JSONObject) JSONSerializer.toJSON(jsonTxt);  
+        _log.info("Loaded GridEngine JobDesc:\n"+LS+jsonJobDesc);
+        return jsonJobDesc;
     }
 }

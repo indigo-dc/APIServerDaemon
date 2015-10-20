@@ -68,6 +68,7 @@ class GridEngineDaemonCommand {
         this.task_id     = task_id;
         this.agi_id      = agi_id;
         this.action      = action;
+        this.status      = status;
         this.creation    = creation;
         this.last_change = last_change;
         this.action_info = action_info;
