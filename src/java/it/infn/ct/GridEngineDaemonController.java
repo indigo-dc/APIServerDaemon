@@ -155,14 +155,14 @@ public class GridEngineDaemonController implements Runnable {
                 Iterator<GridEngineDaemonCommand> iterCmds = commands.iterator(); 
                 while (iterCmds.hasNext()) {
                     GridEngineDaemonCommand geCommand = iterCmds.next();
-                    GridEngineDaemonProcessCommand gedProcCmd =
-                        new GridEngineDaemonProcessCommand(
+                    GridEngineDaemonCheckCommand gedProcCmd =
+                        new GridEngineDaemonCheckCommand(
                             geCommand
                            ,gedDB.getConnectionURL());
                     if (gedProcCmd != null) {
                         gedProcCmd.setConfig(gedConfig);
                         gedExecutor.execute(gedProcCmd);
-                    }
+                    }                    
                 }
             } catch (Exception e) {
                 /* Do something */

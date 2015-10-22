@@ -27,12 +27,12 @@ package it.infn.ct;
 import it.infn.ct.GridEngine.Job.*;
 import it.infn.ct.GridEngine.JobResubmission.GEJobDescription;
 import it.infn.ct.GridEngine.Job.MultiInfrastructureJobSubmission;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.util.logging.Logger;
-import net.sf.json.JSONObject; 
-import net.sf.json.JSONSerializer;
+import org.json.*;
 import org.apache.commons.io.IOUtils;
 
 /**
@@ -44,7 +44,7 @@ public class GridEngineInterface {
      GridEngine UsersTracking DB
     */    
     private String utdb_host;
-    private    int utdb_port;
+    private String utdb_port;
     private String utdb_user;
     private String utdb_pass;
     private String utdb_name;
@@ -76,10 +76,10 @@ public class GridEngineInterface {
      * Constructor for GridEngineInterface taking as input a given command
      */
     public GridEngineInterface(GridEngineDaemonCommand gedCommand) {
+        this();
         this.gedCommand=gedCommand;
         _log.info("Initialized GridEngineInterface with command: "+LS
-                  +this.gedCommand);
-        getIP();
+                  +this.gedCommand);        
     }
     
     /*
@@ -139,7 +139,10 @@ public class GridEngineInterface {
                     ,utdb_user
                     ,utdb_pass
             );
-        try {
+        if(mijs==null)
+            _log.info("mijs is NULL, sorry!");       
+        else try {            
+            _log.info("Loading GridEngine job JSON desc");
             JSONObject jsonJobDesc = loadJSONJobDesc();
             // application
             int geAppId = jsonJobDesc.getInt("application");
@@ -155,7 +158,7 @@ public class GridEngineInterface {
             JSONObject geCredentials = 
                     jsonJobDesc.getJSONObject("credentials");
             // identifier
-            String jobDescription =
+            String jobIdentifier =
                     jsonJobDesc.getString("identifier");
             // Loaded essential JSON components; now go through
             // each adaptor specific setting:
@@ -167,51 +170,70 @@ public class GridEngineInterface {
             InfrastructureInfo infrastructures[] = new InfrastructureInfo[1];
             switch(adaptor) {
                 // SSH Adaptor
-                case "ssh":
-                    String  username = 
-                        geCredentials.getString("username");
-                    String  password = 
-                        geCredentials.getString("username");
-                    String sshEndPoing[] = { resourceManagers };
-                    infrastructures[0] = new InfrastructureInfo(
-                             resourceManagers
-                           , "ssh"
-                           , username
-                           , password
-                           , sshEndPoing);
-                    mijs.addInfrastructure(infrastructures[0]);               
-                    // Job description
-                    GEJobDescription jobDesc = new GEJobDescription();
-                    jobDesc.setExecutable(
-                        geJobDescription.getString("executable"));
-                    jobDesc.setOutput(
-                        geJobDescription.getString("output"));
-                    jobDesc.setArguments(
-                        geJobDescription.getString("arguments"));
-                    jobDesc.setError(
-                        geJobDescription.getString("error"));
-                    jobDesc.setOutputPath(gedCommand.getActionInfo());
-                    // IO Files
-                    //description.setInputFiles("/home/mario/Documenti/hostname.sh");
-                    //description.setOutputFiles("output.README");                    
-                    // Submit asynchronously
-                    // Following function needs a new GE Version having
-                    // a boolean field at the bottom of its argument list
-                    // Setting to true the function will return tha 
-                    // corresponding job' ActiveGridInteracion value
-                    //agi_id = 
-                               mijs.submitJobAsync(geCommonName
-                                                  ,gedIPAddress
-                                                  ,geAppId
-                                                  ,jobDescription);        
+                case "ssh": 
+                    try {
+                        _log.info("Entering SSH adaptor ...");
+                        String  username = 
+                            geCredentials.getString("username");
+                        String  password = 
+                            geCredentials.getString("password");
+                        String sshEndPoing[] = { resourceManagers };
+                        infrastructures[0] = new InfrastructureInfo(
+                                 resourceManagers
+                               , "ssh"
+                               , username
+                               , password
+                               , sshEndPoing);
+                        mijs.addInfrastructure(infrastructures[0]);                    
+                        // Job description
+                        /*
+                        GEJobDescription jobDesc = new GEJobDescription();
+                        jobDesc.setExecutable(
+                            geJobDescription.getString("executable"));
+                        jobDesc.setOutput(
+                            geJobDescription.getString("output"));
+                        jobDesc.setArguments(
+                            geJobDescription.getString("arguments"));
+                        jobDesc.setError(
+                            geJobDescription.getString("error"));
+                        jobDesc.setOutputPath(gedCommand.getActionInfo());                        
+                        */
+                        mijs.setExecutable(
+                            geJobDescription.getString("executable"));
+                        mijs.setJobOutput(
+                            geJobDescription.getString("output"));
+                        mijs.setArguments(
+                            geJobDescription.getString("arguments"));
+                        mijs.setJobError(
+                            geJobDescription.getString("error"));
+                        mijs.setOutputPath(gedCommand.getActionInfo());                        
+                        // IO Files
+                        //description.setInputFiles("/home/mario/Documenti/hostname.sh");
+                        //description.setOutputFiles("output.README");                    
+                        // Submit asynchronously
+                        // Following function needs a new GE Version having
+                        // a boolean field at the bottom of its argument list
+                        // Setting to true the function will return tha 
+                        // corresponding job' ActiveGridInteracion value                        
+                        agi_id = 111;
+                                   mijs.submitJobAsync(geCommonName
+                                                      ,gedIPAddress
+                                                      ,geAppId
+                                                      ,jobIdentifier);  
+                        _log.info("AGI_id: "+agi_id);
+                    } catch (Exception e) {
+                        _log.severe("Caught exception:"+LS+e.toString());
+                    }
                     break;
                 default:
                     _log.severe("Unrecognized or unsupported adaptor found!");
-            }
-        } catch(IOException e){
+            }   
+        } catch(IOException e) {
             _log.severe("Unable to load GridEngine JSON job description\n"+LS
                        +e.toString()); 
-        }       
+        } catch(Exception e) {
+            _log.severe("Unable to submit job: "+LS+e.toString());
+        }            
         return agi_id;
     }
     /**
@@ -238,20 +260,23 @@ public class GridEngineInterface {
 
     /**
      * Return a JSON object containing information stored in file:
-     * <action_info>/<task_id>.txt file, which contains the job
+     * <action_info>/<task_id>.info file, which contains the job
      * description built for the GridEngine
-     */
+     */    
     private JSONObject loadJSONJobDesc() throws IOException {
         JSONObject jsonJobDesc = null;
         
-        String jobDescFileName = gedCommand.getActionInfo()
+        String jobDescFileName = gedCommand.getActionInfo()+"/"
                                 +gedCommand.getTaskId()
-                                +".info";        
-        InputStream is = 
-                GridEngineInterface.class.getResourceAsStream(jobDescFileName);
-        String jsonTxt = IOUtils.toString(is);
-        jsonJobDesc = (JSONObject) JSONSerializer.toJSON(jsonTxt);  
-        _log.info("Loaded GridEngine JobDesc:\n"+LS+jsonJobDesc);
+                                +".info";  
+        try {
+            InputStream is = new FileInputStream(jobDescFileName);
+            String jsonTxt = IOUtils.toString(is);
+            jsonJobDesc = (JSONObject) new JSONObject(jsonTxt);                        
+            _log.info("Loaded GridEngine JobDesc:\n"+LS+jsonJobDesc);
+        } catch(Exception e) {
+            _log.info("Caught exception: "+ e.toString());
+        }
         return jsonJobDesc;
-    }
+    }   
 }

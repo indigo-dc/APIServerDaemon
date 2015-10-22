@@ -322,27 +322,17 @@ public class GridEngineDaemonDB {
             _log.severe(e.toString());
         }        
         return commandList;
-    }
+    }       
     
     /**
-     * Release a given command setting its status to PROCESSED 
-     * @param GridEngineCommand object
-     * @see GridEngineCommand
-    */
-    public void releaseCommand(GridEngineDaemonCommand command,String status) {
-        if(status == null)
-            setCommandState(command,"PROCESSED");
-        else setCommandState(command,status);
-    }
-    
-    /**
-     * Assign to the given command a given status 
+     * Update values of a given command except for: date fields and 
+     * action_info; creation date will be ignored, while last_change 
+     * will be set to now()
      * @param GridEngineCommand object
      * @param New command status
      * @see GridEngineCommand
     */    
-    private void setCommandState(GridEngineDaemonCommand command
-                                ,String status) {    
+    public void updateCommand(GridEngineDaemonCommand command) {    
         if (!connect()) {
             _log.severe("Not connected to database");
             return;
@@ -353,20 +343,20 @@ public class GridEngineDaemonDB {
             sql="lock tables ge_queue write;";
             statement=connect.createStatement();
             statement.execute(sql);
-            sql="update ge_queue set status = ?"         +LS
-                   +"               ,agi_id = ?"         +LS
-                   +"               ,last_update = now()"+LS
-                   +"where task_id=?";
+            sql="update ge_queue set agi_id = ?"     +LS
+               +"               ,status = ?"         +LS                   
+               +"               ,last_change = now()"+LS
+               +"where task_id=?";
             preparedStatement = connect.prepareStatement(sql);
-            preparedStatement.setString(1, status);
-            preparedStatement.setInt(2, command.getAGIId());
-            preparedStatement.setInt(3, command.getTaskId());
+            preparedStatement.setInt   (1, command.getAGIId());            
+            preparedStatement.setString(2, command.getStatus());
+            preparedStatement.setInt   (3, command.getTaskId());
             preparedStatement.execute();                               
             // Unlock ge_queue table
             sql="unlock tables;";
             statement=connect.createStatement();
             statement.execute(sql);
-            _log.severe("released command: "+LS+command);
+            _log.info("released command: "+LS+command);
         } catch (SQLException e) {            
             _log.severe(e.toString());
         }

@@ -29,7 +29,12 @@ import java.util.logging.Logger;
 
 /**
  * Runnable class responsible to execute GridEngineDaemon commands
+ * This class does not handle directly GridEngine API calls but rather
+ * uses GridEngineInterface class instances
+ * The use of an interface class may help targeting other command 
+ * executor services if needed
  * @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
+ * @see GridEngineInterface
  */
 class GridEngineDaemonProcessCommand implements Runnable {        
     
@@ -117,7 +122,8 @@ class GridEngineDaemonProcessCommand implements Runnable {
         GridEngineInterface geInterface = new GridEngineInterface(gedCommand); 
         geInterface.setConfig(gedConfig);
         gedCommand.setAGIId(geInterface.jobSubmit());
-        finalizeCommand("SUBMITTED");
+        gedCommand.setStatus("PROCESSED");
+        finalizeCommand();
     }
     
     /**
@@ -128,7 +134,8 @@ class GridEngineDaemonProcessCommand implements Runnable {
         _log.info("Get status command: "+gedCommand);
         GridEngineInterface geInterface = new GridEngineInterface(gedCommand);
         gedCommand.setStatus(geInterface.jobStatus());
-        finalizeCommand(null);
+        gedCommand.setStatus("PROCESSED");
+        finalizeCommand();
     }
     
     /**
@@ -139,7 +146,8 @@ class GridEngineDaemonProcessCommand implements Runnable {
         _log.info("Get output command: "+gedCommand);
         GridEngineInterface geInterface = new GridEngineInterface(gedCommand);
         gedCommand.setStatus(geInterface.jobOutput());
-        finalizeCommand(null);
+        gedCommand.setStatus("PROCESSED");
+        finalizeCommand();
     }
     
     /**
@@ -149,21 +157,22 @@ class GridEngineDaemonProcessCommand implements Runnable {
         _log.info("Job cancel command: "+gedCommand);
         GridEngineInterface geInterface = new GridEngineInterface(gedCommand);
         geInterface.jobCancel();
-        finalizeCommand(null);
+        gedCommand.setStatus("PROCESSED");
+        finalizeCommand();
     }
     
     /**
-     * Finalize the GridEngine command once completed
+     * Finalize the GridEngine command once processed
      */
-    private void finalizeCommand(String status) {
+    private void finalizeCommand() {
         GridEngineDaemonDB gedDB = null;
         
         try {
                 gedDB= new GridEngineDaemonDB(gedConnectionURL);
-                gedDB.releaseCommand(gedCommand,status);                                
+                gedDB.updateCommand(gedCommand);                                
             } catch (Exception e) {
-                /* Do something */
-                _log.severe("Unable to get APIServer commands");
+                _log.severe("Unable release command:"+LS+gedCommand
+                                                     +LS+e.toString());
             }
             finally {
                if(gedDB!=null) gedDB.close(); 
