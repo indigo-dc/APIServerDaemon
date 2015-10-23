@@ -32,9 +32,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -46,13 +43,12 @@ import java.util.logging.Logger;
  * ---------+------------------------------------------------------------
  * Action   | Statuses
  * ---------+------------------------------------------------------------
- * SUBMIT   | QUEUED|PROCESSING|PROCESSED
- *          | SUBMITTED|RUNNING|DONE|CANCELLED|ABORTED
+ * SUBMIT   | QUEUED|PROCESSING|PROCESSED|FAILED|DONE
  * GETSTATUS| This action never registers into ge_queue table
  *          | REST APIs directly returns the ge_queue state of the given task
  * GETOUTPUT| This action never registers into ge_queue table
  *          | REST APIs directly returns the ge_queue state of the given task
- * JOBCANCEL| QUEUED|PROCESSING|PROCESSED|CANCELLED
+ * JOBCANCEL| QUEUED|PROCESSING|PROCESSED|FAILED|CANCELLED
  * 
  * GridEngineDaemon foresees two different thread loops:
  *  - GridEngineDaemonPolling: This thread retrieves commands coming from
@@ -112,14 +108,14 @@ public class GridEngineDaemonDB {
      * dbuser, dbpass and dbname in a single line
      */
     public GridEngineDaemonDB(String connectionURL) {
-        threadName = Thread.currentThread().getName();
+        this();
         this.connectionURL=connectionURL;
     }
     /**
      * Constructor that uses detailed connection settings used to buid the
      * JDBC connection URL
-     * @param dbhost GridEngineDaemon database user name hostname
-     * @param dbport GridEngineDaemon database user name listening port
+     * @param dbhost GridEngineDaemon database hostname
+     * @param dbport GridEngineDaemon database listening port
      * @param dbuser GridEngineDaemon database user name
      * @param dbpass GridEngineDaemon database user password
      * @param dbname GridEngineDaemon database name
@@ -129,7 +125,7 @@ public class GridEngineDaemonDB {
                              ,String dbuser
                              ,String dbpass
                              ,String dbname) {
-        threadName = Thread.currentThread().getName();
+        this();
         this.dbhost = dbhost;
         this.dbport = dbport;
         this.dbuser = dbuser;
@@ -222,6 +218,7 @@ public class GridEngineDaemonDB {
                +"      ,agi_id"                         +LS
                +"      ,action"                         +LS
                +"      ,status"                         +LS
+               +"      ,ge_status"                      +LS     
                +"      ,creation"                       +LS
                +"      ,last_change"                    +LS
                +"      ,action_info"                    +LS
@@ -240,6 +237,7 @@ public class GridEngineDaemonDB {
                                ,resultSet.getInt   (     "agi_id")
                                ,resultSet.getString(     "action")
                                ,resultSet.getString(     "status")
+                               ,resultSet.getString(  "ge_status")
                                ,resultSet.getDate  (   "creation")                                       
                                ,resultSet.getDate  ("last_change")
                                ,resultSet.getString("action_info"));                
@@ -271,7 +269,7 @@ public class GridEngineDaemonDB {
      * Retrieves available commands for the GridEngine returning 
      * maxCommands records from the ge_queue table
      * Commands must be in QUEUED status while taken records will be
-     * flagged as PROCESSING. 
+     * flagged as PROCESSING
      * Table ge_queue will be locked to avoid any inconsistency in
      * concurrent access
      * @param Maximum number of records to get from the ge_queue table
@@ -292,13 +290,13 @@ public class GridEngineDaemonDB {
                +"      ,agi_id"                         +LS
                +"      ,action"                         +LS
                +"      ,status"                         +LS
+               +"      ,ge_status"                      +LS     
                +"      ,creation"                       +LS
                +"      ,last_change"                    +LS
                +"      ,action_info"                    +LS
                +"from ge_queue"                         +LS
-               +"where status in ('PROCESSING'"         +LS
-               + "               ,'SUBMITTED'"          +LS
-               + "               ,'RUNNING')"           +LS
+               +"where status = 'PROCESSING'"           +LS
+               + "  or status = 'PROCESSED'"            +LS               
                +"order by last_change asc"              +LS
                +"limit ?"                               +LS
                +";";
@@ -312,6 +310,7 @@ public class GridEngineDaemonDB {
                                ,resultSet.getInt   (     "agi_id")
                                ,resultSet.getString(     "action")
                                ,resultSet.getString(     "status")
+                               ,resultSet.getString(  "ge_status")
                                ,resultSet.getDate  (   "creation")                                       
                                ,resultSet.getDate  ("last_change")
                                ,resultSet.getString("action_info"));                
@@ -344,13 +343,15 @@ public class GridEngineDaemonDB {
             statement=connect.createStatement();
             statement.execute(sql);
             sql="update ge_queue set agi_id = ?"     +LS
-               +"               ,status = ?"         +LS                   
+               +"               ,status = ?"         +LS  
+               +"               ,ge_status = ?"      +LS
                +"               ,last_change = now()"+LS
                +"where task_id=?";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt   (1, command.getAGIId());            
             preparedStatement.setString(2, command.getStatus());
-            preparedStatement.setInt   (3, command.getTaskId());
+            preparedStatement.setString(3, command.getGEStatus());
+            preparedStatement.setInt   (4, command.getTaskId());
             preparedStatement.execute();                               
             // Unlock ge_queue table
             sql="unlock tables;";

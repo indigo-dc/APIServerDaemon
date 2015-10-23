@@ -90,7 +90,34 @@ class GridEngineDaemonCheckCommand implements Runnable {
     }
 
     /**
-     * Execution of the GridEngineCommand
+     * Check of the GridEngineCommand
+     * 
+     * Checking depends by the couple (action,status)
+     * Statuses taken by CheckCommand are: 
+     *   PROCESSING: The command is being processed
+     *    PROCESSED: The command has been processed
+     * 
+     * Action    | PROCESSING  | PROCESSED
+     * ----------+-------------+-----------------
+     * Submit    | Consistency | Check job status
+     * ----------+-------------+-----------------
+     * GetStatus |      -      |       -
+     * ----------+-------------+-----------------
+     * GetOutput |      -      |       -         
+     * ----------+-------------+-----------------
+     * JobCancel | Consistency | Check on GE
+     * ----------+-------------+-----------------
+     * 
+     * GetStatus and GetOutput are synchronous operations
+     * directly handled by the APIServer engine for this
+     * reason these actions are not supported
+     * Consistency check verifies how long the command waits
+     * in order to be processed, if it takes too long
+     * the command could be re-queued and/or tagged as FAILED
+     * Check job status verifies the job status inside the
+     * GridEngine' ActiveGridInteraction
+     * Check on GE, verifies that job has been cancelled on
+     * the GridEngine as well
      */
     @Override
     public void run() {
@@ -118,8 +145,39 @@ class GridEngineDaemonCheckCommand implements Runnable {
     /**
      * Execute a GridEngineDaemon 'submit' command
      */
-    private void submit() {
-        // Finalize commands PROCESSED and GESTATUS == DONE
+    private void submit() {        
+        if(gedCommand.getStatus().equals("PROCESSING")) {
+            // This check consistency of the command execution
+            // if it takes too long the command should be 
+            // resubmitted or flagged as FAILED reaching a threshold
+            
+        } else {
+            // Status is PROCESSED; the job has been submited
+            
+            // First prepare the GridEngineInterface passing config
+            GridEngineInterface geInterface = 
+                    new GridEngineInterface(gedCommand);
+            geInterface.setConfig(gedConfig);
+            
+            // Waiting for GridEngine update; the following code
+            // retrieves the right agi_id field exploiting the
+            // fixed jobDescription field inside the ActiveGridInteraction
+            if(gedCommand.getAGIId() == 0) {
+                gedCommand.setAGIId(geInterface.getAGIId());
+                updateCommand();
+            }
+                        
+            // Update ge_status taking its value from the GridEngine'
+            // ActiveGridInteraction table, then if ge_status is DONE
+            // flag also the command state to DONE allowing APIServer'
+            // GetOutput call to work        
+            if(gedCommand.getAGIId() != 0) {
+                gedCommand.setGEStatus(geInterface.jobStatus());
+                if(gedCommand.getGEStatus().equals("DONE"))
+                    gedCommand.setStatus("DONE");          
+                updateCommand();
+            }
+        }
         _log.info("Checking submitted command: "+gedCommand);        
     }
     
@@ -145,16 +203,17 @@ class GridEngineDaemonCheckCommand implements Runnable {
     private void jobCancel() {
         _log.info("Check job cancel command: "+gedCommand);
     }
-    
+        
     /**
-     * update the GridEngine command status
+     * Finalize the GridEngine command once processed
      */
-    private void updateCommandStatus(String status) {
+    private void updateCommand() {
         GridEngineDaemonDB gedDB = null;
         
-        try {
-                gedDB= new GridEngineDaemonDB(gedConnectionURL);
-                gedDB.updateCommand(gedCommand);                                
+        if(gedCommand.isModified())
+            try {
+                    gedDB= new GridEngineDaemonDB(gedConnectionURL);
+                    gedDB.updateCommand(gedCommand);                                
             } catch (Exception e) {
                 _log.severe("Unable release command:"+LS+gedCommand
                                                      +LS+e.toString());

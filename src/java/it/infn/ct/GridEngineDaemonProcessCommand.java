@@ -123,7 +123,7 @@ class GridEngineDaemonProcessCommand implements Runnable {
         geInterface.setConfig(gedConfig);
         gedCommand.setAGIId(geInterface.jobSubmit());
         gedCommand.setStatus("PROCESSED");
-        finalizeCommand();
+        updateCommand();
     }
     
     /**
@@ -135,7 +135,7 @@ class GridEngineDaemonProcessCommand implements Runnable {
         GridEngineInterface geInterface = new GridEngineInterface(gedCommand);
         gedCommand.setStatus(geInterface.jobStatus());
         gedCommand.setStatus("PROCESSED");
-        finalizeCommand();
+        updateCommand();
     }
     
     /**
@@ -147,7 +147,7 @@ class GridEngineDaemonProcessCommand implements Runnable {
         GridEngineInterface geInterface = new GridEngineInterface(gedCommand);
         gedCommand.setStatus(geInterface.jobOutput());
         gedCommand.setStatus("PROCESSED");
-        finalizeCommand();
+        updateCommand();
     }
     
     /**
@@ -158,24 +158,25 @@ class GridEngineDaemonProcessCommand implements Runnable {
         GridEngineInterface geInterface = new GridEngineInterface(gedCommand);
         geInterface.jobCancel();
         gedCommand.setStatus("PROCESSED");
-        finalizeCommand();
+        updateCommand();
     }
     
     /**
      * Finalize the GridEngine command once processed
      */
-    private void finalizeCommand() {
+    private void updateCommand() {
         GridEngineDaemonDB gedDB = null;
         
-        try {
-                gedDB= new GridEngineDaemonDB(gedConnectionURL);
-                gedDB.updateCommand(gedCommand);                                
-            } catch (Exception e) {
-                _log.severe("Unable release command:"+LS+gedCommand
-                                                     +LS+e.toString());
-            }
-            finally {
-               if(gedDB!=null) gedDB.close(); 
-            }
+        if(gedCommand.isModified())
+            try {
+                    gedDB= new GridEngineDaemonDB(gedConnectionURL);
+                    gedDB.updateCommand(gedCommand);                                
+                } catch (Exception e) {
+                    _log.severe("Unable release command:"+LS+gedCommand
+                                                         +LS+e.toString());
+                }
+                finally {
+                   if(gedDB!=null) gedDB.close(); 
+                }
     }
 }

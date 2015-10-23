@@ -98,7 +98,7 @@ public class GridEngineInterface {
         this.utdb_user = gedConfig.getGridEngine_db_user();
         this.utdb_pass = gedConfig.getGridEngine_db_pass();
         this.utdb_name = gedConfig.getGridEngine_db_name();
-        _log.info("GridEngine config:"                     +LS
+        _log.info("GridEngineInterface config:"            +LS
                  +"  [UsersTrackingDB]"                    +LS
                  +"    db_host: '"      +this.utdb_host+"'"+LS
                  +"    db_port: '"      +this.utdb_port+"'"+LS
@@ -186,18 +186,6 @@ public class GridEngineInterface {
                                , sshEndPoing);
                         mijs.addInfrastructure(infrastructures[0]);                    
                         // Job description
-                        /*
-                        GEJobDescription jobDesc = new GEJobDescription();
-                        jobDesc.setExecutable(
-                            geJobDescription.getString("executable"));
-                        jobDesc.setOutput(
-                            geJobDescription.getString("output"));
-                        jobDesc.setArguments(
-                            geJobDescription.getString("arguments"));
-                        jobDesc.setError(
-                            geJobDescription.getString("error"));
-                        jobDesc.setOutputPath(gedCommand.getActionInfo());                        
-                        */
                         mijs.setExecutable(
                             geJobDescription.getString("executable"));
                         mijs.setJobOutput(
@@ -211,11 +199,16 @@ public class GridEngineInterface {
                         //description.setInputFiles("/home/mario/Documenti/hostname.sh");
                         //description.setOutputFiles("output.README");                    
                         // Submit asynchronously
+                        
                         // Following function needs a new GE Version having
                         // a boolean field at the bottom of its argument list
                         // Setting to true the function will return tha 
-                        // corresponding job' ActiveGridInteracion value                        
-                        agi_id = 111;
+                        // corresponding job' ActiveGridInteracion value
+                        // The current workaround leaved agi_id = 0 then
+                        // the controller daemon will update the correct id
+                        // querying the ActiveGridInteraction filtering by the
+                        // jobDescription = 'task_id: <#task_id>'
+                        agi_id = 0;
                                    mijs.submitJobAsync(geCommonName
                                                       ,gedIPAddress
                                                       ,geAppId
@@ -240,8 +233,26 @@ public class GridEngineInterface {
      * submit the job identified by the gedCommand values
      */
     public String jobStatus() {
+        String jobStatus = null;
+        GridEngineInterfaceDB geiDB = null;
         _log.info("Getting job status");
-        return "NOTIMPLEMENTED";
+        // It is more convenient to directly query the ActiveGridInteraction
+        // since GridEngine JobCheck threads are in charge to update this
+        try {
+            geiDB = new GridEngineInterfaceDB(utdb_host
+                                             ,utdb_port
+                                             ,utdb_user
+                                             ,utdb_pass
+                                             ,utdb_name);
+            jobStatus = geiDB.getJobStatus(gedCommand.getAGIId());
+        } catch (Exception e) {
+            _log.severe("Unable get command status:"+LS+gedCommand
+                                                    +LS+e.toString());
+        }
+        finally {
+           if(geiDB!=null) geiDB.close(); 
+        }                
+        return jobStatus;
     }
     /**
      * submit the job identified by the gedCommand values
@@ -278,5 +289,32 @@ public class GridEngineInterface {
             _log.info("Caught exception: "+ e.toString());
         }
         return jsonJobDesc;
-    }   
+    } 
+    
+    /**
+     * Retrieve the id field of the ActiveGridInteraction table starting from
+     * the jobDesc table
+     * @param task_id
+     */
+    public int getAGIId() {
+        int agi_id = 0;
+        GridEngineInterfaceDB geiDB = null;
+        _log.info("Getting ActiveGridInteraciton' id field for task: "
+                 +gedCommand.getTaskId());
+        try {
+            geiDB = new GridEngineInterfaceDB(utdb_host
+                                             ,utdb_port
+                                             ,utdb_user
+                                             ,utdb_pass
+                                             ,utdb_name);
+            agi_id = geiDB.getAGIId(gedCommand.getTaskId());
+        } catch (Exception e) {
+            _log.severe("Unable get id:"+LS+gedCommand
+                                                    +LS+e.toString());
+        }
+        finally {
+           if(geiDB!=null) geiDB.close(); 
+        }               
+        return agi_id;
+    }
 }

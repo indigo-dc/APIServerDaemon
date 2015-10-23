@@ -37,9 +37,12 @@ class GridEngineDaemonCommand {
     private int    agi_id;
     private String action;
     private String status;
+    private String ge_status;
     private Date   creation;
     private Date   last_change;
     private String action_info;
+    
+    private boolean modified_flag;
     
     private static final String LS = System.getProperty("line.separator");        
         
@@ -47,13 +50,15 @@ class GridEngineDaemonCommand {
      * Empty constructor, initialize with dummy/null values
      */
     public GridEngineDaemonCommand() {
-        task_id     = -1;
-        agi_id      = -1;
-        action      = null;
-        status      = null;
-        creation    = null;
-        last_change = null;
-        action_info = null;
+        task_id       = -1;
+        agi_id        = -1;
+        action        = null;
+        status        = null;
+        ge_status     = null;
+        creation      = null;
+        last_change   = null;
+        action_info   = null;
+        modified_flag = false;
     }
     /**
      * Constructor taking all GridEngineDaemon command values
@@ -62,16 +67,20 @@ class GridEngineDaemonCommand {
                                   ,int    agi_id
                                   ,String action
                                   ,String status
+                                  ,String ge_status
                                   ,Date   creation
                                   ,Date   last_change
                                   ,String action_info) {
-        this.task_id     = task_id;
-        this.agi_id      = agi_id;
-        this.action      = action;
-        this.status      = status;
-        this.creation    = creation;
-        this.last_change = last_change;
-        this.action_info = action_info;
+        this();
+        this.task_id       = task_id;
+        this.agi_id        = agi_id;
+        this.action        = action;
+        this.status        = status;
+        this.ge_status     = ge_status;
+        this.creation      = creation;
+        this.last_change   = last_change;
+        this.action_info   = action_info;
+        this.modified_flag = false;
     }        
     
     /**
@@ -96,6 +105,11 @@ class GridEngineDaemonCommand {
      */
     public String getStatus() { return this.status; }
     /**
+     * Get GridEngineCommand 'ge_status' field value
+     * @return ge_status
+     */
+    public String getGEStatus() { return this.ge_status; }
+    /**
      * Get GridEngineCommand 'creation' field value
      * @return creation
      */
@@ -114,37 +128,77 @@ class GridEngineDaemonCommand {
     /**
      * Set GridEngineCommand 'task_id' field value
     */
-    public void setTaskId(int task_id){this.task_id = task_id; }
+    public void setTaskId(int task_id){
+        if(this.task_id != task_id) modified_flag=true; 
+        this.task_id = task_id; 
+    }
     /**
      * Set GridEngineCommand 'agi_id' field value
      * @param agi_id
     */
-    public void setAGIId(int  agi_id){ this.agi_id = agi_id; }
+    public void setAGIId(int  agi_id) { 
+        if(this.agi_id != agi_id) modified_flag=true; 
+        this.agi_id = agi_id;
+    }
     /**
      * Set GridEngineCommand 'action' field value
      * @param action
     */
-    public void setAction(String action){ this.action = action; }
+    public void setAction(String action){ 
+         if(this.action != null && !this.action.equals(action)) 
+             modified_flag=true; 
+         this.action = action; 
+    }    
     /**
      * Set GridEngineCommand 'status' field value
      * @param status
     */
-    public void setStatus(String status){ this.status = status; }
+    public void setStatus(String status){
+        if(this.status != null && !this.status.equals(status)) 
+            modified_flag=true; 
+        this.status = status; 
+    }
+    /**
+     * Set GridEngineCommand 'ge_status' field value
+     * @param ge_status
+    */
+    public void setGEStatus(String ge_status){
+        if(this.ge_status != null && !this.ge_status.equals(ge_status)) 
+            modified_flag=true; 
+        this.ge_status = ge_status; 
+    }
     /**
      * Set GridEngineCommand 'creation' field value
      * @param creation
     */
-    public void setCreation(Date creation){ this.creation = creation; }
+    public void setCreation(Date creation){ 
+        if(this.creation != null && this.creation != creation) 
+            modified_flag=true; 
+        this.creation = creation; 
+    }
     /**
      * Set GridEngineCommand 'last_change' field value
      * @param last_change
     */
-    public void setLastChange(Date last_change){ this.last_change=last_change; }
+    public void setLastChange(Date last_change){ 
+        if(this.last_change != null && this.last_change != last_change)
+            modified_flag=true; 
+        this.last_change=last_change; 
+    }
     /**
      * Set GridEngineCommand 'action_info' field value
      * @param action_info
     */
-    public void setActionInfo(String action_info){ this.action_info=action_info; }
+    public void setActionInfo(String action_info){ 
+        if(action_info != null && !this.action_info.equals(action_info)) 
+            modified_flag=true; 
+        this.action_info=action_info; 
+    }
+    
+    /**
+     * Return true if any field has been modified by any of 'set' methods
+     */
+    public boolean isModified() { return this.modified_flag; }
     
     /**
      * Serialize as string the GridEngineDaemon command values
@@ -152,13 +206,15 @@ class GridEngineDaemonCommand {
     @Override
     public String toString() {
         return "{"                                          + LS 
-              +"  \"task_id\"     : \"" + task_id     + "\""+ LS
-              +"  \"agi_id\"      : \"" + agi_id      + "\""+ LS 
-              +"  \"action\"      : \"" + action      + "\""+ LS
-              +"  \"status\"      : \"" + status      + "\""+ LS 
-              +"  \"creation\"    : \"" + creation    + "\""+ LS
-              +"  \"last_change\" : \"" + last_change + "\""+ LS
-              +"  \"action_info\" : \"" + action_info + "\""+ LS
+              +"  \"task_id\"      : \"" + task_id       + "\""+ LS
+              +"  \"agi_id\"       : \"" + agi_id        + "\""+ LS 
+              +"  \"action\"       : \"" + action        + "\""+ LS
+              +"  \"status\"       : \"" + status        + "\""+ LS 
+              +"  \"ge_status\"    : \"" + ge_status     + "\""+ LS   
+              +"  \"creation\"     : \"" + creation      + "\""+ LS
+              +"  \"last_change\"  : \"" + last_change   + "\""+ LS
+              +"  \"action_info\"  : \"" + action_info   + "\""+ LS
+              +"  \"modified_flag\": \"" + modified_flag + "\""+ LS
               +"}"
               ;
     }
