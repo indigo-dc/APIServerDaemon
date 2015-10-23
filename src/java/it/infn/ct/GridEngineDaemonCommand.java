@@ -201,6 +201,11 @@ class GridEngineDaemonCommand {
     public boolean isModified() { return this.modified_flag; }
     
     /**
+     * Reset modified flag
+     */
+    public void validate() { this.modified_flag = false; }
+    
+    /**
      * Serialize as string the GridEngineDaemon command values
      */
     @Override

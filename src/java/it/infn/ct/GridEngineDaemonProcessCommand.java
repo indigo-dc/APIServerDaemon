@@ -170,7 +170,8 @@ class GridEngineDaemonProcessCommand implements Runnable {
         if(gedCommand.isModified())
             try {
                     gedDB= new GridEngineDaemonDB(gedConnectionURL);
-                    gedDB.updateCommand(gedCommand);                                
+                    gedDB.updateCommand(gedCommand); 
+                    gedCommand.validate();
                 } catch (Exception e) {
                     _log.severe("Unable release command:"+LS+gedCommand
                                                          +LS+e.toString());
