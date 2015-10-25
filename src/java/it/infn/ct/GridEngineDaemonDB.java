@@ -357,7 +357,75 @@ public class GridEngineDaemonDB {
             sql="unlock tables;";
             statement=connect.createStatement();
             statement.execute(sql);
-            _log.info("released command: "+LS+command);
+            _log.info("Updated command: "+LS+command);
+            // propagate Status change in APIServer' task table
+            updateAPIServerStatus(command);
+        } catch (SQLException e) {            
+            _log.severe(e.toString());
+        }
+    }
+    
+    /**
+     * Update APIServer command status
+     */
+    void updateAPIServerStatus(GridEngineDaemonCommand command) {
+        if (!connect()) {
+            _log.severe("Not connected to database");
+            return;
+        }        
+        try {
+            String sql;
+            // Lock ge_queue table first
+            sql="lock tables task write;";
+            statement=connect.createStatement();
+            statement.execute(sql);
+            sql="update task set status = ?"         +LS  
+               +"               ,last_change = now()"+LS
+               +"where id=?";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setString(1,(command.getGEStatus()==null?
+                                           "WAITING":command.getStatus()));
+            preparedStatement.setInt   (2, command.getTaskId());
+            preparedStatement.execute();                               
+            // Unlock ge_queue table
+            sql="unlock tables;";
+            statement=connect.createStatement();
+            statement.execute(sql);
+            _log.info("Status updated to "+command.getStatus()
+                     +"for task: "+command.getTaskId());
+        } catch (SQLException e) {            
+            _log.severe(e.toString());
+        }
+    }
+    
+    /**
+     * Update output paths of a given command
+     */
+    void updateOutputPaths(GridEngineDaemonCommand command
+                          ,String outputDir) {
+        if (!connect()) {
+            _log.severe("Not connected to database");
+            return;
+        }        
+        try {
+            String sql;
+            // Lock ge_queue table first
+            sql="lock tables task_output_file write;";
+            statement=connect.createStatement();
+            statement.execute(sql);
+            sql="update task_output_file set path = ?"  +LS                 
+               +"where task_id=?";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setString(1, command.getActionInfo()+"/"
+                                          +outputDir);
+            preparedStatement.setInt   (2, command.getTaskId());
+            preparedStatement.execute();                               
+            // Unlock ge_queue table
+            sql="unlock tables;";
+            statement=connect.createStatement();
+            statement.execute(sql);
+            _log.info("Output dir '"+command.getActionInfo()+"/"+outputDir
+                      +"' updated");
         } catch (SQLException e) {            
             _log.severe(e.toString());
         }

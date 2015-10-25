@@ -317,4 +317,29 @@ public class GridEngineInterface {
         }               
         return agi_id;
     }
+    
+    /**
+     * Prepares the jobOuput for the APIServer
+     * @return Directory containing output files
+     */
+    public String prepareJobOutput() {
+        String tgzFileName = gedCommand.getActionInfo()+"/"
+                           + "jobOutput/task_id"
+                           + gedCommand.getTaskId()+"_"
+                           + gedCommand.getAGIId()+".tgz";
+        _log.info("tgzFileName: '"+tgzFileName+"'");
+        try {
+        Process unpackTar = 
+                Runtime.getRuntime().exec("tar xzvf "
+                                         +tgzFileName
+                                         +" -C "
+                                         +gedCommand.getActionInfo());
+        unpackTar.waitFor();
+        } catch (Exception e) {
+            _log.severe("Error extracting archive: "+tgzFileName);
+        }
+        return  "task_id"
+               + gedCommand.getTaskId()+"_"
+               + gedCommand.getAGIId();
+    }
 }

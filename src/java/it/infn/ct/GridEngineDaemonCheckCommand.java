@@ -23,6 +23,7 @@ limitations under the License.
 
 package it.infn.ct;
 
+import java.lang.Runtime;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
@@ -173,8 +174,12 @@ class GridEngineDaemonCheckCommand implements Runnable {
             // GetOutput call to work        
             if(gedCommand.getAGIId() != 0) {
                 gedCommand.setGEStatus(geInterface.jobStatus());
-                if(gedCommand.getGEStatus().equals("DONE"))
-                    gedCommand.setStatus("DONE");          
+                if(gedCommand.getGEStatus().equals("DONE")) {
+                    gedCommand.setStatus("DONE");
+                    // DONE command means that jobOutput is ready
+                    String outputDir = geInterface.prepareJobOutput();
+                    updateOutputPaths(outputDir);
+                }
                 updateCommand();
             }
         }
@@ -216,11 +221,29 @@ class GridEngineDaemonCheckCommand implements Runnable {
                     gedDB.updateCommand(gedCommand);
                     gedCommand.validate();
             } catch (Exception e) {
-                _log.severe("Unable release command:"+LS+gedCommand
+                _log.severe("Unable update command:"+LS+gedCommand
                                                      +LS+e.toString());
             }
             finally {
                if(gedDB!=null) gedDB.close(); 
             }
+    }
+    
+    /**
+     * Update task' output file paths
+     */
+    void updateOutputPaths(String outputDir) {
+        GridEngineDaemonDB gedDB = null;
+                
+        try {
+                gedDB= new GridEngineDaemonDB(gedConnectionURL);
+                gedDB.updateOutputPaths(gedCommand,outputDir);                
+        } catch (Exception e) {
+            _log.severe("Unable release command:"+LS+gedCommand
+                                                 +LS+e.toString());
+        }
+        finally {
+           if(gedDB!=null) gedDB.close(); 
+        }
     }
 }
