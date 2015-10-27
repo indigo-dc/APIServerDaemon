@@ -47,7 +47,7 @@ public class GridEngineDaemonConfig {
     /*
       Configuration file
     */
-    private final String gedPropetiesFile = "GridEgnineDaemon.properties";
+    private final String gedPropetiesFile = "GridEngineDaemon.properties";
     /*
        Database settings
      */    
@@ -104,8 +104,9 @@ public class GridEngineDaemonConfig {
         InputStream inputStream=null;        
         Properties prop = new Properties();
         try {
-            inputStream = getClass().getClassLoader().
-                    getResourceAsStream(gedPropetiesFile);
+            inputStream = this.getClass().
+                    getResourceAsStream(gedPropetiesFile);            
+            
             prop.load(inputStream);
             
             /*
