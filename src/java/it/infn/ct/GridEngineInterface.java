@@ -33,7 +33,6 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import org.json.*;
 import org.apache.commons.io.IOUtils;
-//import java.util.logging.Logger;
 import org.apache.log4j.Logger;
 
 /**
@@ -126,6 +125,58 @@ public class GridEngineInterface {
     }
     
     /**
+     * Prepares JobDescription specified in JSONObject item to setup
+     * the given MultiInfrastructureJobSubmission object
+     * @param MultiInfrastructureJobSubmission object instance
+     * @param JSON Object describing the job description
+     * @see MultiInfrastructureJobSubmission
+     */
+    private void prepareJobDescription(MultiInfrastructureJobSubmission mijs
+                                      ,JSONObject geJobDescription) {
+        // Job description
+        mijs.setExecutable(
+            geJobDescription.getString("executable"));
+        mijs.setJobOutput(
+            geJobDescription.getString("output"));
+        mijs.setArguments(
+            geJobDescription.getString("arguments"));
+        mijs.setJobError(
+            geJobDescription.getString("error"));
+        mijs.setOutputPath(gedCommand.getActionInfo());
+    }
+    
+    /**
+     * Prepare the I/O Sandbox 
+     */
+    private void prepareIOSandbox(MultiInfrastructureJobSubmission mijs
+                    ,JSONArray input_files
+                    ,JSONArray output_files) {
+        String inputSandbox = "";
+        _log.debug("Input files:");
+        for(int i=0; i<input_files.length(); i++) {   
+            String comma=(i==0)?"":",";
+            inputSandbox += comma
+                           +gedCommand.getActionInfo()+"/"
+                           +input_files.getString(i);
+            _log.debug(gedCommand.getActionInfo()+"/"
+                      +input_files.getString(i));
+        }
+        mijs.setInputFiles(inputSandbox);
+        _log.debug("inputSandbox: '"+inputSandbox+"'");
+        String outputSandbox = "";
+        _log.debug("Output files:");
+        for(int i=0; i<output_files.length(); i++) {
+            String comma=(i==0)?"":",";
+            JSONObject output_entry = output_files.getJSONObject(i);
+            outputSandbox += comma
+                            +output_entry.getString("name");
+            _log.debug(output_entry.getString("name"));
+        }
+        mijs.setOutputFiles(outputSandbox);
+        _log.debug("outputSandbox: '"+outputSandbox+"'");
+    } 
+    
+    /**
      * submit the job identified by the gedCommand values
      * @return 
      */
@@ -161,6 +212,12 @@ public class GridEngineInterface {
             // identifier
             String jobIdentifier =
                     jsonJobDesc.getString("identifier");
+            // input_files
+            JSONArray input_files = 
+                    jsonJobDesc.getJSONArray("input_files");
+            // output_files
+            JSONArray output_files = 
+                    jsonJobDesc.getJSONArray("output_files");
             // Loaded essential JSON components; now go through
             // each adaptor specific setting:
             // resourceManagers
@@ -169,6 +226,11 @@ public class GridEngineInterface {
             String adaptor = resourceManagers.split(":")[0];
             _log.info("Adaptor is '"+adaptor+"'");
             InfrastructureInfo infrastructures[] = new InfrastructureInfo[1];
+            /*
+              Each adaptor has its own specific settings
+              Different adaptors may have in common some settings
+              such as I/O Sandboxing, job description etc
+            */
             switch(adaptor) {
                 // SSH Adaptor
                 case "ssh": 
@@ -178,15 +240,15 @@ public class GridEngineInterface {
                             geCredentials.getString("username");
                         String  password = 
                             geCredentials.getString("password");
-                        String sshEndPoing[] = { resourceManagers };
+                        String sshEndPoint[] = { resourceManagers };
                         infrastructures[0] = new InfrastructureInfo(
                                  resourceManagers
                                , "ssh"
                                , username
                                , password
-                               , sshEndPoing);
+                               , sshEndPoint);
                         mijs.addInfrastructure(infrastructures[0]);                    
-                        // Job description
+                        /* Job description
                         mijs.setExecutable(
                             geJobDescription.getString("executable"));
                         mijs.setJobOutput(
@@ -195,17 +257,45 @@ public class GridEngineInterface {
                             geJobDescription.getString("arguments"));
                         mijs.setJobError(
                             geJobDescription.getString("error"));
-                        mijs.setOutputPath(gedCommand.getActionInfo());                        
+                        mijs.setOutputPath(gedCommand.getActionInfo());
+                        */
+                        prepareJobDescription(mijs,geJobDescription);
                         // IO Files
-                        //description.setInputFiles("/home/mario/Documenti/hostname.sh");
-                        //description.setOutputFiles("output.README");                    
-                        // Submit asynchronously
-                        
+                        // Scan input_files and ouptut files JSON arrays
+                        // preparing the two comma separated strings:
+                        // inputSandBox and outputSandbox  
+                        /*
+                        String inputSandbox = "";
+                        _log.debug("Input files:");
+                        for(int i=0; i<input_files.length(); i++) {   
+                            String comma=(i==0)?"":",";
+                            inputSandbox += comma
+                                           +gedCommand.getActionInfo()+"/"
+                                           +input_files.getString(i);
+                            _log.debug(gedCommand.getActionInfo()+"/"
+                                      +input_files.getString(i));
+                        }
+                        mijs.setInputFiles(inputSandbox);
+                        _log.debug("inputSandbox: '"+inputSandbox+"'");
+                        String outputSandbox = "";
+                        _log.debug("Output files:");
+                        for(int i=0; i<output_files.length(); i++) {
+                            String comma=(i==0)?"":",";
+                            JSONObject output_entry = output_files.getJSONObject(i);
+                            outputSandbox += comma
+                                            +output_entry.getString("name");
+                            _log.debug(output_entry.getString("name"));
+                        }
+                        mijs.setOutputFiles(outputSandbox);
+                        _log.debug("outputSandbox: '"+outputSandbox+"'");
+                        */
+                        prepareIOSandbox(mijs,input_files,output_files);
+                        // Submit asynchronously                        
                         // Following function needs a new GE Version having
                         // a boolean field at the bottom of its argument list
                         // Setting to true the function will return tha 
                         // corresponding job' ActiveGridInteracion value
-                        // The current workaround leaved agi_id = 0 then
+                        // The current workaround leaves agi_id = 0 then
                         // the controller daemon will update the correct id
                         // querying the ActiveGridInteraction filtering by the
                         // jobDescription = 'task_id: <#task_id>'
@@ -218,6 +308,38 @@ public class GridEngineInterface {
                     } catch (Exception e) {                      
                         _log.fatal("Caught exception:"+LS+e.toString());
                     }
+                    break;
+                // rOCCI Adaptor
+                case "rocci":
+                    _log.info("Entering rOCCI adaptor ...");
+                    String rOCCIResourcesList[] = { ""
+                                                 //,rOCCIURL2
+                                                  };                    
+                    infrastructures[0] = new 
+                        InfrastructureInfo( 
+                                         "GridEngineDaemon"                // Infrastruture name
+                                        ,"rocci"                           // Adaptor
+                                        ,""                                //
+                                        ,rOCCIResourcesList                // Resources list
+                                        ,"etokenserver.ct.infn.it"         // eTokenServer host
+                                        ,"8082"                            // eTokenServer port
+                                        ,"bc779e33367eaad7882b9dfaa83a432c"// eToken id (md5sum)
+                                        ,"fedcloud.egi.eu"                 // VO
+                                        ,"fedcloud.egi.eu"                 // VO.group.role
+                                        ,true                              // ProxyRFC
+                                        );
+                    mijs.addInfrastructure(infrastructures[0]);                    
+                    // Setup JobDescription
+                    prepareJobDescription(mijs,geJobDescription);
+                    // I/O Sandbox                        
+                    prepareIOSandbox(mijs,input_files,output_files);
+                    // Submit asynchronously                        
+                    agi_id = 0;
+                               mijs.submitJobAsync(geCommonName
+                                                  ,gedIPAddress
+                                                  ,geAppId
+                                                  ,jobIdentifier);  
+                    _log.debug("AGI_id: "+agi_id);                    
                     break;
                 default:                  
                     _log.fatal("Unrecognized or unsupported adaptor found!");
@@ -308,7 +430,7 @@ public class GridEngineInterface {
                                              ,utdb_user
                                              ,utdb_pass
                                              ,utdb_name);
-            agi_id = geiDB.getAGIId(gedCommand.getTaskId());
+            agi_id = geiDB.getAGIId(gedCommand);
         } catch (Exception e) {          
             _log.fatal("Unable get id:"+LS+gedCommand
                                        +LS+e.toString());
@@ -320,14 +442,42 @@ public class GridEngineInterface {
     }
     
     /**
+     * Retrieve the id field of the ActiveGridInteraction table starting from
+     * the jobDesc table
+     * @param task_id
+     */
+    public String getJobDescription() {
+        String jobDesc = "";
+        GridEngineInterfaceDB geiDB = null;
+        _log.debug("Getting jobDescription for AGI_id: "
+                 +gedCommand.getAGIId());
+        try {
+            geiDB = new GridEngineInterfaceDB(utdb_host
+                                             ,utdb_port
+                                             ,utdb_user
+                                             ,utdb_pass
+                                             ,utdb_name);
+            jobDesc = geiDB.getJobDescription(gedCommand.getAGIId());
+        } catch (Exception e) {          
+            _log.fatal("Unable get job description for command:"+LS+gedCommand
+                                                                +LS+e.toString());
+        }
+        finally {
+           if(geiDB!=null) geiDB.close(); 
+        }               
+        return jobDesc;
+    }
+    /**
      * Prepares the jobOuput for the APIServer
      * @return Directory containing output files
      */
-    public String prepareJobOutput() {
-        String tgzFileName = gedCommand.getActionInfo()+"/"
-                           + "jobOutput/task_id"
-                           + gedCommand.getTaskId()+"_"
-                           + gedCommand.getAGIId()+".tgz";
+    public String prepareJobOutput() { 
+        String jobDescription = getJobDescription();
+        String tgzFileName = 
+                gedCommand.getActionInfo()+"/jobOutput/"
+               +JSagaJobSubmission.
+                       removeNotAllowedCharacter(jobDescription+"_"
+                                                +gedCommand.getAGIId()+".tgz");
         _log.debug("tgzFileName: '"+tgzFileName+"'");
         try {
         Process unpackTar = 
@@ -339,8 +489,8 @@ public class GridEngineInterface {
         } catch (Exception e) {          
             _log.fatal("Error extracting archive: "+tgzFileName);
         }
-        return  "task_id"
-               + gedCommand.getTaskId()+"_"
-               + gedCommand.getAGIId();
+        return JSagaJobSubmission.
+                    removeNotAllowedCharacter(jobDescription+"_"
+                                             +gedCommand.getAGIId());
     }
 }

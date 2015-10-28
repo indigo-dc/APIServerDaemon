@@ -178,20 +178,46 @@ public class GridEngineInterfaceDB {
         }          
         return jobStatus;
     }
+    
+    /**
+     * 
+     */
+    public String getJobDescription(int agi_id) {
+        String jobStatus = null;
+        if (!connect()) {          
+            _log.fatal("Not connected to database"); 
+            return jobStatus;
+        }
+        try {
+            String sql;            
+            sql="select user_description"     +LS
+               +"from ActiveGridInteractions" +LS
+               +"where id = ?;";               
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt(1, agi_id);            
+            resultSet=preparedStatement.executeQuery(); 
+            resultSet.next();
+            jobStatus=resultSet.getString("user_description");
+        } catch (SQLException e) {                      
+            _log.fatal(e.toString());
+        }          
+        return jobStatus;
+    }
 
     /**
      * Get ActiveGridInteraction' id field from task_id
      * @param taskId
      * @return 
      */
-    int getAGIId(int task_id) {
+    int getAGIId(GridEngineDaemonCommand geCommand) {
         int agi_id = 0;
         if (!connect()) {          
             _log.fatal("Not connected to database");
             return agi_id;
         }
         try {
-            String jobDesc = "task_id: "+task_id;
+            String jobDesc = geCommand.getTaskId()+"@"
+                            +geCommand.getActionInfo();
             String sql;            
             sql="select id"                   +LS
                +"from ActiveGridInteractions" +LS

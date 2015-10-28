@@ -26,7 +26,6 @@ package it.infn.ct;
 import java.lang.Runtime;
 import java.util.Iterator;
 import java.util.List;
-//import java.util.logging.Logger;
 import org.apache.log4j.Logger;
 
 /**
@@ -39,7 +38,7 @@ import org.apache.log4j.Logger;
  * @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
  * @see GridEngineInterface
  */
-class GridEngineDaemonCheckCommand implements Runnable {        
+public class GridEngineDaemonCheckCommand implements Runnable  {        
     
     private GridEngineDaemonCommand gedCommand;    
     private String gedConnectionURL;      
@@ -177,7 +176,8 @@ class GridEngineDaemonCheckCommand implements Runnable {
             // GetOutput call to work        
             if(gedCommand.getAGIId() != 0) {
                 gedCommand.setGEStatus(geInterface.jobStatus());
-                if(gedCommand.getGEStatus().equals("DONE")) {
+                if(gedCommand.getGEStatus() != null
+                && gedCommand.getGEStatus().equals("DONE")) {
                     gedCommand.setStatus("DONE");
                     // DONE command means that jobOutput is ready
                     String outputDir = geInterface.prepareJobOutput();

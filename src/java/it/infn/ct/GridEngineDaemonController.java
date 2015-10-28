@@ -26,8 +26,8 @@ package it.infn.ct;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-//import java.util.logging.Logger;
 import org.apache.log4j.Logger;
+import java.util.Observable;
 
 /**
  * Runnable class that controls GridEngineDaemon activities such as:
@@ -40,7 +40,8 @@ import org.apache.log4j.Logger;
  * @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
  * @see GridEngineDaemonPolling
  */
-public class GridEngineDaemonController implements Runnable {
+public class GridEngineDaemonController extends Observable 
+                                        implements Runnable {
     /*
       GridEngine API Server Database settings
     */
@@ -189,5 +190,6 @@ public class GridEngineDaemonController implements Runnable {
          Tells to the controller thread to exit from its loop
         */
         geControllerStatus = false;
+        notifyObservers();
     }
 }
