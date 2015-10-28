@@ -24,12 +24,13 @@ package it.infn.ct;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+//import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 /**
  * GridEngineDaemonServlet Servlet used only to report GridEngineDaemon 
@@ -42,9 +43,19 @@ public class GridEngineDaemonServlet extends HttpServlet {
     /*
         Logger
     */
-    private static final Logger _log = Logger.getLogger(GridEngineDaemonLogger.class.getName());
+    private static final Logger _log = Logger.getLogger(GridEngineDaemonServlet.class.getName());
+    
     private static final String LS = System.getProperty("line.separator");        
-
+    
+    /**
+     * Servlet init function
+     *
+    @Override
+    public void init(ServletConfig config) throws ServletException {
+        // Read init parameters (web.xml)
+        //String initParamValue = config.getInitParameter("initParamName");    
+    }
+    * /
     
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>

@@ -28,7 +28,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.Properties;
-import java.util.logging.Logger;
+//import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 /**
  * Class that contain all GridEngineDaemon configuration settings
@@ -40,7 +41,7 @@ public class GridEngineDaemonConfig {
     /*
       Logger
     */
-    private static final Logger _log = Logger.getLogger(GridEngineDaemonLogger.class.getName());
+    private static final Logger _log = Logger.getLogger(GridEngineDaemonConfig.class.getName());
     
     public static final String LS = System.getProperty("line.separator");
 
@@ -179,12 +180,12 @@ public class GridEngineDaemonConfig {
                 this.utdb_pass=prop_utdb_pass;
             if(prop_utdb_name!=null)
                 this.utdb_name=prop_utdb_name;
-        } catch(NullPointerException e) {
-            _log.warning("Unable to load property file; using default settings");
+        } catch(NullPointerException e) {          
+            _log.warn("Unable to load property file; using default settings");
         } catch(IOException e) {
-            _log.warning("Error reading file: "+ e);
-        } catch(NumberFormatException e) {
-            _log.warning("Error while reading property file: "+ e);
+            _log.warn("Error reading file: "+ e);
+        } catch(NumberFormatException e) {          
+            _log.warn("Error while reading property file: "+ e);
         }
         finally {
                 try {

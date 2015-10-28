@@ -25,7 +25,8 @@ package it.infn.ct;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Logger;
+//import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 /**
  * Runnable class responsible to execute GridEngineDaemon commands
@@ -58,8 +59,8 @@ class GridEngineDaemonProcessCommand implements Runnable {
 
     /*
       Logger
-    */
-    private static final Logger _log = Logger.getLogger(GridEngineDaemonLogger.class.getName());
+    */  
+    private static final Logger _log = Logger.getLogger(GridEngineDaemonProcessCommand.class.getName());
     
     public static final String LS = System.getProperty("line.separator");
     
@@ -104,8 +105,8 @@ class GridEngineDaemonProcessCommand implements Runnable {
                 break;
             case JOBCANCEL: jobCancel();
                 break;
-            default:
-                _log.warning("Unsupported command: '"+gedCommand.getAction()+"'");
+            default:              
+                _log.warn("Unsupported command: '"+gedCommand.getAction()+"'");
                 break;
         }
     }
@@ -118,7 +119,7 @@ class GridEngineDaemonProcessCommand implements Runnable {
      * Execute a GridEngineDaemon 'submit' command
      */
     private void submit() {
-        _log.info("Submitting command: "+gedCommand);
+        _log.debug("Submitting command: "+gedCommand);
         GridEngineInterface geInterface = new GridEngineInterface(gedCommand); 
         geInterface.setConfig(gedConfig);
         gedCommand.setAGIId(geInterface.jobSubmit());
@@ -131,7 +132,7 @@ class GridEngineDaemonProcessCommand implements Runnable {
      * Asynchronous GETSTATUS commands should never come here
      */
     private void getStatus() {
-        _log.info("Get status command: "+gedCommand);
+        _log.debug("Get status command: "+gedCommand);
         GridEngineInterface geInterface = new GridEngineInterface(gedCommand);
         gedCommand.setStatus(geInterface.jobStatus());
         gedCommand.setStatus("PROCESSED");
@@ -143,7 +144,7 @@ class GridEngineDaemonProcessCommand implements Runnable {
      * Asynchronous GETOUTPUT commands should never come here
      */
     private void getOutput() {
-        _log.info("Get output command: "+gedCommand);
+        _log.debug("Get output command: "+gedCommand);
         GridEngineInterface geInterface = new GridEngineInterface(gedCommand);
         gedCommand.setStatus(geInterface.jobOutput());
         gedCommand.setStatus("PROCESSED");
@@ -154,7 +155,7 @@ class GridEngineDaemonProcessCommand implements Runnable {
      * Execute a GridEngineDaemon 'job cancel' command
      */
     private void jobCancel() {
-        _log.info("Job cancel command: "+gedCommand);
+        _log.debug("Job cancel command: "+gedCommand);
         GridEngineInterface geInterface = new GridEngineInterface(gedCommand);
         geInterface.jobCancel();
         gedCommand.setStatus("PROCESSED");
@@ -172,9 +173,9 @@ class GridEngineDaemonProcessCommand implements Runnable {
                     gedDB= new GridEngineDaemonDB(gedConnectionURL);
                     gedDB.updateCommand(gedCommand); 
                     gedCommand.validate();
-                } catch (Exception e) {
-                    _log.severe("Unable update command:"+LS+gedCommand
-                                                         +LS+e.toString());
+                } catch (Exception e) {                  
+                    _log.fatal("Unable update command:"+LS+gedCommand
+                                                       +LS+e.toString());
                 }
                 finally {
                    if(gedDB!=null) gedDB.close(); 

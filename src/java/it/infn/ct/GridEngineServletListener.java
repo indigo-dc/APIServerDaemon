@@ -23,9 +23,13 @@ limitations under the License.
 
 package it.infn.ct;
 
-import java.io.IOException;
+import java.io.File;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.PropertyConfigurator;
+
 
 /**
  * Servlet context listener object used to instantiate the GridEngineDaemon
@@ -35,8 +39,15 @@ import javax.servlet.ServletContextListener;
  */
 public class GridEngineServletListener implements ServletContextListener {
     
+    private static final String LS = System.getProperty("line.separator");
+    private static final String PS = System.getProperty("file.separator");
+    private static final String US = System.getProperty("user.name");
+    private static final String VN = System.getProperty("java.vendor");
+    private static final String VR = System.getProperty("java.version");
+    
     private GridEngineDaemon geDaemon = null;
-    private GridEngineDaemonLogger geDaemonLog = null;
+  //private GridEngineDaemonLogger geDaemonLog = null;
+    ServletContext  context;
     
     /**
      * Called during servlet context initalization, it instantiate the
@@ -46,13 +57,30 @@ public class GridEngineServletListener implements ServletContextListener {
      */
     @Override
     public void contextInitialized(ServletContextEvent sce) {        
-        if (geDaemonLog == null) {
-            try {
-                geDaemonLog = new GridEngineDaemonLogger();                
-            } catch(IOException e) {
-                e.printStackTrace();
-            }
-        }        
+        
+        context = sce.getServletContext();
+        String webAppPath = context.getRealPath(PS);
+        System.out.println("--- Starting GridEngineDaemon ---");        
+        System.out.println("Java vendor : '" + VN +"'");
+        System.out.println("Java vertion: '" + VR +"'");
+        System.out.println("Running as  : '" + US +"' username");
+        System.out.println("Servlet path: '" + webAppPath +"'");
+        
+        // Initialize log4j logging
+        String log4jPropPath = webAppPath + "WEB-INF"+PS+"log4j.properties";
+        File log4PropFile = new File(log4jPropPath);
+        if (log4PropFile.exists()) {
+            System.out.println("Initializing log4j with: " + log4jPropPath);
+            PropertyConfigurator.configure(log4jPropPath);            
+        } else {
+            System.err.println("WARNING: '" + log4jPropPath + "' file not found, so initializing log4j with BasicConfigurator");
+                BasicConfigurator.configure();
+        }
+        
+        // Register MySQL driver
+        GridEngineDaemonDB.registerDriver();
+        
+        // Initializing the daemon
         if (geDaemon == null) {
             geDaemon = new GridEngineDaemon();
         }
@@ -68,5 +96,8 @@ public class GridEngineServletListener implements ServletContextListener {
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
         if(geDaemon!=null) geDaemon.shutdown();
+        
+        // Unregister MySQL driver
+        GridEngineDaemonDB.unregisterDriver();
     }
 }

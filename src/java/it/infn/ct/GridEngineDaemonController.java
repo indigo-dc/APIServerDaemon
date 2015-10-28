@@ -26,7 +26,8 @@ package it.infn.ct;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.logging.Logger;
+//import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 /**
  * Runnable class that controls GridEngineDaemon activities such as:
@@ -69,8 +70,8 @@ public class GridEngineDaemonController implements Runnable {
     
     /*
       Logger
-    */
-    private static final Logger _log = Logger.getLogger(GridEngineDaemonLogger.class.getName());
+    */    
+    private static final Logger _log = Logger.getLogger(GridEngineDaemonController.class.getName());
     
     public static final String LS = System.getProperty("line.separator");
     
@@ -146,9 +147,9 @@ public class GridEngineDaemonController implements Runnable {
                                              ,apisrv_dbname);
                 List<GridEngineDaemonCommand> 
                     commands = gedDB.getControllerCommands(geControllerMaxCommands);
-                _log.info("Received "
-                         +commands.size()+"/"+geControllerMaxCommands
-                         +" controller commands");
+                _log.debug("Received "
+                          +commands.size()+"/"+geControllerMaxCommands
+                          +" controller commands");
                 /*
                   Process retrieved commands
                 */
@@ -165,8 +166,8 @@ public class GridEngineDaemonController implements Runnable {
                     }                    
                 }
             } catch (Exception e) {
-                /* Do something */
-                _log.severe("Unable to get APIServer commands");
+                /* Do something */              
+                _log.fatal("Unable to get APIServer commands");
             }
             finally {
                if(gedDB!=null) gedDB.close(); 

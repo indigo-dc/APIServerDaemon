@@ -31,9 +31,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
-import java.util.logging.Logger;
 import org.json.*;
 import org.apache.commons.io.IOUtils;
+//import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 /**
  * This class interfaces any call to the GridEngine library
@@ -58,8 +59,8 @@ public class GridEngineInterface {
     String gedIPAddress;
     /*
       Logger
-    */
-    private static final Logger _log = Logger.getLogger(GridEngineDaemonLogger.class.getName());
+    */  
+    private static final Logger _log = Logger.getLogger(GridEngineInterface.class.getName());
     
     public static final String LS = System.getProperty("line.separator");
 
@@ -69,7 +70,7 @@ public class GridEngineInterface {
      * Empty constructor for GridEngineInterface
      */
     public GridEngineInterface() {
-        _log.info("Initializing empty GridEngineInterface");
+        _log.debug("Initializing GridEngineInterface");
         getIP();
     }
     /**
@@ -77,9 +78,8 @@ public class GridEngineInterface {
      */
     public GridEngineInterface(GridEngineDaemonCommand gedCommand) {
         this();
-        this.gedCommand=gedCommand;
-        _log.info("Initialized GridEngineInterface with command: "+LS
-                  +this.gedCommand);        
+        _log.debug("GridEngineInterface command:"+LS+gedCommand);
+        this.gedCommand=gedCommand;        
     }
     
     /*
@@ -98,7 +98,8 @@ public class GridEngineInterface {
         this.utdb_user = gedConfig.getGridEngine_db_user();
         this.utdb_pass = gedConfig.getGridEngine_db_pass();
         this.utdb_name = gedConfig.getGridEngine_db_name();
-        _log.info("GridEngineInterface config:"            +LS
+        _log.debug(
+                  "GridEngineInterface config:"            +LS
                  +"  [UsersTrackingDB]"                    +LS
                  +"    db_host: '"      +this.utdb_host+"'"+LS
                  +"    db_port: '"      +this.utdb_port+"'"+LS
@@ -119,8 +120,8 @@ public class GridEngineInterface {
                          +":"+(short)(ipAddr[2]&0xff)
                          +":"+(short)(ipAddr[3]&0xff);
         }
-        catch(Exception e) {
-            _log.severe("Unable to get the portal IP address");
+        catch(Exception e) {          
+            _log.fatal("Unable to get the portal IP address");
         }
     }
     
@@ -130,7 +131,7 @@ public class GridEngineInterface {
      */
     public int jobSubmit() {
         int agi_id=0;        
-        _log.info("Submitting job");
+        _log.debug("Submitting job");
         MultiInfrastructureJobSubmission mijs =
             new MultiInfrastructureJobSubmission(
                     "jdbc:mysql://"+utdb_host+":"
@@ -140,9 +141,9 @@ public class GridEngineInterface {
                     ,utdb_pass
             );
         if(mijs==null)
-            _log.info("mijs is NULL, sorry!");       
+            _log.debug("mijs is NULL, sorry!");       
         else try {            
-            _log.info("Loading GridEngine job JSON desc");
+            _log.debug("Loading GridEngine job JSON desc");
             JSONObject jsonJobDesc = loadJSONJobDesc();
             // application
             int geAppId = jsonJobDesc.getInt("application");
@@ -213,19 +214,19 @@ public class GridEngineInterface {
                                                       ,gedIPAddress
                                                       ,geAppId
                                                       ,jobIdentifier);  
-                        _log.info("AGI_id: "+agi_id);
-                    } catch (Exception e) {
-                        _log.severe("Caught exception:"+LS+e.toString());
+                        _log.debug("AGI_id: "+agi_id);
+                    } catch (Exception e) {                      
+                        _log.fatal("Caught exception:"+LS+e.toString());
                     }
                     break;
-                default:
-                    _log.severe("Unrecognized or unsupported adaptor found!");
+                default:                  
+                    _log.fatal("Unrecognized or unsupported adaptor found!");
             }   
-        } catch(IOException e) {
-            _log.severe("Unable to load GridEngine JSON job description\n"+LS
+        } catch(IOException e) {          
+            _log.fatal("Unable to load GridEngine JSON job description\n"+LS
                        +e.toString()); 
-        } catch(Exception e) {
-            _log.severe("Unable to submit job: "+LS+e.toString());
+        } catch(Exception e) {          
+            _log.fatal("Unable to submit job: "+LS+e.toString());
         }            
         return agi_id;
     }
@@ -235,7 +236,7 @@ public class GridEngineInterface {
     public String jobStatus() {
         String jobStatus = null;
         GridEngineInterfaceDB geiDB = null;
-        _log.info("Getting job status");
+        _log.debug("Getting job status");
         // It is more convenient to directly query the ActiveGridInteraction
         // since GridEngine JobCheck threads are in charge to update this
         try {
@@ -245,8 +246,8 @@ public class GridEngineInterface {
                                              ,utdb_pass
                                              ,utdb_name);
             jobStatus = geiDB.getJobStatus(gedCommand.getAGIId());
-        } catch (Exception e) {
-            _log.severe("Unable get command status:"+LS+gedCommand
+        } catch (Exception e) {         
+            _log.fatal("Unable get command status:"+LS+gedCommand        
                                                     +LS+e.toString());
         }
         finally {
@@ -258,14 +259,14 @@ public class GridEngineInterface {
      * submit the job identified by the gedCommand values
      */
     public String jobOutput() {
-        _log.info("Getting job output");
+        _log.debug("Getting job output");
         return "NOTIMPLEMENTED";
     }
     /**
      * submit the job identified by the gedCommand values
      */
     public void jobCancel() {
-        _log.info("Cancelling job");
+        _log.debug("Cancelling job");
         return;
     }
 
@@ -284,9 +285,9 @@ public class GridEngineInterface {
             InputStream is = new FileInputStream(jobDescFileName);
             String jsonTxt = IOUtils.toString(is);
             jsonJobDesc = (JSONObject) new JSONObject(jsonTxt);                        
-            _log.info("Loaded GridEngine JobDesc:\n"+LS+jsonJobDesc);
+            _log.debug("Loaded GridEngine JobDesc:\n"+LS+jsonJobDesc);
         } catch(Exception e) {
-            _log.info("Caught exception: "+ e.toString());
+            _log.warn("Caught exception: "+ e.toString());
         }
         return jsonJobDesc;
     } 
@@ -299,7 +300,7 @@ public class GridEngineInterface {
     public int getAGIId() {
         int agi_id = 0;
         GridEngineInterfaceDB geiDB = null;
-        _log.info("Getting ActiveGridInteraciton' id field for task: "
+        _log.debug("Getting ActiveGridInteraciton' id field for task: "
                  +gedCommand.getTaskId());
         try {
             geiDB = new GridEngineInterfaceDB(utdb_host
@@ -308,9 +309,9 @@ public class GridEngineInterface {
                                              ,utdb_pass
                                              ,utdb_name);
             agi_id = geiDB.getAGIId(gedCommand.getTaskId());
-        } catch (Exception e) {
-            _log.severe("Unable get id:"+LS+gedCommand
-                                                    +LS+e.toString());
+        } catch (Exception e) {          
+            _log.fatal("Unable get id:"+LS+gedCommand
+                                       +LS+e.toString());
         }
         finally {
            if(geiDB!=null) geiDB.close(); 
@@ -327,7 +328,7 @@ public class GridEngineInterface {
                            + "jobOutput/task_id"
                            + gedCommand.getTaskId()+"_"
                            + gedCommand.getAGIId()+".tgz";
-        _log.info("tgzFileName: '"+tgzFileName+"'");
+        _log.debug("tgzFileName: '"+tgzFileName+"'");
         try {
         Process unpackTar = 
                 Runtime.getRuntime().exec("tar xzvf "
@@ -335,8 +336,8 @@ public class GridEngineInterface {
                                          +" -C "
                                          +gedCommand.getActionInfo());
         unpackTar.waitFor();
-        } catch (Exception e) {
-            _log.severe("Error extracting archive: "+tgzFileName);
+        } catch (Exception e) {          
+            _log.fatal("Error extracting archive: "+tgzFileName);
         }
         return  "task_id"
                + gedCommand.getTaskId()+"_"

@@ -26,7 +26,8 @@ package it.infn.ct;
 import java.lang.Runtime;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Logger;
+//import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 /**
  * Runnable class responsible to check GridEngineDaemon commands
@@ -61,7 +62,7 @@ class GridEngineDaemonCheckCommand implements Runnable {
     /*
       Logger
     */
-    private static final Logger _log = Logger.getLogger(GridEngineDaemonLogger.class.getName());
+    private static final Logger _log = Logger.getLogger(GridEngineDaemonCheckCommand.class.getName());
     
     public static final String LS = System.getProperty("line.separator");
     
@@ -122,7 +123,7 @@ class GridEngineDaemonCheckCommand implements Runnable {
      */
     @Override
     public void run() {
-        _log.info("Checking command: "+gedCommand);
+        _log.debug("Checking command: "+gedCommand);
         
         switch (Commands.valueOf(gedCommand.getAction())) {
             case SUBMIT:    submit();
@@ -133,8 +134,8 @@ class GridEngineDaemonCheckCommand implements Runnable {
                 break;
             case JOBCANCEL: jobCancel();
                 break;
-            default:
-                _log.warning("Unsupported command: '"+gedCommand.getAction()+"'");
+            default:              
+                _log.warn("Unsupported command: '"+gedCommand.getAction()+"'");
                 break;
         }                
     }
@@ -146,7 +147,9 @@ class GridEngineDaemonCheckCommand implements Runnable {
     /**
      * Execute a GridEngineDaemon 'submit' command
      */
-    private void submit() {        
+    private void submit() {
+        _log.debug("Checking submitted command: "+gedCommand);        
+        
         if(gedCommand.getStatus().equals("PROCESSING")) {
             // This check consistency of the command execution
             // if it takes too long the command should be 
@@ -182,8 +185,7 @@ class GridEngineDaemonCheckCommand implements Runnable {
                 }
                 updateCommand();
             }
-        }
-        _log.info("Checking submitted command: "+gedCommand);        
+        }        
     }
     
     /**
@@ -191,7 +193,7 @@ class GridEngineDaemonCheckCommand implements Runnable {
      * Asynchronous GETSTATUS commands should never come here
      */
     private void getStatus() {
-        _log.info("Checkinig get status command: "+gedCommand);
+        _log.debug("Checkinig get status command: "+gedCommand);
     }
     
     /**
@@ -199,14 +201,14 @@ class GridEngineDaemonCheckCommand implements Runnable {
      * Asynchronous GETOUTPUT commands should never come here
      */
     private void getOutput() {
-        _log.info("Check get output command: "+gedCommand);
+        _log.debug("Check get output command: "+gedCommand);
     }
     
     /**
      * Execute a GridEngineDaemon 'job cancel' command
      */
     private void jobCancel() {
-        _log.info("Check job cancel command: "+gedCommand);
+        _log.debug("Check job cancel command: "+gedCommand);
     }
         
     /**
@@ -220,9 +222,9 @@ class GridEngineDaemonCheckCommand implements Runnable {
                     gedDB= new GridEngineDaemonDB(gedConnectionURL);
                     gedDB.updateCommand(gedCommand);
                     gedCommand.validate();
-            } catch (Exception e) {
-                _log.severe("Unable update command:"+LS+gedCommand
-                                                     +LS+e.toString());
+            } catch (Exception e) {              
+                _log.fatal("Unable update command:"+LS+gedCommand
+                                                   +LS+e.toString());
             }
             finally {
                if(gedDB!=null) gedDB.close(); 
@@ -239,7 +241,8 @@ class GridEngineDaemonCheckCommand implements Runnable {
                 gedDB= new GridEngineDaemonDB(gedConnectionURL);
                 gedDB.updateOutputPaths(gedCommand,outputDir);                
         } catch (Exception e) {
-            _log.severe("Unable release command:"+LS+gedCommand
+          //_log.severe("Unable release command:"+LS+gedCommand
+            _log.fatal("Unable release command:"+LS+gedCommand
                                                  +LS+e.toString());
         }
         finally {

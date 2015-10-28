@@ -31,7 +31,8 @@ package it.infn.ct;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.logging.Logger;
+//import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 /**
  * This is the Runnable class that implements the polling thread
@@ -70,7 +71,7 @@ class GridEngineDaemonPolling implements Runnable {
     /*
       Logger
     */
-    private static final Logger _log = Logger.getLogger(GridEngineDaemonLogger.class.getName());
+    private static final Logger _log = Logger.getLogger(GridEngineDaemonPolling.class.getName());
     
     public static final String LS = System.getProperty("line.separator");
 
@@ -162,7 +163,7 @@ class GridEngineDaemonPolling implements Runnable {
                                              ,apisrv_dbname);
                 List<GridEngineDaemonCommand> 
                     commands = gedDB.getQueuedCommands(gePollingMaxCommands);
-                _log.info("Received "
+                _log.debug("Received "
                          +commands.size()+"/"+gePollingMaxCommands
                          +" waiting commands");
                 /*
@@ -180,9 +181,8 @@ class GridEngineDaemonPolling implements Runnable {
                         gedExecutor.execute(gedProcCmd);
                     }
                 }
-            } catch (Exception e) {
-                /* Do something */
-                _log.severe("Unable to get APIServer commands");
+            } catch (Exception e) {                              
+                _log.fatal("Unable to get APIServer commands");
             }
             finally {
                if(gedDB!=null) gedDB.close(); 

@@ -24,15 +24,18 @@ limitations under the License.
 package it.infn.ct;
 
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Logger;
+//import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 /**
  * Class managing any transaction on GridEngineDaemon database
@@ -86,11 +89,41 @@ public class GridEngineDaemonDB {
     /**
      * Logger
      */
-    private static final Logger _log = Logger.getLogger(GridEngineDaemonLogger.class.getName());
+    private static final Logger _log = Logger.getLogger(GridEngineDaemonDB.class.getName());
     
     public static final String LS = System.getProperty("line.separator");
     
     String threadName;
+    
+    private static String driverURL = "com.mysql.jdbc.Driver";
+    
+    /**
+     * Register the MySQL driver
+     */
+    public static void registerDriver() {
+        try {        
+            _log.debug("Registering driver: '"+driverURL+"'");
+            Class.forName(driverURL);
+        } catch (ClassNotFoundException e) {
+            _log.fatal("Unable to unregister driver: '"+driverURL+"'");
+        }
+    }
+    
+    /**
+     * Unregister MySQL driver
+     */
+    public static void unregisterDriver() {        
+        Enumeration<Driver> drivers = DriverManager.getDrivers();
+        while (drivers.hasMoreElements()) {
+            Driver driver = drivers.nextElement();
+            try {
+                DriverManager.deregisterDriver(driver);
+                _log.info(String.format("deregistering jdbc driver: %s", driver));
+            } catch (SQLException e) {
+                _log.fatal(String.format("Error deregistering driver %s", driver), e);
+            }
+        }
+    }
     
     /*
       Constructors ...
@@ -131,7 +164,8 @@ public class GridEngineDaemonDB {
         this.dbuser = dbuser;
         this.dbpass = dbpass;
         this.dbname = dbname;
-        _log.info("DB: host='" + this.dbhost +
+        _log.debug(
+                   "DB: host='" + this.dbhost +
                    "', port='" + this.dbport +
                    "', user='" + this.dbuser +
                    "', pass='" + this.dbpass +
@@ -149,7 +183,7 @@ public class GridEngineDaemonDB {
                           +"/"             + dbname
                           +"?user="        + dbuser
                           +"&password="    + dbpass;
-        _log.info("DBURL: '"+this.connectionURL+"'");
+        _log.debug("DBURL: '"+this.connectionURL+"'");
     }
     
     /**
@@ -166,13 +200,13 @@ public class GridEngineDaemonDB {
      */
     private boolean connect() {
         try {
-            Class.forName("com.mysql.jdbc.Driver");
+          //Class.forName("com.mysql.jdbc.Driver");
             connect = DriverManager.getConnection(this.connectionURL);
-        } catch (Exception e) {
-            _log.severe("Unable to connect DB: '"+this.connectionURL+"'");
-            _log.severe(e.toString());
+        } catch (Exception e) {          
+            _log.fatal("Unable to connect DB: '"+this.connectionURL+"'");          
+            _log.fatal(e.toString());
         }
-        _log.info("Connected to DB: '"+this.connectionURL+"'");
+        _log.debug("Connected to DB: '"+this.connectionURL+"'");
         return (connect != null);
     }
     /**
@@ -184,11 +218,11 @@ public class GridEngineDaemonDB {
             if(statement         != null) { statement.close();         statement         = null; }
             if(preparedStatement != null) { preparedStatement.close(); preparedStatement = null; }
             if(connect           != null) { connect.close();           connect           = null; }
-        } catch (Exception e) {
-            _log.severe("Unable to close DB: '"+this.connectionURL+"'");
-            _log.severe(e.toString());
+        } catch (Exception e) {          
+            _log.fatal("Unable to close DB: '"+this.connectionURL+"'");          
+            _log.fatal(e.toString());
         }
-        _log.info("Closed DB: '"+this.connectionURL+"'");
+        _log.debug("Closed DB: '"+this.connectionURL+"'");
     } 
     
     /**
@@ -203,8 +237,8 @@ public class GridEngineDaemonDB {
      * @see GridEngineDaemonCommand
      */
     public List<GridEngineDaemonCommand> getQueuedCommands(int maxCommands) {        
-        if (!connect()) {
-            _log.severe("Not connected to database");
+        if (!connect()) {          
+            _log.fatal("Not connected to database");
             return null;
         }
         List<GridEngineDaemonCommand> commandList = new ArrayList<>();
@@ -242,7 +276,7 @@ public class GridEngineDaemonDB {
                                ,resultSet.getDate  ("last_change")
                                ,resultSet.getString("action_info"));                
                 if (null != gedCmd) commandList.add(gedCmd);
-                _log.info("Loaded command: "+LS+gedCmd);                
+                _log.debug("Loaded command: "+LS+gedCmd);                
             }
             // change status to the taken commands as PROCESSING
             Iterator<GridEngineDaemonCommand> iterCmds = commandList.iterator(); 
@@ -259,8 +293,8 @@ public class GridEngineDaemonDB {
             sql="unlock tables;";
             statement=connect.createStatement();
             statement.execute(sql);
-        } catch (SQLException e) {            
-            _log.severe(e.toString());
+        } catch (SQLException e) {                      
+            _log.fatal(e.toString());
         }        
         return commandList;
     }
@@ -278,8 +312,8 @@ public class GridEngineDaemonDB {
      */
     public List<GridEngineDaemonCommand> 
         getControllerCommands(int maxCommands) {        
-        if (!connect()) {
-            _log.severe("Not connected to database");
+        if (!connect()) {          
+            _log.fatal("Not connected to database");
             return null;
         }
         List<GridEngineDaemonCommand> commandList = new ArrayList<>();
@@ -315,10 +349,10 @@ public class GridEngineDaemonDB {
                                ,resultSet.getDate  ("last_change")
                                ,resultSet.getString("action_info"));                
                 if (null != gedCmd) commandList.add(gedCmd);
-                _log.info("Loaded command: "+LS+gedCmd);                
+                _log.debug("Loaded command: "+LS+gedCmd);                
             }
-        } catch (SQLException e) {            
-            _log.severe(e.toString());
+        } catch (SQLException e) {                      
+            _log.fatal(e.toString());
         }        
         return commandList;
     }       
@@ -332,8 +366,8 @@ public class GridEngineDaemonDB {
      * @see GridEngineCommand
     */    
     public void updateCommand(GridEngineDaemonCommand command) {    
-        if (!connect()) {
-            _log.severe("Not connected to database");
+        if (!connect()) {          
+            _log.fatal("Not connected to database");
             return;
         }        
         try {
@@ -357,11 +391,11 @@ public class GridEngineDaemonDB {
             sql="unlock tables;";
             statement=connect.createStatement();
             statement.execute(sql);
-            _log.info("Updated command: "+LS+command);
+            _log.debug("Updated command: "+LS+command);
             // propagate Status change in APIServer' task table
             updateAPIServerStatus(command);
-        } catch (SQLException e) {            
-            _log.severe(e.toString());
+        } catch (SQLException e) {                      
+            _log.fatal(e.toString());
         }
     }
     
@@ -369,8 +403,8 @@ public class GridEngineDaemonDB {
      * Update APIServer command status
      */
     void updateAPIServerStatus(GridEngineDaemonCommand command) {
-        if (!connect()) {
-            _log.severe("Not connected to database");
+        if (!connect()) {          
+            _log.fatal("Not connected to database");
             return;
         }        
         try {
@@ -391,10 +425,10 @@ public class GridEngineDaemonDB {
             sql="unlock tables;";
             statement=connect.createStatement();
             statement.execute(sql);
-            _log.info("Status updated to "+command.getStatus()
+            _log.debug("Status updated to "+command.getStatus()
                      +"for task: "+command.getTaskId());
-        } catch (SQLException e) {            
-            _log.severe(e.toString());
+        } catch (SQLException e) {                      
+            _log.fatal(e.toString());
         }
     }
     
@@ -403,8 +437,8 @@ public class GridEngineDaemonDB {
      */
     void updateOutputPaths(GridEngineDaemonCommand command
                           ,String outputDir) {
-        if (!connect()) {
-            _log.severe("Not connected to database");
+        if (!connect()) {          
+            _log.fatal("Not connected to database");
             return;
         }        
         try {
@@ -424,10 +458,10 @@ public class GridEngineDaemonDB {
             sql="unlock tables;";
             statement=connect.createStatement();
             statement.execute(sql);
-            _log.info("Output dir '"+command.getActionInfo()+"/"+outputDir
+            _log.debug("Output dir '"+command.getActionInfo()+"/"+outputDir
                       +"' updated");
-        } catch (SQLException e) {            
-            _log.severe(e.toString());
+        } catch (SQLException e) {                      
+            _log.fatal(e.toString());
         }
     }
     

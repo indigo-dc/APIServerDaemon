@@ -29,8 +29,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.logging.Logger;
-
+//import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 /**
  * This class interfaces the GridEngine userstracking database; it helps
@@ -60,7 +60,7 @@ public class GridEngineInterfaceDB {
     /*
       Logger
     */
-    private static final Logger _log = Logger.getLogger(GridEngineDaemonLogger.class.getName());
+    private static final Logger _log = Logger.getLogger(GridEngineInterfaceDB.class.getName());
     
     public static final String LS = System.getProperty("line.separator");
     
@@ -68,7 +68,7 @@ public class GridEngineInterfaceDB {
      * Empty constructor for GridEngineInterface
      */
     public GridEngineInterfaceDB() {
-        _log.info("Initializing GridEngineInterfaceDB");        
+        _log.debug("Initializing GridEngineInterfaceDB");        
     }
     
     /**
@@ -78,6 +78,7 @@ public class GridEngineInterfaceDB {
      */
     public GridEngineInterfaceDB(String connectionURL) { 
         this();
+        _log.debug("GridEngineInterfaceDB connection URL:"+LS+connectionURL);
         this.connectionURL=connectionURL;
     }
     
@@ -113,7 +114,7 @@ public class GridEngineInterfaceDB {
                           +"/"             + utdb_name
                           +"?user="        + utdb_user
                           +"&password="    + utdb_pass;
-        _log.info("DBURL: '"+this.connectionURL+"'");
+        _log.debug("DBURL: '"+this.connectionURL+"'");
     }
     
     /**
@@ -132,11 +133,11 @@ public class GridEngineInterfaceDB {
         try {
             Class.forName("com.mysql.jdbc.Driver");
             connect = DriverManager.getConnection(this.connectionURL);
-        } catch (Exception e) {
-            _log.severe("Unable to connect DB: '"+this.connectionURL+"'");
-            _log.severe(e.toString());
+        } catch (Exception e) {          
+            _log.fatal("Unable to connect DB: '"+this.connectionURL+"'");          
+            _log.fatal(e.toString());
         }
-        _log.info("Connected to DB: '"+this.connectionURL+"'");
+        _log.debug("Connected to DB: '"+this.connectionURL+"'");
         return (connect != null);
     }
     
@@ -149,17 +150,17 @@ public class GridEngineInterfaceDB {
             if(statement         != null) { statement.close();         statement         = null; }
             if(preparedStatement != null) { preparedStatement.close(); preparedStatement = null; }
             if(connect           != null) { connect.close();           connect           = null; }
-        } catch (Exception e) {
-            _log.severe("Unable to close DB: '"+this.connectionURL+"'");
-            _log.severe(e.toString());
+        } catch (Exception e) {          
+            _log.fatal("Unable to close DB: '"+this.connectionURL+"'");          
+            _log.fatal(e.toString());
         }
         _log.info("Closed DB: '"+this.connectionURL+"'");
     }
     
     public String getJobStatus(int agi_id) {
         String jobStatus = null;
-        if (!connect()) {
-            _log.severe("Not connected to database");
+        if (!connect()) {          
+            _log.fatal("Not connected to database"); 
             return jobStatus;
         }
         try {
@@ -172,8 +173,8 @@ public class GridEngineInterfaceDB {
             resultSet=preparedStatement.executeQuery(); 
             resultSet.next();
             jobStatus=resultSet.getString("status");
-        } catch (SQLException e) {            
-            _log.severe(e.toString());
+        } catch (SQLException e) {                      
+            _log.fatal(e.toString());
         }          
         return jobStatus;
     }
@@ -185,8 +186,8 @@ public class GridEngineInterfaceDB {
      */
     int getAGIId(int task_id) {
         int agi_id = 0;
-        if (!connect()) {
-            _log.severe("Not connected to database");
+        if (!connect()) {          
+            _log.fatal("Not connected to database");
             return agi_id;
         }
         try {
@@ -200,8 +201,8 @@ public class GridEngineInterfaceDB {
             resultSet=preparedStatement.executeQuery(); 
             resultSet.next();
             agi_id = resultSet.getInt("id");
-        } catch (SQLException e) {            
-            _log.severe(e.toString());
+        } catch (SQLException e) {                      
+            _log.fatal(e.toString());
         }        
         return agi_id;
     }

@@ -26,8 +26,8 @@ package it.infn.ct;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
-
+//import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 /**
  * GridEngineDaemon class instantiates the threadPool daemon and its main 
@@ -59,7 +59,7 @@ public class GridEngineDaemon {
     /*
       Logger
     */
-    private static final Logger _log = Logger.getLogger(GridEngineDaemonLogger.class.getName());
+    private static final Logger _log = Logger.getLogger(GridEngineDaemon.class.getName());
     
     private static final String LS = System.getProperty("line.separator");        
     
@@ -79,7 +79,8 @@ public class GridEngineDaemon {
         // Load GridEngineDaemon settings
         this.gedMaxThreads   = gedConfig.getMaxThreads();
         this.gedCloseTimeout = gedConfig.getCloseTimeout();   
-        _log.info("GridEngineDaemon config:"                        +LS
+        _log.debug(
+                  "GridEngineDaemon config:"                        +LS
                  +"  [Database]"                                    +LS
                  +"    db_host: '"+ this.apisrv_dbhost          +"'"+LS
                  +"    db_port: '"+ this.apisrv_dbport          +"'"+LS
@@ -96,7 +97,7 @@ public class GridEngineDaemon {
      * Initialize the GridEngine daemon Threadpool and its main polling loop
      */
     void startup() {
-        _log.info("Initializing GridEngine Daemon");
+        _log.info("Initializing GridEngine Daemon");        
         /*
          Before to start the daemon, verify that all conditions are satisfied
         */
@@ -133,12 +134,12 @@ public class GridEngineDaemon {
             _log.info("GridEngine Daemon polling termination cancelled");
         } finally {
             if(!gedExecutor.isTerminated()) {
-                _log.warning("Thread pool closure not fiished");
+               _log.warn("Thread pool closure not finished");
             }
             gedExecutor.shutdownNow();
-            _log.warning("GridEngine Daemon forcing termination");
+            _log.warn("GridEngine Daemon forcing termination");
         }
-        _log.info("GridEngine Daemon terminated");
+        _log.info("GridEngine Daemon terminated");        
     }
 
 }
