@@ -144,55 +144,67 @@ class GridEngineDaemonCommand {
      * Set GridEngineCommand 'action' field value
      * @param action
     */
-    public void setAction(String action){ 
-         if(this.action != null && !this.action.equals(action)) 
+    public void setAction(String action){
+         if (action == null) return;
+         if(this.action == null || (this.action != null && !this.action.equals(action))) {
              modified_flag=true; 
-         this.action = action; 
+            this.action = action; 
+         }
     }    
     /**
      * Set GridEngineCommand 'status' field value
      * @param status
     */
     public void setStatus(String status){
-        if(this.status != null && !this.status.equals(status)) 
+        if(status == null) return;
+        if(this.status == null || (this.status != null && !this.status.equals(status))) {
             modified_flag=true; 
-        this.status = status; 
+            this.status = status; 
+        }
     }
     /**
      * Set GridEngineCommand 'ge_status' field value
      * @param ge_status
     */
     public void setGEStatus(String ge_status){
-        if(this.ge_status != null && !this.ge_status.equals(ge_status)) 
+        if(ge_status == null) return;
+        if(this.ge_status == null || (this.ge_status != null && !this.ge_status.equals(ge_status))) {
             modified_flag=true; 
-        this.ge_status = ge_status; 
+            this.ge_status = ge_status; 
+        }
     }
     /**
      * Set GridEngineCommand 'creation' field value
      * @param creation
     */
     public void setCreation(Date creation){ 
-        if(this.creation != null && this.creation != creation) 
+        if(creation == null) return;
+        if(this.creation == null || (this.creation != null && !this.creation.equals(creation))) {
             modified_flag=true; 
-        this.creation = creation; 
+            this.creation = creation; 
+        }
     }
     /**
      * Set GridEngineCommand 'last_change' field value
      * @param last_change
     */
     public void setLastChange(Date last_change){ 
-        if(this.last_change != null && this.last_change != last_change)
+        if(last_change == null) return;
+        if(this.last_change == null || (this.last_change != null && !this.last_change.equals(last_change))) {
             modified_flag=true; 
-        this.last_change=last_change; 
+            this.last_change=last_change; 
+        }
     }
     /**
      * Set GridEngineCommand 'action_info' field value
      * @param action_info
     */
     public void setActionInfo(String action_info){ 
-        if(action_info != null && !this.action_info.equals(action_info)) 
+        if(action_info == null) return;
+        if(this.action_info == null || (this.action_info != null && !this.action_info.equals(action_info))) {
             modified_flag=true; 
-        this.action_info=action_info; 
+            this.action_info=action_info; 
+        }
     }
     
     /**

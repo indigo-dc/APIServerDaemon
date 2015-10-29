@@ -248,57 +248,11 @@ public class GridEngineInterface {
                                , password
                                , sshEndPoint);
                         mijs.addInfrastructure(infrastructures[0]);                    
-                        /* Job description
-                        mijs.setExecutable(
-                            geJobDescription.getString("executable"));
-                        mijs.setJobOutput(
-                            geJobDescription.getString("output"));
-                        mijs.setArguments(
-                            geJobDescription.getString("arguments"));
-                        mijs.setJobError(
-                            geJobDescription.getString("error"));
-                        mijs.setOutputPath(gedCommand.getActionInfo());
-                        */
+                        // Job description
                         prepareJobDescription(mijs,geJobDescription);
                         // IO Files
-                        // Scan input_files and ouptut files JSON arrays
-                        // preparing the two comma separated strings:
-                        // inputSandBox and outputSandbox  
-                        /*
-                        String inputSandbox = "";
-                        _log.debug("Input files:");
-                        for(int i=0; i<input_files.length(); i++) {   
-                            String comma=(i==0)?"":",";
-                            inputSandbox += comma
-                                           +gedCommand.getActionInfo()+"/"
-                                           +input_files.getString(i);
-                            _log.debug(gedCommand.getActionInfo()+"/"
-                                      +input_files.getString(i));
-                        }
-                        mijs.setInputFiles(inputSandbox);
-                        _log.debug("inputSandbox: '"+inputSandbox+"'");
-                        String outputSandbox = "";
-                        _log.debug("Output files:");
-                        for(int i=0; i<output_files.length(); i++) {
-                            String comma=(i==0)?"":",";
-                            JSONObject output_entry = output_files.getJSONObject(i);
-                            outputSandbox += comma
-                                            +output_entry.getString("name");
-                            _log.debug(output_entry.getString("name"));
-                        }
-                        mijs.setOutputFiles(outputSandbox);
-                        _log.debug("outputSandbox: '"+outputSandbox+"'");
-                        */
                         prepareIOSandbox(mijs,input_files,output_files);
                         // Submit asynchronously                        
-                        // Following function needs a new GE Version having
-                        // a boolean field at the bottom of its argument list
-                        // Setting to true the function will return tha 
-                        // corresponding job' ActiveGridInteracion value
-                        // The current workaround leaves agi_id = 0 then
-                        // the controller daemon will update the correct id
-                        // querying the ActiveGridInteraction filtering by the
-                        // jobDescription = 'task_id: <#task_id>'
                         agi_id = 0;
                                    mijs.submitJobAsync(geCommonName
                                                       ,gedIPAddress
@@ -312,22 +266,40 @@ public class GridEngineInterface {
                 // rOCCI Adaptor
                 case "rocci":
                     _log.info("Entering rOCCI adaptor ...");
-                    String rOCCIResourcesList[] = { ""
-                                                 //,rOCCIURL2
-                                                  };                    
+                    String os_tpl=geInfrastructure.getString("os_tpl");
+                    String resource_tpl=geInfrastructure.getString("resource_tpl");
+                    String attributes_title=geInfrastructure.getString("attributes_title");                    
+                    String eToken_host = geCredentials.getString("eToken_host");
+                    String eToken_port = geCredentials.getString("eToken_port");
+                    String eToken_id = geCredentials.getString("eToken_id");
+                    String voms = geCredentials.getString("voms");
+                    String voms_role = geCredentials.getString("voms_role");
+                    String rfc_proxy = geCredentials.getString("rfc_proxy");
+                    // Generate the rOCCI endpoint
+                    String rOCCIResourcesList[] = {
+                        resourceManagers+"/?"                       
+                       +"action=create&"
+                       +"resource=compute&"
+                       +"mixin_resource_tpl="+resource_tpl+"&"
+                       +"mixin_os_tpl="+os_tpl+"&"
+                       +"attributes_title="+attributes_title+"&"
+                       +"auth=x509"
+                    };
+                    _log.info("rOCCI endpoint: '"+rOCCIResourcesList[0]+"'");
+                    // Prepare the infrastructure
                     infrastructures[0] = new 
                         InfrastructureInfo( 
-                                         "GridEngineDaemon"                // Infrastruture name
-                                        ,"rocci"                           // Adaptor
-                                        ,""                                //
-                                        ,rOCCIResourcesList                // Resources list
-                                        ,"etokenserver.ct.infn.it"         // eTokenServer host
-                                        ,"8082"                            // eTokenServer port
-                                        ,"bc779e33367eaad7882b9dfaa83a432c"// eToken id (md5sum)
-                                        ,"fedcloud.egi.eu"                 // VO
-                                        ,"fedcloud.egi.eu"                 // VO.group.role
-                                        ,true                              // ProxyRFC
-                                        );
+                            "GE_rOCCI"         // Infrastruture name
+                           ,"rocci"            // Adaptor
+                           ,""                 //
+                           ,rOCCIResourcesList // Resources list
+                           ,eToken_host        // eTokenServer host
+                           ,eToken_port        // eTokenServer port
+                           ,eToken_id          // eToken id (md5sum)
+                           ,voms               // VO
+                           ,voms_role          // VO.group.role
+                           ,rfc_proxy.equalsIgnoreCase("true") // ProxyRFC
+                        );
                     mijs.addInfrastructure(infrastructures[0]);                    
                     // Setup JobDescription
                     prepareJobDescription(mijs,geJobDescription);
