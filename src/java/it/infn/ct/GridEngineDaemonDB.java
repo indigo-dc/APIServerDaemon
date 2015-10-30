@@ -465,4 +465,101 @@ public class GridEngineDaemonDB {
         }
     }
     
+    /**
+     * Delete any task entry from the API Server DB including
+     * the queue
+     */
+    void removeTaksEntries(int task_id) {
+        if (!connect()) {          
+            _log.fatal("Not connected to database");
+            return;
+        }        
+        try {
+            String sql;
+            //
+            // Table task_output_file
+            //
+            // Lock ge_queue table first
+            sql="lock tables task_output_file write;";
+            statement=connect.createStatement();
+            statement.execute(sql);
+            // Delete entries in task_output_file
+            sql="delete from task_output_file where task_id = ?;";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt(1, task_id);
+            preparedStatement.execute();                               
+            // Unlock task_output_file table
+            sql="unlock tables;";
+            statement=connect.createStatement();
+            statement.execute(sql);            
+            //
+            // Table task_input_file
+            //
+            // Lock task_input_file table first
+            sql="lock tables task_input_file write;";
+            statement=connect.createStatement();
+            statement.execute(sql);
+            // Delete entries in task_input_file
+            sql="delete from task_input_file where task_id = ?;";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt(1, task_id);
+            preparedStatement.execute();                               
+            // Unlock task_input_file table
+            sql="unlock tables;";
+            statement=connect.createStatement();
+            statement.execute(sql);            
+            //
+            // Table task_arguments
+            //
+            // Lock task_arguments table first
+            sql="lock tables task_arguments write;";
+            statement=connect.createStatement();
+            statement.execute(sql);
+            // Delete entries in ge_queue
+            sql="delete from task_arguments where task_id = ?;";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt(1, task_id);
+            preparedStatement.execute();                               
+            // Unlock task_arguments table
+            sql="unlock tables;";
+            statement=connect.createStatement();
+            statement.execute(sql);                        
+            //
+            // Table ge_queue
+            //
+            // Lock ge_queue table first
+            sql="lock tables ge_queue write;";
+            statement=connect.createStatement();
+            statement.execute(sql);
+            // Delete entries in ge_queue
+            sql="delete from ge_queue where task_id = ?;";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt(1, task_id);
+            preparedStatement.execute();                               
+            // Unlock ge_queue table
+            sql="unlock tables;";
+            statement=connect.createStatement();
+            statement.execute(sql);                                                
+            //
+            // Table task
+            //
+            // Lock task table first
+            sql="lock tables task write;";
+            statement=connect.createStatement();
+            statement.execute(sql);
+            // Delete entries in task
+            sql="delete from task where id = ?;";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt(1, task_id);
+            preparedStatement.execute();                               
+            // Unlock task table
+            sql="unlock tables;";
+            statement=connect.createStatement();
+            statement.execute(sql);            
+            _log.debug("All entries for task '"+task_id+"' have been removed");
+        } catch (SQLException e) {                      
+            _log.fatal(e.toString());
+        }
+    }
+    
 }

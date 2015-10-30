@@ -52,8 +52,9 @@ public class GridEngineDaemonCheckCommand implements Runnable {
      * Supported commands
      */
     private enum Commands {
-
-        SUBMIT, GETSTATUS // This command is directly handled by GE API Server
+          CLEAN     // This command cleans any task entry
+        , SUBMIT
+        , GETSTATUS // This command is directly handled by GE API Server
         , GETOUTPUT // This command is directly handled by GE API Server
         , JOBCANCEL
     }
@@ -98,12 +99,16 @@ public class GridEngineDaemonCheckCommand implements Runnable {
      * CheckCommand are: PROCESSING: The command is being processed PROCESSED:
      * The command has been processed
      *
-     * Action | PROCESSING | PROCESSED
-     * ----------+-------------+----------------- Submit | Consistency | Check
-     * job status ----------+-------------+----------------- GetStatus | - | -
-     * ----------+-------------+----------------- GetOutput | - | -
-     * ----------+-------------+----------------- JobCancel | Consistency |
-     * Check on GE ----------+-------------+-----------------
+     * Action    | PROCESSING | PROCESSED
+     * ----------+-------------+-----------------
+     * Submit    | Consistency | Check job status 
+     * ----------+-------------+-----------------
+     * GetStatus |      -      |       -
+     * ----------+-------------+-----------------
+     * GetOutput |      -      |       -
+     * ----------+-------------+-----------------
+     * JobCancel | Consistency | Check on GE
+     * ----------+-------------+-----------------
      *
      * GetStatus and GetOutput are synchronous operations directly handled by
      * the APIServer engine for this reason these actions are not supported
@@ -118,6 +123,9 @@ public class GridEngineDaemonCheckCommand implements Runnable {
         _log.debug("Checking command: " + gedCommand);
 
         switch (Commands.valueOf(gedCommand.getAction())) {
+            case CLEAN:
+                clean();
+                break;
             case SUBMIT:
                 submit();
                 break;
@@ -134,6 +142,17 @@ public class GridEngineDaemonCheckCommand implements Runnable {
                 _log.warn("Unsupported command: '" + gedCommand.getAction() + "'");
                 break;
         }
+    }
+    
+    /**
+     * Clean everything associated to the task
+     * I/O Sandbox and any DB allocation
+     */
+    private void clean() { 
+        // Remove any API Server task entries including the queue
+        removeTaksEntries();        
+        // Remove info directory
+        removeInfoDir();        
     }
 
     /*
@@ -250,6 +269,39 @@ public class GridEngineDaemonCheckCommand implements Runnable {
             if (gedDB != null) {
                 gedDB.close();
             }
+        }
+    }
+    
+    /**
+     * Remove any task entry from the DB including the queue record
+     */
+    private void removeTaksEntries() {
+        GridEngineDaemonDB gedDB = null;
+
+        try {
+            gedDB = new GridEngineDaemonDB(gedConnectionURL);
+            gedDB.removeTaksEntries(gedCommand.getTaskId());
+        } catch (Exception e) {            
+            _log.fatal("Unable to remove task entries for command:" + LS + gedCommand
+                    + LS + e.toString());
+        } finally {
+            if (gedDB != null) {
+                gedDB.close();
+            }
+        }
+    }
+    
+    /**
+     * Remove actionInfo directory from the file system
+     */
+    private void removeInfoDir() {
+        String infoDir = gedCommand.getActionInfo();
+        try {
+            Process delInfoDir = 
+                    Runtime.getRuntime().exec("rm -rf "+infoDir);                                         
+            delInfoDir.waitFor();
+        } catch (Exception e) {          
+            _log.fatal("Error removinf infoDIR: '"+infoDir+"'");
         }
     }
 }
