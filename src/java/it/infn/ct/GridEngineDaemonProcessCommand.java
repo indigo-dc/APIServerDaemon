@@ -50,7 +50,8 @@ class GridEngineDaemonProcessCommand implements Runnable {
      * Supported commands
      */
     private enum Commands {
-         SUBMIT     
+         CLEAN
+        ,SUBMIT     
         ,GETSTATUS // This command is directly handled by GE API Server
         ,GETOUTPUT // This command is directly handled by GE API Server
         ,JOBCANCEL
@@ -96,6 +97,8 @@ class GridEngineDaemonProcessCommand implements Runnable {
         _log.info("EXECUTING command: "+gedCommand);
         
         switch (Commands.valueOf(gedCommand.getAction())) {
+            case CLEAN:     clean();
+                break;
             case SUBMIT:    submit();
                 break;
             case GETSTATUS: getStatus();
@@ -131,6 +134,18 @@ class GridEngineDaemonProcessCommand implements Runnable {
      * Asynchronous GETSTATUS commands should never come here
      */
     private void getStatus() {
+        _log.debug("Get status command: "+gedCommand);
+        GridEngineInterface geInterface = new GridEngineInterface(gedCommand);
+        gedCommand.setStatus(geInterface.jobStatus());
+        gedCommand.setStatus("PROCESSED");
+        updateCommand();
+    }
+    
+    /**
+     * Execute a GridEngineDaemon 'clean' command; just set PROCESSED
+     * so that the Controller can process it
+     */
+    private void clean() {
         _log.debug("Get status command: "+gedCommand);
         GridEngineInterface geInterface = new GridEngineInterface(gedCommand);
         gedCommand.setStatus(geInterface.jobStatus());

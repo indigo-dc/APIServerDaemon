@@ -380,12 +380,14 @@ public class GridEngineDaemonDB {
                +"               ,status = ?"         +LS  
                +"               ,ge_status = ?"      +LS
                +"               ,last_change = now()"+LS
-               +"where task_id=?";
+               +"where task_id=?"                    +LS
+               +"  and action=?";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt   (1, command.getAGIId());            
             preparedStatement.setString(2, command.getStatus());
             preparedStatement.setString(3, command.getGEStatus());
             preparedStatement.setInt   (4, command.getTaskId());
+            preparedStatement.setString(5, command.getAction());
             preparedStatement.execute();                               
             // Unlock ge_queue table
             sql="unlock tables;";
