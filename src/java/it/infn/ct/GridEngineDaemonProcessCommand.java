@@ -146,9 +146,8 @@ class GridEngineDaemonProcessCommand implements Runnable {
      * so that the Controller can process it
      */
     private void clean() {
-        _log.debug("Get status command: "+gedCommand);
-        GridEngineInterface geInterface = new GridEngineInterface(gedCommand);
-        gedCommand.setStatus(geInterface.jobStatus());
+        _log.debug("Clean command: "+gedCommand);
+        GridEngineInterface geInterface = new GridEngineInterface(gedCommand);        
         gedCommand.setStatus("PROCESSED");
         updateCommand();
     }
