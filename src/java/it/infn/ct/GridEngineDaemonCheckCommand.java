@@ -159,7 +159,7 @@ public class GridEngineDaemonCheckCommand implements Runnable {
      Commands implementations
      */
     /**
-     * Execute a GridEngineDaemon 'submit' command
+     * Check a GridEngineDaemon 'submit' command
      */
     private void submit() {
         _log.debug("Checking submitted command: " + gedCommand);
@@ -177,13 +177,12 @@ public class GridEngineDaemonCheckCommand implements Runnable {
                     = new GridEngineInterface(gedCommand);
             geInterface.setConfig(gedConfig);
 
-            // Waiting for GridEngine update; the following code
-            // retrieves the right agi_id field exploiting the
+            // Retrieve the right agi_id field exploiting the
             // fixed jobDescription field inside the ActiveGridInteraction
-            if (gedCommand.getAGIId() == 0) {
-                gedCommand.setAGIId(geInterface.getAGIId());
-                updateCommand();
-            }
+            // AGIId may change during submission in casethe job is
+            // resubmitted by the GridEngine
+            gedCommand.setAGIId(geInterface.getAGIId());
+            updateCommand();            
 
             // Update ge_status taking its value from the GridEngine'
             // ActiveGridInteraction table, then if ge_status is DONE

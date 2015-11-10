@@ -30,6 +30,29 @@ import javax.servlet.ServletContextListener;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.PropertyConfigurator;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.Calendar;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.TimeZone;
+import java.util.Vector;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
+
 
 /**
  * Servlet context listener object used to instantiate the GridEngineDaemon
@@ -75,6 +98,20 @@ public class GridEngineServletListener implements ServletContextListener {
         } else {
             System.err.println("WARNING: '" + log4jPropPath + "' file not found, so initializing log4j with BasicConfigurator");
                 BasicConfigurator.configure();
+        }
+        
+        // Make a test with jdbc/geApiServerPool
+        try {
+            Context initContext = new InitialContext();
+            //Context envContext  = (Context)initContext.lookup("java:/comp/env");                        
+            //DataSource ds = (DataSource)envContext.lookup("jdbc/geApiServerPool");
+            
+            Context initialContext = new InitialContext();
+	    DataSource ds = (DataSource)initialContext.lookup("java:/comp/env/jdbc/geApiServerPool");
+            Connection conn = ds.getConnection();
+            System.out.println("PERFECT: jdbc/geApiServerPool was ok");
+        } catch (Exception e) {
+            System.err.println("WARNING: jdbc/geApiServerPool failed");
         }
         
         // Register MySQL driver

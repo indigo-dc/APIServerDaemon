@@ -1,2 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Context antiJARLocking="true" path="/GridEngineDaemon"/>
+<Context antiJARLocking="true" path="/GridEngineDaemon">
+    <!--    
+    <Resource
+        name="jdbc/geApiServerPool"        
+        auth="Container"
+        type="javax.sql.DataSource"
+        driverClassName="com.mysql.jdbc.Driver"
+        url="jdbc:mysql://localhost:3306/geapiserver"
+        username="geapiserver"
+        password="geapiserver_password"
+        maxActive="100"
+        maxIdle="30"
+        maxWait="10000"
+    />
+    
+    <Resource
+        name="jdbc/UserTrackingPool"
+        global="jdbc/UserTrackingPool"
+        auth="Container"
+        type="javax.sql.DataSource"
+        driverClassName="com.mysql.jdbc.Driver"
+        url="jdbc:mysql://localhost:3306/userstracking"
+        username="tracking_user"
+        password="usertracking"
+        maxActive="100"
+        maxIdle="30"
+        maxWait="10000"
+    />
+    <Resource
+        name="jdbc/gehibernatepool"
+        global="jdbc/gehibernatepool"
+        auth="Container"
+        type="javax.sql.DataSource"
+        driverClassName="com.mysql.jdbc.Driver"
+        url="jdbc:mysql://localhost:3306/userstracking"
+        username="tracking_user"
+        password="usertracking"
+        maxActive="100"
+        maxIdle="30"
+        maxWait="10000"
+    />    
+    -->
+</Context>

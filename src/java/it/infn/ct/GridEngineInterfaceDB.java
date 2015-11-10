@@ -171,8 +171,8 @@ public class GridEngineInterfaceDB {
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, agi_id);            
             resultSet=preparedStatement.executeQuery(); 
-            resultSet.next();
-            jobStatus=resultSet.getString("status");
+            if(resultSet.next());
+                jobStatus=resultSet.getString("status");
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
         }          
@@ -225,8 +225,8 @@ public class GridEngineInterfaceDB {
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setString(1, jobDesc);            
             resultSet=preparedStatement.executeQuery(); 
-            resultSet.next();
-            agi_id = resultSet.getInt("id");
+            if(resultSet.next())
+                agi_id = resultSet.getInt("id");
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
         }        

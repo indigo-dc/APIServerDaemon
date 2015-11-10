@@ -51,7 +51,7 @@ public class GridEngineDaemonConfig {
     private final String gedPropetiesFile = "GridEngineDaemon.properties";
     /*
        Database settings
-     */    
+     */        
     private String apisrv_dbhost = "localhost";
     private String apisrv_dbport = "3306";
     private String apisrv_dbuser = "geapiserver";
@@ -78,7 +78,8 @@ public class GridEngineDaemonConfig {
     
     /*
      GridEngine UsersTracking DB
-    */    
+    */  
+    private String utdb_jndi = "jdbc/UserTrackingPool";
     private String utdb_host = "localhost";
     private String utdb_port = "3306";
     private String utdb_user = "tracking_user";
@@ -134,8 +135,9 @@ public class GridEngineDaemonConfig {
             String prop_geControllerMaxCommands = prop.getProperty("geControllerMaxCommands");
             
             // GridEngine' UsersTracking database settings
+            String prop_utdb_jndi = prop.getProperty("utdb_jndi");
             String prop_utdb_host = prop.getProperty("utdb_host");
-            String prop_utdb_port = prop.getProperty("utdb_host");            
+            String prop_utdb_port = prop.getProperty("utdb_port");            
             String prop_utdb_user = prop.getProperty("utdb_user");
             String prop_utdb_pass = prop.getProperty("utdb_pass");
             String prop_utdb_name = prop.getProperty("utdb_name");  
@@ -170,6 +172,8 @@ public class GridEngineDaemonConfig {
                 this.geControllerMaxCommands=Integer.parseInt(prop_geControllerMaxCommands);
             
             // GridEngine' UsersTracking database settings
+            if(prop_utdb_jndi!=null)
+                this.utdb_jndi=prop_utdb_jndi;
             if(prop_utdb_host!=null)
                 this.utdb_host=prop_utdb_host;
             if(prop_utdb_port!=null)
@@ -395,10 +399,17 @@ public class GridEngineDaemonConfig {
         this.geControllerMaxCommands = geControllerMaxCommands;
     }
     
-    /*
-      GridEngine database settings
-    */
+    /**
+     * GridEngine jndi database resource
+     * @return usertracking jndi resource name
+     */
+    String getGridEngine_db_jndi() { return this.utdb_jndi; }
     
+    /**
+     * GridEngine jdni database resource
+     * @param usertracking jndi  resource name
+     */
+    void setGridEngine_db_jndi(String utdb_jndi) { this.utdb_jndi=utdb_jndi; }     
     /**
      * Return the GridEngine' userstracking database host
      * @return userstracking database host
@@ -408,7 +419,7 @@ public class GridEngineDaemonConfig {
      * Set the GridEngine' userstracking database host
      * @param userstracking database host
      */
-    void getGridEngine_db_host(String utdb_host) { this.utdb_host=utdb_host; } 
+    void setGridEngine_db_host(String utdb_host) { this.utdb_host=utdb_host; } 
     /**
      * Return the GridEngine' userstracking database port
      * @return userstracking database port
@@ -418,7 +429,7 @@ public class GridEngineDaemonConfig {
      * Set the GridEngine' userstracking database port
      * @param userstracking database port
      */
-    void getGridEngine_db_port(String utdb_port) { this.utdb_port=utdb_port; } 
+    void setGridEngine_db_port(String utdb_port) { this.utdb_port=utdb_port; } 
     /**
      * Return the GridEngine' userstracking database user
      * @return userstracking database user
@@ -428,7 +439,7 @@ public class GridEngineDaemonConfig {
      * Set the GridEngine' userstracking database user
      * @param userstracking database user
      */
-    void getGridEngine_db_user(String utdb_user) { this.utdb_user=utdb_user; } 
+    void setGridEngine_db_user(String utdb_user) { this.utdb_user=utdb_user; } 
     /**
      * Return the GridEngine' userstracking database password
      * @return userstracking database password
@@ -438,7 +449,7 @@ public class GridEngineDaemonConfig {
      * Set the GridEngine' userstracking database password
      * @param userstracking database password
      */
-    void getGridEngine_db_pass(String utdb_pass) { this.utdb_pass=utdb_pass; } 
+    void setGridEngine_db_pass(String utdb_pass) { this.utdb_pass=utdb_pass; } 
     /**
      * Return the GridEngine' userstracking database name
      * @return userstracking database name
@@ -448,7 +459,7 @@ public class GridEngineDaemonConfig {
      * Set the GridEngine' userstracking database name
      * @param userstracking database name
      */
-    void getGridEngine_db_name(String utdb_name) { this.utdb_name=utdb_name; } 
+    void setGridEngine_db_name(String utdb_name) { this.utdb_name=utdb_name; } 
     
     /**
      * View configuration settings
@@ -458,7 +469,7 @@ public class GridEngineDaemonConfig {
         /*
           Database settings
         */
-        return "[API Server DB settings]"                                   +LS
+        return "[API Server DB settings]"                                   +LS              
               +"    db_host : '"                +apisrv_dbhost          +"'"+LS
               +"    db_port : '"                +apisrv_dbport          +"'"+LS
               +"    db_user : '"                +apisrv_dbuser          +"'"+LS        
@@ -474,6 +485,7 @@ public class GridEngineDaemonConfig {
               +"    geControllerDelay       : '"+geControllerDelay      +"'"+LS
               +"    geControllerMaxCommands : '"+geControllerMaxCommands+"'"+LS 
               +"[GridEngine UsersTracking DB settings]"                     +LS
+              +"    db_jndi : '"                +utdb_jndi              +"'"+LS
               +"    db_host : '"                +utdb_host              +"'"+LS
               +"    db_port : '"                +utdb_port              +"'"+LS
               +"    db_user : '"                +utdb_user              +"'"+LS        

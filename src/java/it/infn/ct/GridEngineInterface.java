@@ -42,7 +42,8 @@ import org.apache.log4j.Logger;
 public class GridEngineInterface {
     /*
      GridEngine UsersTracking DB
-    */    
+    */ 
+    private String utdb_jndi;
     private String utdb_host;
     private String utdb_port;
     private String utdb_user;
@@ -91,7 +92,8 @@ public class GridEngineInterface {
      */
     public void setConfig(GridEngineDaemonConfig gedConfig) {
         this.gedConfig=gedConfig;                
-        // Extract class specific configutation            
+        // Extract class specific configutation 
+        this.utdb_jndi = gedConfig.getGridEngine_db_jndi();
         this.utdb_host = gedConfig.getGridEngine_db_host();
         this.utdb_port = gedConfig.getGridEngine_db_port();
         this.utdb_user = gedConfig.getGridEngine_db_user();
@@ -100,6 +102,7 @@ public class GridEngineInterface {
         _log.debug(
                   "GridEngineInterface config:"            +LS
                  +"  [UsersTrackingDB]"                    +LS
+                 +"    db_jndi: '"      +this.utdb_jndi+"'"+LS
                  +"    db_host: '"      +this.utdb_host+"'"+LS
                  +"    db_port: '"      +this.utdb_port+"'"+LS
                  +"    db_user: '"      +this.utdb_user+"'"+LS
@@ -183,14 +186,18 @@ public class GridEngineInterface {
     public int jobSubmit() {
         int agi_id=0;        
         _log.debug("Submitting job");
-        MultiInfrastructureJobSubmission mijs =
-            new MultiInfrastructureJobSubmission(
-                    "jdbc:mysql://"+utdb_host+":"
-                                   +utdb_port+"/"
-                                   +utdb_name
-                    ,utdb_user
-                    ,utdb_pass
-            );
+        // MultiInfrastructureJobSubmission object
+        MultiInfrastructureJobSubmission mijs = null;
+        if(utdb_jndi != null && ! utdb_jndi.isEmpty())
+            mijs = new MultiInfrastructureJobSubmission();
+        else
+            mijs = new MultiInfrastructureJobSubmission(
+                        "jdbc:mysql://"+utdb_host+":"
+                                       +utdb_port+"/"
+                                       +utdb_name
+                        ,utdb_user
+                        ,utdb_pass
+                );
         if(mijs==null)
             _log.debug("mijs is NULL, sorry!");       
         else try {            
