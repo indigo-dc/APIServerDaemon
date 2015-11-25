@@ -52,7 +52,7 @@ public class GridEngineInterface {
     /*
       GridEngineDaemon config
     */
-    GridEngineDaemonConfig gedConfig;
+    APIServerDaemonConfig gedConfig;
     /*
       GridEngineDaemon IP address
     */
@@ -64,7 +64,7 @@ public class GridEngineInterface {
     
     public static final String LS = System.getProperty("line.separator");
 
-    GridEngineDaemonCommand gedCommand;
+    APIServerDaemonCommand gedCommand;
     
     /**
      * Empty constructor for GridEngineInterface
@@ -76,7 +76,7 @@ public class GridEngineInterface {
     /**
      * Constructor for GridEngineInterface taking as input a given command
      */
-    public GridEngineInterface(GridEngineDaemonCommand gedCommand) {
+    public GridEngineInterface(APIServerDaemonCommand gedCommand) {
         this();
         _log.debug("GridEngineInterface command:"+LS+gedCommand);
         this.gedCommand=gedCommand;        
@@ -90,7 +90,7 @@ public class GridEngineInterface {
      * Load GridEngineDaemon configuration settings
      * @param gedConfig GridEngineDaemon configuration object
      */
-    public void setConfig(GridEngineDaemonConfig gedConfig) {
+    public void setConfig(APIServerDaemonConfig gedConfig) {
         this.gedConfig=gedConfig;                
         // Extract class specific configutation 
         this.utdb_jndi = gedConfig.getGridEngine_db_jndi();
@@ -346,7 +346,7 @@ public class GridEngineInterface {
                                              ,utdb_user
                                              ,utdb_pass
                                              ,utdb_name);
-            jobStatus = geiDB.getJobStatus(gedCommand.getAGIId());
+            jobStatus = geiDB.getJobStatus(gedCommand.getTargetId());
         } catch (Exception e) {         
             _log.fatal("Unable get command status:"+LS+gedCommand        
                                                     +LS+e.toString());
@@ -429,14 +429,14 @@ public class GridEngineInterface {
         String jobDesc = "";
         GridEngineInterfaceDB geiDB = null;
         _log.debug("Getting jobDescription for AGI_id: "
-                 +gedCommand.getAGIId());
+                 +gedCommand.getTargetId());
         try {
             geiDB = new GridEngineInterfaceDB(utdb_host
                                              ,utdb_port
                                              ,utdb_user
                                              ,utdb_pass
                                              ,utdb_name);
-            jobDesc = geiDB.getJobDescription(gedCommand.getAGIId());
+            jobDesc = geiDB.getJobDescription(gedCommand.getTargetId());
         } catch (Exception e) {          
             _log.fatal("Unable get job description for command:"+LS+gedCommand
                                                                 +LS+e.toString());
@@ -456,7 +456,7 @@ public class GridEngineInterface {
                 gedCommand.getActionInfo()+"/jobOutput/"
                +JSagaJobSubmission.
                        removeNotAllowedCharacter(jobDescription+"_"
-                                                +gedCommand.getAGIId()+".tgz");
+                                                +gedCommand.getTargetId()+".tgz");
         _log.debug("tgzFileName: '"+tgzFileName+"'");
         try {
         Process unpackTar = 
@@ -470,6 +470,6 @@ public class GridEngineInterface {
         }
         return JSagaJobSubmission.
                     removeNotAllowedCharacter(jobDescription+"_"
-                                             +gedCommand.getAGIId());
+                                             +gedCommand.getTargetId());
     }
 }

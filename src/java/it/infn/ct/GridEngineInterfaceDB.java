@@ -209,7 +209,7 @@ public class GridEngineInterfaceDB {
      * @param taskId
      * @return 
      */
-    int getAGIId(GridEngineDaemonCommand geCommand) {
+    int getAGIId(APIServerDaemonCommand geCommand) {
         int agi_id = 0;
         if (!connect()) {          
             _log.fatal("Not connected to database");
