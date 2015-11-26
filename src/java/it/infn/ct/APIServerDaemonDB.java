@@ -256,7 +256,7 @@ public class APIServerDaemonDB {
                +"      ,target"                         +LS
                +"      ,action"                         +LS
                +"      ,status"                         +LS
-               +"      ,ge_status"                      +LS     
+               +"      ,target_status"                  +LS     
                +"      ,creation"                       +LS
                +"      ,last_change"                    +LS
                +"      ,action_info"                    +LS
@@ -271,15 +271,15 @@ public class APIServerDaemonDB {
             while(resultSet.next()) {
                 APIServerDaemonCommand asdCmd = 
                         new APIServerDaemonCommand(
-                                resultSet.getInt   (    "task_id")                               
-                               ,resultSet.getInt   (  "target_id")
-                               ,resultSet.getString(     "target") 
-                               ,resultSet.getString(     "action")
-                               ,resultSet.getString(     "status")
-                               ,resultSet.getString(  "ge_status")
-                               ,resultSet.getDate  (   "creation")                                       
-                               ,resultSet.getDate  ("last_change")
-                               ,resultSet.getString("action_info"));                
+                                resultSet.getInt   (      "task_id")                               
+                               ,resultSet.getInt   (    "target_id")
+                               ,resultSet.getString(       "target") 
+                               ,resultSet.getString(       "action")
+                               ,resultSet.getString(       "status")
+                               ,resultSet.getString("target_status")
+                               ,resultSet.getDate  (     "creation")                                       
+                               ,resultSet.getDate  (  "last_change")
+                               ,resultSet.getString(  "action_info"));                
                 if (null != asdCmd) commandList.add(asdCmd);
                 _log.debug("Loaded command: "+LS+asdCmd);                
             }
@@ -330,7 +330,7 @@ public class APIServerDaemonDB {
                +"      ,target"                         +LS
                +"      ,action"                         +LS
                +"      ,status"                         +LS
-               +"      ,ge_status"                      +LS     
+               +"      ,target_status"                  +LS     
                +"      ,creation"                       +LS
                +"      ,last_change"                    +LS
                +"      ,action_info"                    +LS
@@ -346,15 +346,15 @@ public class APIServerDaemonDB {
             while(resultSet.next()) {
                 APIServerDaemonCommand asdCmd = 
                         new APIServerDaemonCommand(
-                                resultSet.getInt   (    "task_id")
-                               ,resultSet.getInt   (  "target_id")
-                               ,resultSet.getString(     "target") 
-                               ,resultSet.getString(     "action")
-                               ,resultSet.getString(     "status")
-                               ,resultSet.getString(  "ge_status")
-                               ,resultSet.getDate  (   "creation")                                       
-                               ,resultSet.getDate  ("last_change")
-                               ,resultSet.getString("action_info"));                
+                                resultSet.getInt   (      "task_id")
+                               ,resultSet.getInt   (    "target_id")
+                               ,resultSet.getString(       "target") 
+                               ,resultSet.getString(       "action")
+                               ,resultSet.getString(       "status")
+                               ,resultSet.getString("target_status")
+                               ,resultSet.getDate  (     "creation")                                       
+                               ,resultSet.getDate  (  "last_change")
+                               ,resultSet.getString(  "action_info"));                
                 if (null != asdCmd) commandList.add(asdCmd);
                 _log.debug("Loaded command: "+LS+asdCmd);                
             }
@@ -385,7 +385,7 @@ public class APIServerDaemonDB {
             statement.execute(sql);
             sql="update as_queue set target_id = ?"      +LS
                +"                   ,status = ?"         +LS  
-               +"                   ,ge_status = ?"      +LS
+               +"                   ,target_status = ?"  +LS
                +"                   ,last_change = now()"+LS
                +"where task_id=?"                        +LS
                +"  and action=?";

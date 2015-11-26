@@ -70,7 +70,7 @@ class APIServerDaemonCommand {
                                   ,String target
                                   ,String action
                                   ,String status
-                                  ,String ge_status
+                                  ,String target_status
                                   ,Date   creation
                                   ,Date   last_change
                                   ,String action_info) {
@@ -80,7 +80,7 @@ class APIServerDaemonCommand {
         this.target        = target;
         this.action        = action;
         this.status        = status;
-        this.target_status = ge_status;
+        this.target_status = target_status;
         this.creation      = creation;
         this.last_change   = last_change;
         this.action_info   = action_info;

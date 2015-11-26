@@ -193,8 +193,8 @@ public class APIServerDaemonCheckCommand implements Runnable {
                 asdCommand.setTargetId(geInterface.getAGIId());
                 updateCommand();            
 
-                // Update ge_status taking its value from the GridEngine'
-                // ActiveGridInteraction table, then if ge_status is DONE
+                // Update target_status taking its value from the GridEngine'
+                // ActiveGridInteraction table, then if target_status is DONE
                 // flag also the command state to DONE allowing APIServer'
                 // GetOutput call to work        
                 if (asdCommand.getTargetId() != 0) {
