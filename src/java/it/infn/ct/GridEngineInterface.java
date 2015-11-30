@@ -160,9 +160,7 @@ public class GridEngineInterface {
             String comma=(i==0)?"":",";
             inputSandbox += comma
                            +gedCommand.getActionInfo()+"/"
-                           +input_files.getString(i);
-            _log.debug(gedCommand.getActionInfo()+"/"
-                      +input_files.getString(i));
+                           +input_files.getString(i);            
         }
         mijs.setInputFiles(inputSandbox);
         _log.debug("inputSandbox: '"+inputSandbox+"'");
@@ -171,9 +169,10 @@ public class GridEngineInterface {
         for(int i=0; i<output_files.length(); i++) {
             String comma=(i==0)?"":",";
             JSONObject output_entry = output_files.getJSONObject(i);
-            outputSandbox += comma
-                            +output_entry.getString("name");
-            _log.debug(output_entry.getString("name"));
+            if (output_entry.getString("name").length() > 0) {
+                outputSandbox += comma
+                                +output_entry.getString("name");                
+            }
         }
         mijs.setOutputFiles(outputSandbox);
         _log.debug("outputSandbox: '"+outputSandbox+"'");
@@ -199,13 +198,14 @@ public class GridEngineInterface {
                         ,utdb_pass
                 );
         if(mijs==null)
-            _log.debug("mijs is NULL, sorry!");       
+            _log.error("mijs is NULL, sorry!");       
         else try {            
             _log.debug("Loading GridEngine job JSON desc");
+            // Load <task_id>.info JSON file in memory
             JSONObject jsonJobDesc = loadJSONJobDesc();
             // application
             int geAppId = jsonJobDesc.getInt("application");
-            // commonName
+            // commonName (user executing task)
             String geCommonName = jsonJobDesc.getString("commonName");
             // infrastructure
             JSONObject geInfrastructure = 
@@ -240,9 +240,11 @@ public class GridEngineInterface {
             */
             switch(adaptor) {
                 // SSH Adaptor
-                case "ssh": 
+                case "ssh":
+                {
                     try {
                         _log.info("Entering SSH adaptor ...");
+                        // Credential values
                         String  username = 
                             geCredentials.getString("username");
                         String  password = 
@@ -269,19 +271,26 @@ public class GridEngineInterface {
                     } catch (Exception e) {                      
                         _log.fatal("Caught exception:"+LS+e.toString());
                     }
-                    break;
+                }
+                break;
                 // rOCCI Adaptor
-                case "rocci":
+                case "rocci": 
+                {
                     _log.info("Entering rOCCI adaptor ...");
+                    
+                    // Infrastructure values
                     String os_tpl=geInfrastructure.getString("os_tpl");
                     String resource_tpl=geInfrastructure.getString("resource_tpl");
                     String attributes_title=geInfrastructure.getString("attributes_title");                    
+                    
+                    // Credential values
                     String eToken_host = geCredentials.getString("eToken_host");
                     String eToken_port = geCredentials.getString("eToken_port");
                     String eToken_id = geCredentials.getString("eToken_id");
                     String voms = geCredentials.getString("voms");
                     String voms_role = geCredentials.getString("voms_role");
                     String rfc_proxy = geCredentials.getString("rfc_proxy");
+                    
                     // Generate the rOCCI endpoint
                     String rOCCIResourcesList[] = {
                         resourceManagers+"/?"                       
@@ -296,7 +305,7 @@ public class GridEngineInterface {
                     // Prepare the infrastructure
                     infrastructures[0] = new 
                         InfrastructureInfo( 
-                            "GE_rOCCI"         // Infrastruture name
+                            resourceManagers   // Infrastruture name
                            ,"rocci"            // Adaptor
                            ,""                 //
                            ,rOCCIResourcesList // Resources list
@@ -318,8 +327,69 @@ public class GridEngineInterface {
                                                   ,gedIPAddress
                                                   ,geAppId
                                                   ,jobIdentifier);  
-                    _log.debug("AGI_id: "+agi_id);                    
-                    break;
+                    _log.debug("AGI_id: "+agi_id); 
+                }
+                break;
+                // wms adaptor (EMI/gLite)
+                case "wms":
+                {
+                    _log.info("Entering wms adaptor ...");
+                    
+                    // Infrastructure values
+                    String bdii = geInfrastructure.getString("bdii");
+                    // jdlRequirements and swtags are not mandatory
+                    // catch JSONException exception if these values
+                    // are missing
+                    String jdlRequirements[] = null;
+                    try {
+                        jdlRequirements = geInfrastructure.getString("jdlRequirements").split(";");                        
+                    } catch (JSONException e) {                        
+                        _log.info("jdlRequirements not specified");
+                    }
+                    String swtags = null;
+                    try {                        
+                        swtags = geInfrastructure.getString("swtags");
+                    } catch (JSONException e) {                        
+                        _log.info("swtags not specified");
+                    }
+                    // Credentials values
+                    String eToken_host = geCredentials.getString("eToken_host");
+                    String eToken_port = geCredentials.getString("eToken_port");
+                    String eToken_id = geCredentials.getString("eToken_id");
+                    String voms = geCredentials.getString("voms");
+                    String voms_role = geCredentials.getString("voms_role");
+                    String rfc_proxy = geCredentials.getString("rfc_proxy");
+                                        
+                    String wmsList[] = { resourceManagers };                    
+                    infrastructures[0] = new 
+                        InfrastructureInfo( 
+                            resourceManagers         // Infrastruture name
+                           ,"wms"                    // Adaptor
+                           ,wmsList                  //                           
+                           ,eToken_host              // eTokenServer host
+                           ,eToken_port              // eTokenServer port
+                           ,eToken_id                // eToken id (md5sum)
+                           ,voms                     // VO
+                           ,voms_role                // VO.group.role
+                           ,(null!=swtags)?swtags:"" // Software Tags
+                        );
+                    mijs.addInfrastructure(infrastructures[0]);                    
+                    // Setup JobDescription
+                    prepareJobDescription(mijs,geJobDescription);
+                    // I/O Sandbox
+                    prepareIOSandbox(mijs,input_files,output_files);                    
+                    // JDL requirements                    
+                    if(jdlRequirements!=null && jdlRequirements.length > 0)
+                        mijs.setJDLRequirements(jdlRequirements);                   
+                    // Submit asynchronously                        
+                    agi_id = 0;
+                               mijs.submitJobAsync(geCommonName
+                                                  ,gedIPAddress
+                                                  ,geAppId
+                                                  ,jobIdentifier);  
+                    _log.debug("AGI_id: "+agi_id);                     
+                }
+                break;
                 default:                  
                     _log.fatal("Unrecognized or unsupported adaptor found!");
             }   
