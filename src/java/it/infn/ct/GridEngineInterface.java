@@ -154,22 +154,28 @@ public class GridEngineInterface {
     private void prepareIOSandbox(MultiInfrastructureJobSubmission mijs
                     ,JSONArray input_files
                     ,JSONArray output_files) {
+        // InputSandbox
         String inputSandbox = "";
         _log.debug("Input files:");
-        for(int i=0; i<input_files.length(); i++) {   
+        for(int i=0; i<input_files.length(); i++) {               
+            JSONObject input_entry = output_files.getJSONObject(i);
             String comma=(i==0)?"":",";
-            inputSandbox += comma
-                           +gedCommand.getActionInfo()+"/"
-                           +input_files.getString(i);            
+            if (input_entry.getString("name").length() > 0) {
+                inputSandbox += comma
+                               +gedCommand.getActionInfo()+"/"
+                               +input_files.getString(i);
+            }
         }
         mijs.setInputFiles(inputSandbox);
         _log.debug("inputSandbox: '"+inputSandbox+"'");
+        
+        // OutputSandbox
         String outputSandbox = "";
         _log.debug("Output files:");
-        for(int i=0; i<output_files.length(); i++) {
-            String comma=(i==0)?"":",";
+        for(int i=0; i<output_files.length(); i++) {            
             JSONObject output_entry = output_files.getJSONObject(i);
             if (output_entry.getString("name").length() > 0) {
+                String comma=(i==0)?"":",";
                 outputSandbox += comma
                                 +output_entry.getString("name");                
             }
@@ -377,6 +383,16 @@ public class GridEngineInterface {
                     // Setup JobDescription
                     prepareJobDescription(mijs,geJobDescription);
                     // I/O Sandbox
+                    // In wms output and error files have to be removed
+                    // from output_files
+                    for(int i=0; i<output_files.length(); i++) {            
+                        JSONObject output_entry = output_files.getJSONObject(i);
+                        if (   output_entry.getString("name").equals(geJobDescription.getString("output"))
+                            || output_entry.getString("name").equals(geJobDescription.getString("error"))) {
+                            output_files.getJSONObject(i).put("name", "");
+                            _log.debug("Skipping file: '"+output_entry.getString("name")+"'");
+                        }
+                    }
                     prepareIOSandbox(mijs,input_files,output_files);                    
                     // JDL requirements                    
                     if(jdlRequirements!=null && jdlRequirements.length > 0)
