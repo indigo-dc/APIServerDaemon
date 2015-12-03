@@ -28,9 +28,13 @@ import it.infn.ct.GridEngine.Job.*;
 import it.infn.ct.GridEngine.JobResubmission.GEJobDescription;
 import it.infn.ct.GridEngine.Job.MultiInfrastructureJobSubmission;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
+import java.nio.charset.Charset;
+import java.util.Random;
 import org.json.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
@@ -208,7 +212,10 @@ public class GridEngineInterface {
         else try {            
             _log.debug("Loading GridEngine job JSON desc");
             // Load <task_id>.info JSON file in memory
-            JSONObject jsonJobDesc = loadJSONJobDesc();
+            //JSONObject jsonJobDesc = loadJSONJobDesc();
+            // Create info here
+            JSONObject jsonJobDesc = null;
+            try { jsonJobDesc=mkGEJobDesc(); } catch(Exception e) { _log.info("Something went wrong reading Task JSON"+LS+e.toString()); }
             // application
             int geAppId = jsonJobDesc.getInt("application");
             // commonName (user executing task)
@@ -409,10 +416,12 @@ public class GridEngineInterface {
                 default:                  
                     _log.fatal("Unrecognized or unsupported adaptor found!");
             }   
-        } catch(IOException e) {          
-            _log.fatal("Unable to load GridEngine JSON job description\n"+LS
-                       +e.toString()); 
-        } catch(Exception e) {          
+        } 
+        //catch(IOException e) {          
+        //    _log.fatal("Unable to load GridEngine JSON job description\n"+LS
+        //               +e.toString()); 
+        //}
+        catch(Exception e) {          
             _log.fatal("Unable to submit job: "+LS+e.toString());
         }            
         return agi_id;
@@ -477,7 +486,174 @@ public class GridEngineInterface {
             _log.warn("Caught exception: "+ e.toString());
         }
         return jsonJobDesc;
-    } 
+    }
+    // Produce here the <task_id>.info
+    private JSONObject mkGEJobDesc() throws IOException {
+        JSONObject jsonJobDesc = null;
+        
+        _log.info(LS+"Starting mkGEJobDesc*********************************"
+                 +LS+"*****************************************************"
+                 +LS+"*****************************************************"
+                 +LS+"*****************************************************"
+                 +LS+"*****************************************************");
+        
+        String jobDescFileName = gedCommand.getActionInfo()+"/"
+                                +gedCommand.getTaskId()
+                                +".json"; 
+        _log.info("JSON filename: "+jobDescFileName);
+        try {
+            InputStream is = new FileInputStream(jobDescFileName);
+            String jsonTxt = IOUtils.toString(is);
+            _log.info("JSON Content: "+jsonTxt);
+            jsonJobDesc = (JSONObject) new JSONObject(jsonTxt);
+            _log.info("JSON obj created");
+            _log.debug("Loaded APIServer JobDesc:\n"+LS+jsonJobDesc);
+        } catch(Exception e) {
+            _log.warn("Caught exception: "+ e.toString());
+        }
+        
+        // Now create the <task_id>.info file targeted for the GridEngine
+        JSONObject GridEngineTaskDescription = new JSONObject();
+        GridEngineTaskDescription.put("commonName",String.format("%s", jsonJobDesc.getString("user")));
+        GridEngineTaskDescription.put("application",10000); // Take this value from properties file or any other configuration source
+        GridEngineTaskDescription.put("identifier",String.format("%s@%s",jsonJobDesc.getString("id")
+                                                                        ,jsonJobDesc.getString("iosandbox"))); 
+        GridEngineTaskDescription.put("input_files",jsonJobDesc.getJSONArray("input_files"));
+        GridEngineTaskDescription.put("output_files",jsonJobDesc.getJSONArray("output_files"));
+                
+        // Prepare the JobDescription
+        JSONObject GridEgnineJobDescription = new JSONObject();
+        
+        // Get app Info and Parameters
+        JSONObject appInfo = new JSONObject();
+        appInfo = jsonJobDesc.getJSONObject("application");
+        JSONArray appParams = new JSONArray();
+        appParams = appInfo.getJSONArray("parameters");
+                
+        // Process application parameters
+        String job_args="";
+        String param_name;
+        String param_value;
+        for(int i=0; i<appParams.length(); i++) {               
+            JSONObject appParameter = appParams.getJSONObject(i);
+            
+            // Get parameter name and value
+            param_name  = appParameter.getString("param_name");
+            param_value = appParameter.getString("param_value");
+            _log.info("app_param("+i+") { name:'"+param_name+"',value:'"+param_value+"'}");
+            
+            // Map task values to GE job description values
+            if(param_name.equals("jobdesc_executable"))
+                GridEgnineJobDescription.put("executable", param_value);
+            else if(param_name.equals("jobdesc_arguments")) {
+              // Further arguments will be added later
+              //GridEgnineJobDescription.put("arguments", param_value+" ");
+              job_args=param_value+" ";
+            }
+            else if(param_name.equals("jobdesc_output"))
+                GridEgnineJobDescription.put("output", param_value);
+            else if(param_name.equals("jobdesc_error"))
+                GridEgnineJobDescription.put("error", param_value);
+            else {
+                _log.debug("Reached end of if-elif chain for param name: '"+param_name+"'");
+            }
+        }
+        
+        // Now add further arguments if specified in task
+        JSONArray jobArguments = jsonJobDesc.getJSONArray("arguments");       
+        for(int j=0; j<jobArguments.length(); j++)
+            job_args += String.format("%s ",jobArguments.getString(j));        
+        GridEgnineJobDescription.put("arguments", job_args.trim());
+                            
+        // Get application specific settings
+        GridEngineTaskDescription.put("jobDescription", GridEgnineJobDescription);
+                
+        // Select one of the possible infrastructures among the one enabled
+        // A random strategy is currently implemented; this could be changed later        
+        JSONArray jobInfrastructures = appInfo.getJSONArray("infrastructures");
+        JSONArray enabledInfras = new JSONArray();
+        for(int v=0,w=0; w<jobInfrastructures.length(); w++) {
+            JSONObject infra = jobInfrastructures.getJSONObject(w);
+            if(infra.getString("status").equals("enabled"))
+                enabledInfras.put(v++,infra);
+        }
+        int selInfraIdx = 0;
+        Random rndGen = new Random();
+        if(enabledInfras.length()>1) {
+            selInfraIdx = rndGen.nextInt(enabledInfras.length());
+        }
+        JSONObject selInfra = new JSONObject();
+        selInfra = enabledInfras.getJSONObject(selInfraIdx);
+        _log.info("Selected infra:"+LS+selInfra.toString(4));
+                
+        // Process infrastructure parameters
+        JSONObject GridEngineInfrastructure = new JSONObject();
+        JSONObject GridEngineCredentials = new JSONObject();
+                
+        JSONArray infraParams = selInfra.getJSONArray("parameters");
+        _log.info("111111111111111111111111111111111111111111111");
+        for(int h=0; h<infraParams.length(); h++) {
+            JSONObject infraParameter = infraParams.getJSONObject(h);
+            param_name = infraParameter.getString("name");
+            param_value = infraParameter.getString("value");
+            _log.info(h+": "+param_name+" - "+param_value);
+            // Job settings
+            if(param_name.equals("jobservice"))
+                GridEngineInfrastructure.put("resourceManagers",param_value);
+            else if(param_name.equals("os_tpl"))
+                GridEngineInfrastructure.put("os_tpl",param_value);
+            else if(param_name.equals("resource_tpl"))
+                GridEngineInfrastructure.put("resource_tpl",param_value);
+            else if(param_name.equals("attributes_title"))
+                GridEngineInfrastructure.put("attributes_title",param_value);
+            else if(param_name.equals("bdii"))
+                GridEngineInfrastructure.put("bdii",param_value);
+            else if(param_name.equals("swtags"))
+                GridEngineInfrastructure.put("swtags",param_value);
+            else if(param_name.equals("jdlRequirements"))
+                GridEngineInfrastructure.put("jdlRequirements",param_value);
+            // Credential settings
+            else if(param_name.equals("username"))
+                GridEngineCredentials.put("username",param_value);
+            else if(param_name.equals("password"))
+                GridEngineCredentials.put("password",param_value);
+            else if(param_name.equals("eToken_host"))
+                GridEngineCredentials.put("eToken_host",param_value);
+            else if(param_name.equals("eToken_port"))
+                GridEngineCredentials.put("eToken_port",param_value);
+            else if(param_name.equals("eToken_id"))
+                GridEngineCredentials.put("eToken_port",param_value);
+            else if(param_name.equals("eToken_id"))
+                GridEngineCredentials.put("eToken_id",param_value);
+            else if(param_name.equals("voms"))
+                GridEngineCredentials.put("voms",param_value);
+            else if(param_name.equals("voms_role"))
+                GridEngineCredentials.put("voms_role",param_value);
+            else if(param_name.equals("rfc_proxy"))
+                GridEngineCredentials.put("rfc_proxy",param_value);
+            else {
+                _log.debug("Reached end of if-elif chain for infra_param name: '"+param_name+"'");
+            }
+        } 
+        _log.info("2222222222222222222222222222222222222");
+        GridEngineTaskDescription.put("infrastructure",GridEngineInfrastructure);
+        GridEngineTaskDescription.put("credentials",GridEngineCredentials);
+        
+        // Now write the JSON translated for the GridEngine 
+        String JSONTask = GridEngineTaskDescription.toString();
+        String JSONFileName = gedCommand.getActionInfo()+"/"
+                             +gedCommand.getTaskId()
+                             +".ge_info";  
+        try {
+            OutputStream os = new FileOutputStream(JSONFileName);
+            os.write(JSONTask.getBytes(Charset.forName("UTF-8"))); // UTF-8 from properties            
+            _log.debug("GridEngine JobDescription written in file '"+JSONFileName+"':\n"+LS+JSONTask);
+        } catch(Exception e) {
+            _log.warn("Caught exception: "+ e.toString());
+        }
+        
+        return GridEngineTaskDescription;
+    }
     
     /**
      * Retrieve the id field of the ActiveGridInteraction table starting from
