@@ -1,7 +1,7 @@
 <project name="APIServer Daemon" default="help" basedir=".">
   <!-- Define the properties used by the build -->
   <property name="app.name"       value="APIServerDaemon"/>
-  <property name="app.libs"       value="${basedir}/web/WEB-INF/build/web/WEB-INF/lib"/>
+  <property name="app.libs"       value="${basedir}/web/WEB-INF/lib"/>
   <property name="appserver.home" value="../apache-tomcat-8.0.26" />
   <property name="work.home"      value="${basedir}/work"/>
   <property name="dist.home"      value="${basedir}/dist"/>
