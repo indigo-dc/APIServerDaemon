@@ -1,8 +1,9 @@
 <project name="APIServer Daemon" default="help" basedir=".">
   <!-- Define the properties used by the build -->
+  <property environment="env"/>
   <property name="app.name"       value="APIServerDaemon"/>
   <property name="app.libs"       value="${basedir}/web/WEB-INF/lib"/>
-  <property name="appserver.home" value="../apache-tomcat-8.0.26" />
+  <property name="appserver.home" value="${env.CATALINA_HOME}" />
   <property name="work.home"      value="${basedir}/work"/>
   <property name="dist.home"      value="${basedir}/dist"/>
   <property name="src.home"       value="${basedir}/src"/>
@@ -58,6 +59,7 @@
           description="Compile Java sources and copy to WEB-INF/classes dir">
     <javac srcdir="${src.home}"
           destdir="${work.home}/WEB-INF/classes"
+		  includeantruntime="false" 
 		  debug="on">
         <classpath refid="compile.classpath"/>
     </javac>
