@@ -77,7 +77,7 @@ class APIServerDaemonProcessCommand implements Runnable {
                                          ,String gedConnectionURL) {
         this.asdCommand = asdCommand;
         this.asdConnectionURL = gedConnectionURL;
-        threadName = Thread.currentThread().getName();
+        this.threadName = Thread.currentThread().getName();
     }
     
     /**
@@ -125,11 +125,10 @@ class APIServerDaemonProcessCommand implements Runnable {
     private void submit() {
         _log.debug("Submitting command: "+asdCommand);
         if(asdCommand.getTarget().equals("GridEngine")) {                    
-            GridEngineInterface geInterface = new GridEngineInterface(asdCommand); 
-            geInterface.setConfig(asdConfig);
-            asdCommand.setTargetId(geInterface.jobSubmit());
-            asdCommand.setStatus("PROCESSED");
-            updateCommand();
+            GridEngineInterface geInterface = new GridEngineInterface(asdConfig,asdCommand);
+            int AGIId = geInterface.jobSubmit(); // Currently this returns 0            
+            asdCommand.setStatus("PROCESSED");            
+            asdCommand.Update(asdConnectionURL);
         } /* else if(asdCommand.getTarget().equals(<other targets>)) {
         } */
         else {
@@ -147,7 +146,7 @@ class APIServerDaemonProcessCommand implements Runnable {
             GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
             asdCommand.setStatus(geInterface.jobStatus());
             asdCommand.setStatus("PROCESSED");
-            updateCommand();
+            asdCommand.Update(asdConnectionURL);
         }/* else if(asdCommand.getTarget().equals(<other targets>)) {
         } */
         else {
@@ -164,7 +163,7 @@ class APIServerDaemonProcessCommand implements Runnable {
         if(asdCommand.getTarget().equals("GridEngine")) {
             GridEngineInterface geInterface = new GridEngineInterface(asdCommand);        
             asdCommand.setStatus("PROCESSED");
-            updateCommand();
+            asdCommand.Update(asdConnectionURL);
         }/* else if(asdCommand.getTarget().equals(<other targets>)) {
         } */
         else {
@@ -182,7 +181,7 @@ class APIServerDaemonProcessCommand implements Runnable {
             GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
             asdCommand.setStatus(geInterface.jobOutput());
             asdCommand.setStatus("PROCESSED");
-            updateCommand();
+            asdCommand.Update(asdConnectionURL);
         }/* else if(asdCommand.getTarget().equals(<other targets>)) {
         } */
         else {
@@ -199,31 +198,11 @@ class APIServerDaemonProcessCommand implements Runnable {
             GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
             geInterface.jobCancel();
             asdCommand.setStatus("PROCESSED");
-            updateCommand();
+            asdCommand.Update(asdConnectionURL);
         }/* else if(asdCommand.getTarget().equals(<other targets>)) {
         } */
         else {
             _log.error("Unsupported target: '"+asdCommand.getTarget()+"'");
         }
-    }
-    
-    /**
-     * Finalize the GridEngine command once processed
-     */
-    private void updateCommand() {
-        APIServerDaemonDB asdDB = null;
-        
-        if(asdCommand.isModified())
-            try {
-                    asdDB= new APIServerDaemonDB(asdConnectionURL);
-                    asdDB.updateCommand(asdCommand); 
-                    asdCommand.validate();
-                } catch (Exception e) {                  
-                    _log.fatal("Unable update command:"+LS+asdCommand
-                                                       +LS+e.toString());
-                }
-                finally {
-                   if(asdDB!=null) asdDB.close(); 
-                }
-    }
+    }   
 }

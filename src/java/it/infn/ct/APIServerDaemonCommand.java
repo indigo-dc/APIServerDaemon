@@ -23,6 +23,7 @@ limitations under the License.
 package it.infn.ct;
 
 import java.sql.Date;
+import org.apache.log4j.Logger;
 
 /**
  * Class containing APIServerDaemon commands as registered in 
@@ -44,6 +45,11 @@ class APIServerDaemonCommand {
     private String action_info;
     
     private boolean modified_flag;
+    
+    /**
+     * Logger
+     */
+    private static final Logger _log = Logger.getLogger(APIServerDaemonCommand.class.getName());
     
     private static final String LS = System.getProperty("line.separator");        
         
@@ -84,7 +90,7 @@ class APIServerDaemonCommand {
         this.creation      = creation;
         this.last_change   = last_change;
         this.action_info   = action_info;
-        this.modified_flag = false;
+        this.modified_flag = true;
     }        
     
     /**
@@ -138,16 +144,20 @@ class APIServerDaemonCommand {
      * Set APIServerCommand 'task_id' field value
     */
     public void setTaskId(int task_id){
-        if(this.task_id != task_id) modified_flag=true; 
-        this.task_id = task_id; 
+        if(this.task_id != task_id) {
+            modified_flag=true;
+            this.task_id = task_id; 
+        }         
     }
     /**
      * Set APIServerCommand 'target_id' field value
      * @param target_id
     */
-    public void setTargetId(int  target_id) { 
-        if(this.target_id != target_id) modified_flag=true; 
-        this.target_id = target_id;
+    public void setTargetId(int target_id) { 
+        if(this.target_id != target_id) {
+            modified_flag=true; 
+            this.target_id = target_id;
+        }
     }
     /**
      * Set APIServerCommand 'action' field value
@@ -155,7 +165,7 @@ class APIServerDaemonCommand {
     */
     public void setAction(String action){
          if (action == null) return;
-         if(this.action == null || (this.action != null && !this.action.equals(action))) {
+         if(this.action == null || !this.action.equals(action)) {
              modified_flag=true; 
             this.action = action; 
          }
@@ -166,7 +176,7 @@ class APIServerDaemonCommand {
     */
     public void setStatus(String status){
         if(status == null) return;
-        if(this.status == null || (this.status != null && !this.status.equals(status))) {
+        if(this.status == null || !this.status.equals(status)) {
             modified_flag=true; 
             this.status = status; 
         }
@@ -177,7 +187,7 @@ class APIServerDaemonCommand {
     */
     public void setTargetStatus(String target_status){
         if(target_status == null) return;
-        if(this.target_status == null || (this.target_status != null && !this.target_status.equals(target_status))) {
+        if(this.target_status == null || !this.target_status.equals(target_status)) {
             modified_flag=true; 
             this.target_status = target_status; 
         }
@@ -188,7 +198,7 @@ class APIServerDaemonCommand {
     */
     public void setCreation(Date creation){ 
         if(creation == null) return;
-        if(this.creation == null || (this.creation != null && !this.creation.equals(creation))) {
+        if(this.creation == null || !this.creation.equals(creation)) {
             modified_flag=true; 
             this.creation = creation; 
         }
@@ -199,7 +209,7 @@ class APIServerDaemonCommand {
     */
     public void setLastChange(Date last_change){ 
         if(last_change == null) return;
-        if(this.last_change == null || (this.last_change != null && !this.last_change.equals(last_change))) {
+        if(this.last_change == null || !this.last_change.equals(last_change)) {
             modified_flag=true; 
             this.last_change=last_change; 
         }
@@ -210,7 +220,7 @@ class APIServerDaemonCommand {
     */
     public void setActionInfo(String action_info){ 
         if(action_info == null) return;
-        if(this.action_info == null || (this.action_info != null && !this.action_info.equals(action_info))) {
+        if(this.action_info == null || !this.action_info.equals(action_info)) {
             modified_flag=true; 
             this.action_info=action_info; 
         }
@@ -244,5 +254,26 @@ class APIServerDaemonCommand {
               +"  \"modified_flag\": \"" + modified_flag + "\""+ LS
               +"}"
               ;
+    }
+    
+    /**
+     * Update the command values on the given DB
+     */
+    public void Update(String asdConnectionURL) {
+        APIServerDaemonDB asdDB = null;
+        
+        if(isModified())
+            try {
+                    _log.debug("Opening connection for update command");
+                    asdDB= new APIServerDaemonDB(asdConnectionURL);
+                    asdDB.updateCommand(this); 
+                    validate();
+                } catch (Exception e) {                  
+                    _log.fatal("Unable update command:"+LS+this.toString()
+                                                       +LS+e.toString());
+                } finally {
+                   if(asdDB!=null) asdDB.close(); 
+                   _log.debug("Closing connection for update command");
+                }
     }
 }

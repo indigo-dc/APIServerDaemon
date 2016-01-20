@@ -85,6 +85,17 @@ public class GridEngineInterface {
         _log.debug("GridEngineInterface command:"+LS+gedCommand);
         this.gedCommand=gedCommand;        
     }
+    /**
+     * Constructor for GridEngineInterface taking as input the
+     * APIServerDaemonConfig and a given command
+     */
+    public GridEngineInterface(APIServerDaemonConfig gedConfig
+                              ,APIServerDaemonCommand gedCommand) {
+        this();
+        _log.debug("GridEngineInterface command:"+LS+gedCommand);
+        setConfig(gedConfig);       
+        this.gedCommand=gedCommand;        
+    }
     
     /*
       GridEngine interfacing methods

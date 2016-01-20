@@ -142,13 +142,26 @@ public class GridEngineInterfaceDB {
     }
     
     /**
+     * Close all db opened elements except the connection
+     */
+    public void closeSQLActivity() 
+    {
+        try {
+            if(resultSet         != null) { _log.debug("closing resultSet");         resultSet.close();         resultSet         = null; }
+            if(statement         != null) { _log.debug("closing statement");         statement.close();         statement         = null; }
+            if(preparedStatement != null) { _log.debug("closing preparedStatement"); preparedStatement.close(); preparedStatement = null; }        
+        } catch(SQLException e) {
+            _log.fatal("Unable to close SQLActivities (resultSet, statement, preparedStatement)");          
+            _log.fatal(e.toString());
+        }
+    }
+    
+    /**
      * Close all db opened elements: resultset,statement,cursor,connection
     */
     public void close() {
+        closeSQLActivity();
         try {
-            if(resultSet         != null) { resultSet.close();         resultSet         = null; }
-            if(statement         != null) { statement.close();         statement         = null; }
-            if(preparedStatement != null) { preparedStatement.close(); preparedStatement = null; }
             if(connect           != null) { connect.close();           connect           = null; }
         } catch (Exception e) {          
             _log.fatal("Unable to close DB: '"+this.connectionURL+"'");          
@@ -175,7 +188,9 @@ public class GridEngineInterfaceDB {
                 jobStatus=resultSet.getString("status");
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
-        }          
+        } finally {
+            closeSQLActivity();
+        }     
         return jobStatus;
     }
     
@@ -200,6 +215,8 @@ public class GridEngineInterfaceDB {
             jobStatus=resultSet.getString("user_description");
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
         }          
         return jobStatus;
     }
@@ -229,7 +246,9 @@ public class GridEngineInterfaceDB {
                 agi_id = resultSet.getInt("id");
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
-        }        
+        } finally {
+            closeSQLActivity();
+        }       
         return agi_id;
     }
     

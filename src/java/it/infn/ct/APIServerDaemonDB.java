@@ -202,25 +202,42 @@ public class APIServerDaemonDB {
      * @return connect object
      */
     private boolean connect() {
+        if(connect == null)
+            try {
+              // Unnecessary due to registerDriver
+              //Class.forName("com.mysql.jdbc.Driver");
+              connect = DriverManager.getConnection(this.connectionURL);
+              _log.debug("Connected to DB: '"+this.connectionURL+"'");
+            } catch (Exception e) {          
+                _log.fatal("Unable to connect DB: '"+this.connectionURL+"'");          
+                _log.fatal(e.toString());
+            }
+        else _log.debug("Connection object already present");        
+        return (connect != null);                
+    }
+
+    /**
+     * Close all db opened elements except the connection
+     */
+    public void closeSQLActivity() 
+    {
         try {
-          //Class.forName("com.mysql.jdbc.Driver");
-            connect = DriverManager.getConnection(this.connectionURL);
-        } catch (Exception e) {          
-            _log.fatal("Unable to connect DB: '"+this.connectionURL+"'");          
+            if(resultSet         != null) { _log.debug("closing resultSet");         resultSet.close();         resultSet         = null; }
+            if(statement         != null) { _log.debug("closing statement");         statement.close();         statement         = null; }
+            if(preparedStatement != null) { _log.debug("closing preparedStatement"); preparedStatement.close(); preparedStatement = null; }        
+        } catch(SQLException e) {
+            _log.fatal("Unable to close SQLActivities (resultSet, statement, preparedStatement)");          
             _log.fatal(e.toString());
         }
-        _log.debug("Connected to DB: '"+this.connectionURL+"'");
-        return (connect != null);
     }
+    
     /**
      * Close all db opened elements: resultset,statement,cursor,connection
     */
     public void close() {
-        try {
-            if(resultSet         != null) { resultSet.close();         resultSet         = null; }
-            if(statement         != null) { statement.close();         statement         = null; }
-            if(preparedStatement != null) { preparedStatement.close(); preparedStatement = null; }
-            if(connect           != null) { connect.close();           connect           = null; }
+        closeSQLActivity();
+        try {            
+            if(connect           != null) { _log.debug("closing connect");           connect.close();           connect           = null; }
         } catch (Exception e) {          
             _log.fatal("Unable to close DB: '"+this.connectionURL+"'");          
             _log.fatal(e.toString());
@@ -283,6 +300,8 @@ public class APIServerDaemonDB {
                 if (null != asdCmd) commandList.add(asdCmd);
                 _log.debug("Loaded command: "+LS+asdCmd);                
             }
+            resultSet.close(); resultSet = null;
+            preparedStatement.close();
             // change status to the taken commands as PROCESSING
             Iterator<APIServerDaemonCommand> iterCmds = commandList.iterator(); 
             while (iterCmds.hasNext()) {
@@ -292,14 +311,17 @@ public class APIServerDaemonDB {
                    +"where task_id=?";
                 preparedStatement = connect.prepareStatement(sql);
                 preparedStatement.setInt(1, asCommand.getTaskId());            
-                preparedStatement.execute();                
+                preparedStatement.execute(); 
+                preparedStatement.close(); preparedStatement = null;
             }
             // Unlock ge_queue table
             sql="unlock tables;";
-            statement=connect.createStatement();
+          //statement=connect.createStatement();
             statement.execute(sql);
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
         }        
         return commandList;
     }
@@ -357,9 +379,11 @@ public class APIServerDaemonDB {
                                ,resultSet.getString(  "action_info"));                
                 if (null != asdCmd) commandList.add(asdCmd);
                 _log.debug("Loaded command: "+LS+asdCmd);                
-            }
+            }            
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
         }        
         return commandList;
     }       
@@ -372,7 +396,7 @@ public class APIServerDaemonDB {
      * @param New command status
      * @see APIServerCommand
     */    
-    public void updateCommand(APIServerDaemonCommand command) {    
+    public void updateCommand(APIServerDaemonCommand command) throws SQLException {    
         if (!connect()) {          
             _log.fatal("Not connected to database");
             return;
@@ -380,9 +404,10 @@ public class APIServerDaemonDB {
         try {
             String sql;
             // Lock ge_queue table first
-            sql="lock tables as_queue write;";
+            sql="lock tables as_queue write, task write;";
             statement=connect.createStatement();
             statement.execute(sql);
+            // Update command values into as_queue table
             sql="update as_queue set target_id = ?"      +LS
                +"                   ,status = ?"         +LS  
                +"                   ,target_status = ?"  +LS
@@ -395,52 +420,32 @@ public class APIServerDaemonDB {
             preparedStatement.setString(3, command.getTargetStatus());
             preparedStatement.setInt   (4, command.getTaskId());
             preparedStatement.setString(5, command.getAction());
-            preparedStatement.execute();                               
-            // Unlock ge_queue table
-            sql="unlock tables;";
-            statement=connect.createStatement();
-            statement.execute(sql);
-            _log.debug("Updated command in as_queue: "+LS+command);            
-            // propagate Status change in APIServer' task table
-            updateAPIServerStatus(command);
-        } catch (SQLException e) {                      
-            _log.fatal(e.toString());
-        }
-    }
-    
-    /**
-     * Update APIServer command status setting the GE status in task table
-     */
-    void updateAPIServerStatus(APIServerDaemonCommand command) {
-        if (!connect()) {          
-            _log.fatal("Not connected to database");
-            return;
-        }        
-        try {
-            String sql;
-            // Lock ge_queue table first
-            sql="lock tables task write;";
-            statement=connect.createStatement();
-            statement.execute(sql);
+            preparedStatement.execute();
+            preparedStatement.close(); preparedStatement = null;
+            // Propagate command status in task table
             sql="update task set status = ?"         +LS  
                +"               ,last_change = now()"+LS
                +"where id=?";
             String newStatus=(command.getTargetStatus()==null?
                               "WAITING":command.getTargetStatus());
+            _log.debug("New status for task "+command.getTaskId()+" is: '"+newStatus+"'");
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setString(1, newStatus);
             preparedStatement.setInt   (2, command.getTaskId());
-            preparedStatement.execute();                               
+            preparedStatement.execute(); 
+            preparedStatement.close(); preparedStatement = null;            
             // Unlock ge_queue table
             sql="unlock tables;";
-            statement=connect.createStatement();
+          //statement=connect.createStatement();
             statement.execute(sql);
-            _log.debug("Updated status to: '"+newStatus
-                     +"'for task: "+command.getTaskId());
+            _log.debug("Updated command in as_queue and task tables: "+LS+command);                         
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
         }
     }
+            
     
     /**
      * Update output paths of a given command
@@ -463,15 +468,18 @@ public class APIServerDaemonDB {
             preparedStatement.setString(1, command.getActionInfo()+"/"
                                           +outputDir);
             preparedStatement.setInt   (2, command.getTaskId());
-            preparedStatement.execute();                               
+            preparedStatement.execute();  
+            preparedStatement.close(); preparedStatement = null;
             // Unlock ge_queue table
             sql="unlock tables;";
-            statement=connect.createStatement();
+          //statement=connect.createStatement();
             statement.execute(sql);
             _log.debug("Output dir '"+command.getActionInfo()+"/"+outputDir
                       +"' updated");
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
         }
     }
     
@@ -497,79 +505,85 @@ public class APIServerDaemonDB {
             sql="delete from task_output_file where task_id = ?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, task_id);
-            preparedStatement.execute();                               
+            preparedStatement.execute();            
+            preparedStatement.close(); preparedStatement = null;
             // Unlock task_output_file table
             sql="unlock tables;";
-            statement=connect.createStatement();
+          //statement=connect.createStatement();
             statement.execute(sql);            
             //
             // Table task_input_file
             //
             // Lock task_input_file table first
             sql="lock tables task_input_file write;";
-            statement=connect.createStatement();
+          //statement=connect.createStatement();
             statement.execute(sql);
             // Delete entries in task_input_file
             sql="delete from task_input_file where task_id = ?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, task_id);
-            preparedStatement.execute();                               
+            preparedStatement.execute();              
+            preparedStatement.close(); preparedStatement = null;
             // Unlock task_input_file table
             sql="unlock tables;";
-            statement=connect.createStatement();
+          //statement=connect.createStatement();
             statement.execute(sql);            
             //
             // Table task_arguments
             //
             // Lock task_arguments table first
             sql="lock tables task_arguments write;";
-            statement=connect.createStatement();
+          //statement=connect.createStatement();
             statement.execute(sql);
             // Delete entries in ge_queue
             sql="delete from task_arguments where task_id = ?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, task_id);
-            preparedStatement.execute();                               
+            preparedStatement.execute();
+            preparedStatement.close(); preparedStatement = null;
             // Unlock task_arguments table
             sql="unlock tables;";
-            statement=connect.createStatement();
+          //statement=connect.createStatement();
             statement.execute(sql);                        
             //
             // Table as_queue
             //
             // Lock ge_queue table first
             sql="lock tables as_queue write;";
-            statement=connect.createStatement();
+          //statement=connect.createStatement();
             statement.execute(sql);
             // Delete entries in ge_queue
             sql="delete from as_queue where task_id = ?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, task_id);
-            preparedStatement.execute();                               
+            preparedStatement.execute();
+            preparedStatement.close(); preparedStatement = null;
             // Unlock ge_queue table
             sql="unlock tables;";
-            statement=connect.createStatement();
+          //statement=connect.createStatement();
             statement.execute(sql);                                                
             //
             // Table task
             //
             // Lock task table first
             sql="lock tables task write;";
-            statement=connect.createStatement();
+          //statement=connect.createStatement();
             statement.execute(sql);
             // Delete entries in task
             sql="delete from task where id = ?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, task_id);
-            preparedStatement.execute();                               
+            preparedStatement.execute();  
+            preparedStatement.close(); preparedStatement = null;
             // Unlock task table
             sql="unlock tables;";
-            statement=connect.createStatement();
+          //statement=connect.createStatement();
             statement.execute(sql);            
             _log.debug("All entries for task '"+task_id+"' have been removed");
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
         }
-    }
-    
+    }    
 }

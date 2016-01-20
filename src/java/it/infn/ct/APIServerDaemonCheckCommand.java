@@ -79,7 +79,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
     public APIServerDaemonCheckCommand(APIServerDaemonCommand asdCommand, String asdConnectionURL) {
         this.asdCommand = asdCommand;
         this.asdConnectionURL = asdConnectionURL;
-        threadName = Thread.currentThread().getName();
+        this.threadName = Thread.currentThread().getName();
     }
 
     /**
@@ -183,15 +183,16 @@ public class APIServerDaemonCheckCommand implements Runnable {
                 // Status is PROCESSED; the job has been submited
                 // First prepare the GridEngineInterface passing config
                 GridEngineInterface geInterface
-                        = new GridEngineInterface(asdCommand);
-                geInterface.setConfig(asdConfig);
+                        = new GridEngineInterface(asdConfig,asdCommand);                
 
                 // Retrieve the right agi_id field exploiting the
                 // fixed jobDescription field inside the ActiveGridInteraction
                 // AGIId may change during submission in casethe job is
                 // resubmitted by the GridEngine
+                int AGIId = geInterface.getAGIId();
+                _log.debug("AGIId for command having id:"+asdCommand.getTaskId()+" is: "+AGIId);
                 asdCommand.setTargetId(geInterface.getAGIId());
-                updateCommand();            
+                asdCommand.Update(asdConnectionURL);
 
                 // Update target_status taking its value from the GridEngine'
                 // ActiveGridInteraction table, then if target_status is DONE
@@ -210,7 +211,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                         String outputDir = geInterface.prepareJobOutput();
                         updateOutputPaths(outputDir);
                     }
-                    updateCommand();
+                    asdCommand.Update(asdConnectionURL);
                 }
             }/* else if(asdCommand.getTarget().equals(<other targets>)) {
             } */
@@ -241,28 +242,6 @@ public class APIServerDaemonCheckCommand implements Runnable {
      */
     private void jobCancel() {
         _log.debug("Check job cancel command: " + asdCommand);
-    }
-
-    /**
-     * Finalize the APIServer command once processed
-     */
-    private void updateCommand() {
-        APIServerDaemonDB asdDB = null;
-
-        if (asdCommand.isModified()) {
-            try {
-                asdDB = new APIServerDaemonDB(asdConnectionURL);
-                asdDB.updateCommand(asdCommand);
-                asdCommand.validate();
-            } catch (Exception e) {
-                _log.fatal("Unable update command:" + LS + asdCommand
-                        + LS + e.toString());
-            } finally {
-                if (asdDB != null) {
-                    asdDB.close();
-                }
-            }
-        }
     }
 
     /**
