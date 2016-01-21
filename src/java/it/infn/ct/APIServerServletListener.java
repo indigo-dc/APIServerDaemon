@@ -64,15 +64,18 @@ public class APIServerServletListener implements ServletContextListener {
     public void contextInitialized(ServletContextEvent sce) {        
         
         context = sce.getServletContext();
-        String webAppPath = context.getRealPath(PS);
+        String APISrvDaemonPath = context.getRealPath(PS);   
+        System.setProperty("APISrvDaemonPath", context.getRealPath("/"));
+        
+        // Notify execution
         System.out.println("--- Starting APIServerDaemon ---");        
-        System.out.println("Java vendor : '" + VN +"'");
-        System.out.println("Java vertion: '" + VR +"'");
-        System.out.println("Running as  : '" + US +"' username");
-        System.out.println("Servlet path: '" + webAppPath +"'");
+        System.out.println("Java vendor : '" + VN               +"'");
+        System.out.println("Java vertion: '" + VR               +"'");
+        System.out.println("Running as  : '" + US               +"' username");
+        System.out.println("Servlet path: '" + APISrvDaemonPath +"'");
         
         // Initialize log4j logging
-        String log4jPropPath = webAppPath + "WEB-INF"+PS+"log4j.properties";
+        String log4jPropPath = APISrvDaemonPath + "WEB-INF"+PS+"log4j.properties";
         File log4PropFile = new File(log4jPropPath);
         if (log4PropFile.exists()) {
             System.out.println("Initializing log4j with: " + log4jPropPath);
