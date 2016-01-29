@@ -86,19 +86,31 @@ public class APIServerServletListener implements ServletContextListener {
         }
         
         // Make a test with jdbc/geApiServerPool
-        try {
-            Context initContext = new InitialContext();
-            //Context envContext  = (Context)initContext.lookup("java:/comp/env");                        
-            //DataSource ds = (DataSource)envContext.lookup("jdbc/geApiServerPool");
-            
-            Context initialContext = new InitialContext();
-	    DataSource ds = (DataSource)initialContext.lookup("java:/comp/env/jdbc/fgApiServerPool");
-            Connection conn = ds.getConnection();
-            System.out.println("PERFECT: jdbc/fgApiServerPool was ok");
-        } catch (Exception e) {
-            System.err.println("WARNING: jdbc/fgApiServerPool failed"+LS+e.toString());
-        }
-        
+        //                  jdbc/UserTrackingPool
+        //                  jdbc/gehibernatepool connection pools        
+        String currentPool="not yet defined!";
+        String poolPrefix="java:/comp/env/";
+        String pools[] = { "jdbc/fgApiServerPool"
+                          ,"jdbc/UserTrackingPool"
+                          ,"jdbc/gehibernatepool" };
+        Connection[] connPools = new Connection[3];        
+        for(int i=0; i<pools.length; i++)
+            try {
+                Context initContext = new InitialContext();
+                Context envContext = (Context)initContext.lookup("java:comp/env");
+                currentPool=pools[i];
+              //DataSource ds = (DataSource)initContext.lookup(poolPrefix+currentPool);
+                DataSource ds = (DataSource) envContext.lookup(currentPool);
+                connPools[i] = ds.getConnection();                
+                System.out.println("PERFECT: "+currentPool+" was ok");               
+            } catch (Exception e) {
+                System.err.println("WARNING: "+currentPool+" failed"+LS+e.toString());
+            } finally {
+                try { connPools[i].close(); } catch(Exception e) 
+                { System.err.println("WARNING: "+currentPool+" failed to close"+LS+e.toString()); }
+            } 
+        //
+                
         // Register MySQL driver
         APIServerDaemonDB.registerDriver();
         
@@ -121,5 +133,8 @@ public class APIServerServletListener implements ServletContextListener {
         
         // Unregister MySQL driver
         APIServerDaemonDB.unregisterDriver();
+        
+        // Notify termination
+        System.out.println("--- APIServerDaemon Stopped ---");
     }
 }

@@ -173,12 +173,9 @@ public class APIServerDaemonCheckCommand implements Runnable {
     private void submit() {
         _log.debug("Checking submitted command: " + asdCommand);
 
-        if (asdCommand.getStatus().equals("PROCESSING")) {
-            // This check consistency of the command execution
-            // if it takes too long the command should be 
-            // resubmitted or flagged as FAILED reaching a threshold
-
-        } else {
+        if (asdCommand.getStatus().equals("PROCESSED")) {
+            // Verify the TargetId exists then check the status
+            // If the TargetId does not exists then check consistency
             if(asdCommand.getTarget().equals("GridEngine")) {
                 // Status is PROCESSED; the job has been submited
                 // First prepare the GridEngineInterface passing config
@@ -212,12 +209,37 @@ public class APIServerDaemonCheckCommand implements Runnable {
                         updateOutputPaths(outputDir);
                     }
                     asdCommand.Update(asdConnectionURL);
+                } else {
+                    // TargetId is 0 - check consistency ...
+                    // This check consistency of the command execution
+                    // if it takes too long the command should be 
+                    // resubmitted or flagged as FAILED reaching a given
+                    // threshold
+                    // Tasks will be retryed if creation and last change is
+                    // greater than max_wait and retries have not reached yet
+                    // the max_retry count
+                    // Trashed requests will be flagged as FAILED
+                    _log.debug("Consistency of task - id: "+asdCommand.getTaskId()
+                              +      " lifetime: "+asdCommand.getLifetime()
+                              +                "/"+asdConfig.getTaskMaxWait()
+                              +       " - retry: "+asdCommand.getRetry()
+                              +                "/"+asdConfig.getTaskMaxRetries());
+                    if(   asdCommand.getRetry()    < asdConfig.getTaskMaxRetries()
+                       && asdCommand.getLifetime() > asdConfig.getTaskMaxWait()) {
+                        _log.debug("Retrying task having id: "+asdCommand.getTaskId());
+                    //    asdCommand.retry(asdConnectionURL);
+                    } else if (asdCommand.getRetry() >= asdConfig.getTaskMaxRetries()) {
+                            _log.debug("Trashing task having id: "+asdCommand.getTaskId());
+                    //        asdCommand.trash(asdConnectionURL);
+                    } else _log.debug("Ignoring at the moment task having id: "+asdCommand.getTaskId());                    
                 }
             }/* else if(asdCommand.getTarget().equals(<other targets>)) {
-            } */
-            else {
+                // Get/Use targetId to check task submission
+                // If targetId does not appear after a long while check consistency
+                // and eventually retry task submission.
+            }*/ else {
                 _log.error("Unsupported target: '"+asdCommand.getTarget()+"'");
-            }
+            }         
         }
     }
 

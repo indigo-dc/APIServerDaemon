@@ -178,7 +178,7 @@ public class APIServerDaemonController extends Observable
             try {
                 Thread.sleep(asControllerDelay);
             } catch(InterruptedException e) { asControllerStatus=false; }
-        }
+        }        
     }
     
     /**

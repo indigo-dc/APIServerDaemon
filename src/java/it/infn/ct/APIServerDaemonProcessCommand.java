@@ -144,7 +144,7 @@ class APIServerDaemonProcessCommand implements Runnable {
         _log.debug("Get status command: "+asdCommand);
         if(asdCommand.getTarget().equals("GridEngine")) {
             GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
-            asdCommand.setStatus(geInterface.jobStatus());
+            asdCommand.setTargetStatus(geInterface.jobStatus());
             asdCommand.setStatus("PROCESSED");
             asdCommand.Update(asdConnectionURL);
         }/* else if(asdCommand.getTarget().equals(<other targets>)) {
@@ -179,7 +179,7 @@ class APIServerDaemonProcessCommand implements Runnable {
         _log.debug("Get output command: "+asdCommand);
         if(asdCommand.getTarget().equals("GridEngine")) {
             GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
-            asdCommand.setStatus(geInterface.jobOutput());
+            asdCommand.setTargetStatus(geInterface.jobOutput());
             asdCommand.setStatus("PROCESSED");
             asdCommand.Update(asdConnectionURL);
         }/* else if(asdCommand.getTarget().equals(<other targets>)) {

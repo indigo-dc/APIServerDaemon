@@ -77,6 +77,12 @@ public class APIServerDaemonConfig {
     private int asControllerMaxCommands =    5;
     
     /*
+      GridEngineDaemon task retry policies
+    */
+    private int asTaskMaxRetries = 5;
+    private int asTaskMaxWait = 1800; // 30*60 seconds
+    
+    /*
      GridEngine UsersTracking DB
     */  
     private String utdb_jndi = "jdbc/UserTrackingPool";
@@ -134,6 +140,10 @@ public class APIServerDaemonConfig {
             String prop_asControllerDelay = prop.getProperty("asControllerDelay");
             String prop_asControllerMaxCommands = prop.getProperty("asControllerMaxCommands");
             
+            // GridEngineDaemon retry policies
+            String prop_asTaskMaxRetries = prop.getProperty("asTaskMaxRetries");
+            String prop_asTaskMaxWait = prop.getProperty("asTaskMaxWait");
+                        
             // GridEngine' UsersTracking database settings
             String prop_utdb_jndi = prop.getProperty("utdb_jndi");
             String prop_utdb_host = prop.getProperty("utdb_host");
@@ -170,6 +180,12 @@ public class APIServerDaemonConfig {
                 this.asControllerDelay=Integer.parseInt(prop_asControllerDelay);
             if(prop_asControllerMaxCommands!=null)
                 this.asControllerMaxCommands=Integer.parseInt(prop_asControllerMaxCommands);
+            
+            // APIServerDaemon task retry policies
+            if(prop_asTaskMaxRetries!=null)
+                this.asTaskMaxRetries=Integer.parseInt(prop_asTaskMaxRetries);
+            if(prop_asTaskMaxWait!=null)
+                this.asTaskMaxWait=Integer.parseInt(prop_asTaskMaxWait);            
             
             // GridEngine' UsersTracking database settings
             if(prop_utdb_jndi!=null)
@@ -461,6 +477,29 @@ public class APIServerDaemonConfig {
      */
     void setGridEngine_db_name(String utdb_name) { this.utdb_name=utdb_name; } 
     
+    /*
+      APIServerDaemon task retry policies
+    */
+    
+    /**
+     * Return the maximum number of retries for a task request
+     */
+    int getTaskMaxRetries() { return this.asTaskMaxRetries; }
+    /**
+     * Return maximum number of seconds before to try a task retry
+     */
+    int getTaskMaxWait() { return this.asTaskMaxWait; }    
+    /**
+     * Set the maximum number of retries for a task request
+     * @param maximum number of retries for a task request
+     */
+    void setTaskMaxRetries(int maxRetries) { this.asTaskMaxRetries=maxRetries; } 
+    /**
+     * Set the maximum number of seconds before to try a task retry
+     * @param maximum number of seconds before to try a task retry
+     */
+    void setTaskMaxWait(int maxWait) { this.asTaskMaxWait=maxWait; }         
+    
     /**
      * View configuration settings
      */
@@ -483,7 +522,10 @@ public class APIServerDaemonConfig {
               +"    asPollingMaxCommands : '"   +asPollingMaxCommands   +"'"+LS 
               +"[APIServerDaemonController settings]"                  +"'"+LS
               +"    asControllerDelay       : '"+asControllerDelay      +"'"+LS
-              +"    asControllerMaxCommands : '"+asControllerMaxCommands+"'"+LS 
+              +"    asControllerMaxCommands : '"+asControllerMaxCommands+"'"+LS
+              +"[APIServerDaemon task retry policies]"                      +LS
+              +"    asTaskMaxRetries  : '"      +asTaskMaxRetries       +"'"+LS
+              +"    asTaskMaxWait     : '"      +asTaskMaxWait          +"'"+LS  
               +"[GridEngine UsersTracking DB settings]"                     +LS
               +"    db_jndi : '"                +utdb_jndi              +"'"+LS
               +"    db_host : '"                +utdb_host              +"'"+LS

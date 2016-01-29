@@ -22,7 +22,9 @@ limitations under the License.
 ****************************************************************************/
 package it.infn.ct;
 
-import java.sql.Date;
+import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import org.apache.log4j.Logger;
 
 /**
@@ -40,6 +42,7 @@ class APIServerDaemonCommand {
     private int    target_id;    
     private String status;
     private String target_status;
+    private int    retry;
     private Date   creation;
     private Date   last_change;
     private String action_info;
@@ -63,7 +66,8 @@ class APIServerDaemonCommand {
         target        = null;
         status        = null;
         target_status = null;
-        creation      = null;
+        retry         = -1;
+        creation      = null;        
         last_change   = null;
         action_info   = null;
         modified_flag = false;
@@ -77,6 +81,7 @@ class APIServerDaemonCommand {
                                   ,String action
                                   ,String status
                                   ,String target_status
+                                  ,int    retry
                                   ,Date   creation
                                   ,Date   last_change
                                   ,String action_info) {
@@ -87,10 +92,11 @@ class APIServerDaemonCommand {
         this.action        = action;
         this.status        = status;
         this.target_status = target_status;
+        this.retry         = retry;
         this.creation      = creation;
         this.last_change   = last_change;
         this.action_info   = action_info;
-        this.modified_flag = true;
+        this.modified_flag = false;
     }        
     
     /**
@@ -124,6 +130,11 @@ class APIServerDaemonCommand {
      * @return target_status
      */
     public String getTargetStatus() { return this.target_status; }
+    /**
+     * Get APIServerCommand 'retry' field value
+     * @return target_status
+     */
+    public int getRetry() { return this.retry; }
     /**
      * Get APIServerCommand 'creation' field value
      * @return creation
@@ -193,6 +204,16 @@ class APIServerDaemonCommand {
         }
     }
     /**
+     * Set APIServerCommand 'retry' field value
+     * @param retry
+    */
+    public void setRetry(int retry){ 
+        if(this.retry != retry) {
+            modified_flag=true; 
+            this.retry = retry;
+        }
+    }
+    /**
      * Set APIServerCommand 'creation' field value
      * @param creation
     */
@@ -237,21 +258,31 @@ class APIServerDaemonCommand {
     public void validate() { this.modified_flag = false; }
     
     /**
+     * Invalidate modified flag
+     */
+    public void invalidate() { this.modified_flag = true; }
+    
+    /**
      * Serialize as string the APIServerDaemon command values
      */
     @Override
     public String toString() {
-        return "{"                                             + LS 
-              +"  \"task_id\"      : \"" + task_id       + "\""+ LS
-              +"  \"target\"       : \"" + target        + "\""+ LS   
-              +"  \"target_id\"    : \"" + target_id     + "\""+ LS 
-              +"  \"action\"       : \"" + action        + "\""+ LS
-              +"  \"status\"       : \"" + status        + "\""+ LS 
-              +"  \"target_status\": \"" + target_status + "\""+ LS   
-              +"  \"creation\"     : \"" + creation      + "\""+ LS
-              +"  \"last_change\"  : \"" + last_change   + "\""+ LS
-              +"  \"action_info\"  : \"" + action_info   + "\""+ LS
-              +"  \"modified_flag\": \"" + modified_flag + "\""+ LS
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");        
+        
+        return "{"                                           +LS 
+              +"[DB Values]"                                 +LS
+              +"  \"task_id\"      : \""+task_id       + "\""+LS
+              +"  \"target\"       : \""+target        + "\""+LS   
+              +"  \"target_id\"    : \""+target_id     + "\""+LS 
+              +"  \"action\"       : \""+action        + "\""+LS
+              +"  \"status\"       : \""+status        + "\""+LS 
+              +"  \"target_status\": \""+target_status + "\""+LS 
+              +"  \"retry\"        : \""+retry         + "\""+LS   
+              +"  \"creation\"     : \""+dateFormat.format(creation)   +"\""+LS
+              +"  \"last_change\"  : \""+dateFormat.format(last_change)+ "\""+LS
+              +"  \"action_info\"  : \""+action_info   + "\""+LS
+              +"[Obj Values]"                                +LS
+              +"  \"modified_flag\": \""+modified_flag + "\""+LS
               +"}"
               ;
     }
@@ -269,11 +300,59 @@ class APIServerDaemonCommand {
                     asdDB.updateCommand(this); 
                     validate();
                 } catch (Exception e) {                  
-                    _log.fatal("Unable update command:"+LS+this.toString()
-                                                       +LS+e.toString());
+                    _log.fatal("Unable to update command:"+LS+this.toString()
+                                                          +LS+e.toString());
                 } finally {
                    if(asdDB!=null) asdDB.close(); 
                    _log.debug("Closing connection for update command");
                 }
+    }
+    
+    /**
+     * Return time difference in seconds between last_change and creation
+     */
+    public int getLifetime() {
+        Date currentDate = new Date();	  
+        return ((int)currentDate.getTime()-(int)creation.getTime());
+    }
+    
+    /**
+     * Retry the command setting values:
+     * status = QUEUED
+     * creation = now()
+     * last_change = now()
+     * increase current retry
+     */
+    void retry(String asdConnectionURL) {
+        APIServerDaemonDB asdDB = null;
+        try {
+                _log.debug("Opening connection for retry command");
+                asdDB= new APIServerDaemonDB(asdConnectionURL);
+                asdDB.retryTask(this);                
+            } catch (Exception e) {                  
+               _log.fatal("Unable retry task related to given command:"+LS+this.toString());
+            } finally {
+               if(asdDB!=null) asdDB.close(); 
+               _log.debug("Closing connection for update command");
+            }       
+    }
+    
+    /**
+     * Trash the command setting values:
+     * status = FAILED - polling loops will never take it     
+     * last_change = now()     
+     */
+    void trash(String asdConnectionURL) {
+        APIServerDaemonDB asdDB = null;
+        try {
+                _log.debug("Opening connection for trash command");
+                asdDB= new APIServerDaemonDB(asdConnectionURL);
+                asdDB.trashTask(this);                
+            } catch (Exception e) {                  
+               _log.fatal("Unable trash task related to given command:"+LS+this.toString());
+            } finally {
+               if(asdDB!=null) asdDB.close(); 
+               _log.debug("Closing connection for update command");
+            }       
     }
 }

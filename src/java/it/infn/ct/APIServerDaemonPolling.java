@@ -175,7 +175,7 @@ class APIServerDaemonPolling implements Runnable {
             try {
                 Thread.sleep(asPollingDelay);
             } catch(InterruptedException e) { asPollingStatus=false; }
-        }
+        }        
     }
     
     /**

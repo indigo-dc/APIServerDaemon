@@ -268,19 +268,20 @@ public class APIServerDaemonDB {
             sql="lock tables as_queue write;";
             statement=connect.createStatement();
             statement.execute(sql);
-            sql="select task_id"                        +LS               
-               +"      ,target_id"                      +LS
-               +"      ,target"                         +LS
-               +"      ,action"                         +LS
-               +"      ,status"                         +LS
-               +"      ,target_status"                  +LS     
-               +"      ,creation"                       +LS
-               +"      ,last_change"                    +LS
-               +"      ,action_info"                    +LS
-               +"from as_queue"                         +LS
-               +"where status = 'QUEUED'"               +LS
-               +"order by last_change asc"              +LS
-               +"limit ?"                               +LS
+            sql="select task_id"            +LS               
+               +"      ,target_id"          +LS
+               +"      ,target"             +LS
+               +"      ,action"             +LS
+               +"      ,status"             +LS
+               +"      ,target_status"      +LS
+               +"      ,retry"              +LS     
+               +"      ,creation"           +LS
+               +"      ,last_change"        +LS
+               +"      ,action_info"        +LS
+               +"from as_queue"             +LS
+               +"where status = 'QUEUED'"   +LS
+               +"order by last_change asc"  +LS
+               +"limit ?"                   +LS
                +";";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, maxCommands);            
@@ -294,10 +295,11 @@ public class APIServerDaemonDB {
                                ,resultSet.getString(       "action")
                                ,resultSet.getString(       "status")
                                ,resultSet.getString("target_status")
+                               ,resultSet.getInt   (        "retry") 
                                ,resultSet.getDate  (     "creation")                                       
                                ,resultSet.getDate  (  "last_change")
                                ,resultSet.getString(  "action_info"));                
-                if (null != asdCmd) commandList.add(asdCmd);
+                commandList.add(asdCmd);
                 _log.debug("Loaded command: "+LS+asdCmd);                
             }
             resultSet.close(); resultSet = null;
@@ -352,7 +354,8 @@ public class APIServerDaemonDB {
                +"      ,target"                         +LS
                +"      ,action"                         +LS
                +"      ,status"                         +LS
-               +"      ,target_status"                  +LS     
+               +"      ,target_status"                  +LS
+               +"      ,retry"                          +LS
                +"      ,creation"                       +LS
                +"      ,last_change"                    +LS
                +"      ,action_info"                    +LS
@@ -374,10 +377,11 @@ public class APIServerDaemonDB {
                                ,resultSet.getString(       "action")
                                ,resultSet.getString(       "status")
                                ,resultSet.getString("target_status")
+                               ,resultSet.getInt   (        "retry")
                                ,resultSet.getDate  (     "creation")                                       
                                ,resultSet.getDate  (  "last_change")
                                ,resultSet.getString(  "action_info"));                
-                if (null != asdCmd) commandList.add(asdCmd);
+                commandList.add(asdCmd);
                 _log.debug("Loaded command: "+LS+asdCmd);                
             }            
         } catch (SQLException e) {                      
@@ -586,4 +590,80 @@ public class APIServerDaemonDB {
             closeSQLActivity();
         }
     }    
+    
+    /**
+     * Retry the command setting values:
+     * status = QUEUED
+     * creation = now()
+     * last_change = now()
+     * increase current retry
+     */
+    void retryTask(APIServerDaemonCommand asCommand) {
+       if (!connect()) {          
+            _log.fatal("Not connected to database");
+            return;
+        }        
+        try {
+            String sql;
+            // Lock ge_queue table first
+            sql="lock tables as_queue write;";
+            statement=connect.createStatement();
+            statement.execute(sql);
+            // Delete entries in task_output_file
+            sql="update as_queue set "  +LS
+               +"  status='QUEUED'"     +LS
+               +" ,creation=now()"      +LS
+               +" ,last_change=now()"   +LS
+               +" ,retry=?"             +LS
+               +"where task_id = ?;";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt(1, asCommand.getRetry()+1);
+            preparedStatement.setInt(2, asCommand.getTaskId());
+            preparedStatement.execute();            
+            // Unlock task_output_file table
+            sql="unlock tables;";
+            statement.execute(sql);            
+            _log.debug("Task '"+asCommand.getTaskId()+"' have been retried, attempt number: "+asCommand.getRetry());
+        } catch (SQLException e) {                      
+            _log.fatal("Unable to retry command with task_id"+asCommand.getTaskId()+LS+e.toString());
+        } finally {
+            closeSQLActivity();
+        }         
+    }
+
+    /**
+     * Trash the command setting values:
+     * status = FAILED - polling loops will never take it     
+     * last_change = now()          
+     */
+    void trashTask(APIServerDaemonCommand asCommand) {
+       if (!connect()) {          
+            _log.fatal("Not connected to database");
+            return;
+        }        
+        try {
+            String sql;
+            // Lock ge_queue table first
+            sql="lock tables as_queue write;";
+            statement=connect.createStatement();
+            statement.execute(sql);
+            // Delete entries in task_output_file
+            sql="update as_queue set "  +LS
+               +"  status='FAILED'"     +LS               
+               +" ,last_change=now()"   +LS               
+               +"where task_id = ?;";
+            preparedStatement = connect.prepareStatement(sql);            
+            preparedStatement.setInt(1, asCommand.getTaskId());
+            preparedStatement.execute();            
+            // Unlock task_output_file table
+            sql="unlock tables;";
+            statement.execute(sql);            
+            _log.debug("Task '"+asCommand.getTaskId()+"' have been trashed");
+        } catch (SQLException e) {                      
+            _log.fatal("Unable to trash command with task_id"+asCommand.getTaskId()+LS+e.toString());
+        } finally {
+            closeSQLActivity();
+        }         
+    }
+    
 }

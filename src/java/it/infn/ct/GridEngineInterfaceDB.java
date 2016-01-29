@@ -250,6 +250,6 @@ public class GridEngineInterfaceDB {
             closeSQLActivity();
         }       
         return agi_id;
-    }
+    }  
     
 }

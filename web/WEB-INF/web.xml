@@ -16,6 +16,7 @@
       <res-type>javax.sql.DataSource</res-type>
       <res-auth>Container</res-auth>
     </resource-ref>
+    
     <!--    
     <resource-ref>
       <description>UsersTrackingDB connection</description>
@@ -23,6 +24,7 @@
       <res-type>javax.sql.DataSource</res-type>
       <res-auth>Container</res-auth>
     </resource-ref>
+    
     <resource-ref>
       <description>UsersTrackingDB connection for hibernate</description>
       <res-ref-name>jdbc/gehibernatepool</res-ref-name>
