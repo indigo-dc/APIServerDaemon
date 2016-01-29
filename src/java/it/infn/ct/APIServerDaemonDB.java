@@ -289,16 +289,16 @@ public class APIServerDaemonDB {
             while(resultSet.next()) {
                 APIServerDaemonCommand asdCmd = 
                         new APIServerDaemonCommand(
-                                resultSet.getInt   (      "task_id")                               
-                               ,resultSet.getInt   (    "target_id")
-                               ,resultSet.getString(       "target") 
-                               ,resultSet.getString(       "action")
-                               ,resultSet.getString(       "status")
-                               ,resultSet.getString("target_status")
-                               ,resultSet.getInt   (        "retry") 
-                               ,resultSet.getDate  (     "creation")                                       
-                               ,resultSet.getDate  (  "last_change")
-                               ,resultSet.getString(  "action_info"));                
+                                resultSet.getInt      (      "task_id")                               
+                               ,resultSet.getInt      (    "target_id")
+                               ,resultSet.getString   (       "target") 
+                               ,resultSet.getString   (       "action")
+                               ,resultSet.getString   (       "status")
+                               ,resultSet.getString   ("target_status")
+                               ,resultSet.getInt      (        "retry") 
+                               ,resultSet.getTimestamp(     "creation")                                       
+                               ,resultSet.getTimestamp(  "last_change")
+                               ,resultSet.getString   (  "action_info"));                
                 commandList.add(asdCmd);
                 _log.debug("Loaded command: "+LS+asdCmd);                
             }
@@ -371,16 +371,16 @@ public class APIServerDaemonDB {
             while(resultSet.next()) {
                 APIServerDaemonCommand asdCmd = 
                         new APIServerDaemonCommand(
-                                resultSet.getInt   (      "task_id")
-                               ,resultSet.getInt   (    "target_id")
-                               ,resultSet.getString(       "target") 
-                               ,resultSet.getString(       "action")
-                               ,resultSet.getString(       "status")
-                               ,resultSet.getString("target_status")
-                               ,resultSet.getInt   (        "retry")
-                               ,resultSet.getDate  (     "creation")                                       
-                               ,resultSet.getDate  (  "last_change")
-                               ,resultSet.getString(  "action_info"));                
+                                resultSet.getInt      (      "task_id")
+                               ,resultSet.getInt      (    "target_id")
+                               ,resultSet.getString   (       "target") 
+                               ,resultSet.getString   (       "action")
+                               ,resultSet.getString   (       "status")
+                               ,resultSet.getString   ("target_status")
+                               ,resultSet.getInt      (        "retry")
+                               ,resultSet.getTimestamp(     "creation")                                       
+                               ,resultSet.getTimestamp(  "last_change")
+                               ,resultSet.getString   (  "action_info"));                
                 commandList.add(asdCmd);
                 _log.debug("Loaded command: "+LS+asdCmd);                
             }            

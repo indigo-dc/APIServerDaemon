@@ -25,6 +25,7 @@ package it.infn.ct;
 import java.util.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 
 /**
@@ -267,22 +268,22 @@ class APIServerDaemonCommand {
      */
     @Override
     public String toString() {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");        
+        DateFormat dFmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");        
         
-        return "{"                                           +LS 
-              +"[DB Values]"                                 +LS
-              +"  \"task_id\"      : \""+task_id       + "\""+LS
-              +"  \"target\"       : \""+target        + "\""+LS   
-              +"  \"target_id\"    : \""+target_id     + "\""+LS 
-              +"  \"action\"       : \""+action        + "\""+LS
-              +"  \"status\"       : \""+status        + "\""+LS 
-              +"  \"target_status\": \""+target_status + "\""+LS 
-              +"  \"retry\"        : \""+retry         + "\""+LS   
-              +"  \"creation\"     : \""+dateFormat.format(creation)   +"\""+LS
-              +"  \"last_change\"  : \""+dateFormat.format(last_change)+ "\""+LS
-              +"  \"action_info\"  : \""+action_info   + "\""+LS
-              +"[Obj Values]"                                +LS
-              +"  \"modified_flag\": \""+modified_flag + "\""+LS
+        return "{"                                                     +LS 
+              +"[DB Values]"                                           +LS
+              +"  \"task_id\"      : \""+task_id                 + "\""+LS
+              +"  \"target\"       : \""+target                  + "\""+LS   
+              +"  \"target_id\"    : \""+target_id               + "\""+LS 
+              +"  \"action\"       : \""+action                  + "\""+LS
+              +"  \"status\"       : \""+status                  + "\""+LS 
+              +"  \"target_status\": \""+target_status           + "\""+LS 
+              +"  \"retry\"        : \""+retry                   + "\""+LS   
+              +"  \"creation\"     : \""+dFmt.format(creation)   + "\""+LS
+              +"  \"last_change\"  : \""+dFmt.format(last_change)+ "\""+LS
+              +"  \"action_info\"  : \""+action_info             + "\""+LS
+              +"[Obj Values]"                                          +LS
+              +"  \"modified_flag\": \""+modified_flag           + "\""+LS
               +"}"
               ;
     }
@@ -313,7 +314,8 @@ class APIServerDaemonCommand {
      */
     public int getLifetime() {
         Date currentDate = new Date();	  
-        return ((int)currentDate.getTime()-(int)creation.getTime());
+        long tDiffMs = currentDate.getTime() - creation.getTime();      
+        return (int)TimeUnit.SECONDS.convert(tDiffMs,TimeUnit.MILLISECONDS);
     }
     
     /**

@@ -227,10 +227,10 @@ public class APIServerDaemonCheckCommand implements Runnable {
                     if(   asdCommand.getRetry()    < asdConfig.getTaskMaxRetries()
                        && asdCommand.getLifetime() > asdConfig.getTaskMaxWait()) {
                         _log.debug("Retrying task having id: "+asdCommand.getTaskId());
-                    //    asdCommand.retry(asdConnectionURL);
+                        asdCommand.retry(asdConnectionURL);
                     } else if (asdCommand.getRetry() >= asdConfig.getTaskMaxRetries()) {
                             _log.debug("Trashing task having id: "+asdCommand.getTaskId());
-                    //        asdCommand.trash(asdConnectionURL);
+                            asdCommand.trash(asdConnectionURL);
                     } else _log.debug("Ignoring at the moment task having id: "+asdCommand.getTaskId());                    
                 }
             }/* else if(asdCommand.getTarget().equals(<other targets>)) {
