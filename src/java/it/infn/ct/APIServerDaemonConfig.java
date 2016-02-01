@@ -80,7 +80,7 @@ public class APIServerDaemonConfig {
       GridEngineDaemon task retry policies
     */
     private int asTaskMaxRetries = 5;
-    private int asTaskMaxWait = 1800; // 30*60 seconds
+    private int asTaskMaxWait = 1800000; // 30*60*1000 (30 min in milliseconds)
     
     /*
      GridEngine UsersTracking DB

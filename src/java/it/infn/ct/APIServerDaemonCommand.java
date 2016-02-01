@@ -310,12 +310,19 @@ class APIServerDaemonCommand {
     }
     
     /**
-     * Return time difference in seconds between last_change and creation
+     * Return time difference in milliseconds between current and creation
+     * timestamps
+     * 
+     * @return Number of milliseconds between current and creation timestamps
      */
-    public int getLifetime() {
-        Date currentDate = new Date();	  
-        long tDiffMs = currentDate.getTime() - creation.getTime();      
-        return (int)TimeUnit.SECONDS.convert(tDiffMs,TimeUnit.MILLISECONDS);
+    public long getLifetime() {
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        
+        Date currentTimeStamp = new Date();	          
+        _log.debug("Current TS: "+df.format(currentTimeStamp)
+                  +" - creation: "+ df.format(creation)
+                  +" [Millis: " + (currentTimeStamp.getTime()-creation.getTime())+"]");
+        return currentTimeStamp.getTime()-creation.getTime();
     }
     
     /**
