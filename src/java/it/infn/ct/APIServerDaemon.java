@@ -68,6 +68,7 @@ public class APIServerDaemon {
      */
     public APIServerDaemon() {
         // Load static configuration
+        _log.debug("Loading preferences for APIServerDaemon");
         asdConfig = new APIServerDaemonConfig();
         
         // Set configuration values for this class
@@ -139,8 +140,7 @@ public class APIServerDaemon {
             _log.warn("APIServer Daemon forcing termination");
         }
         _log.info("APIServer Daemon terminated");        
-    }
-
+    }        
 }
 
     

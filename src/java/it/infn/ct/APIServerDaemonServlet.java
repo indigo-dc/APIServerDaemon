@@ -24,6 +24,7 @@ package it.infn.ct;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -43,19 +44,25 @@ public class APIServerDaemonServlet extends HttpServlet {
     /*
         Logger
     */
-    private static final Logger _log = Logger.getLogger(APIServerDaemonServlet.class.getName());
-    
+    private static final Logger _log = Logger.getLogger(APIServerDaemonServlet.class.getName());    
     private static final String LS = System.getProperty("line.separator");        
+    
+    // Configurations from properties file
+    APIServerDaemonConfig asdConfig;
     
     /**
      * Servlet init function
-     *
+     * @param config
+     * @throws javax.servlet.ServletException
+     */
     @Override
     public void init(ServletConfig config) throws ServletException {
         // Read init parameters (web.xml)
-        //String initParamValue = config.getInitParameter("initParamName");    
+        //String initParamValue = config.getInitParameter("initParamName");
+        _log.debug("Loading preferences for Servlet");
+        asdConfig = new APIServerDaemonConfig();
     }
-    * /
+    
     
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -78,9 +85,34 @@ public class APIServerDaemonServlet extends HttpServlet {
             out.println("</head>");
             out.println("<body>");
             out.println("<h1>Servlet APIServerDaemonServlet at " + request.getContextPath() + "</h1>");
+            out.println("<h2>APIServer configuration</h2>");
+            out.println("<p>"+asdConfig.toString()+"</p>");
             out.println("</body>");
             out.println("</html>");
         }
+    }
+    
+    /**
+     * Retrieves statistical information about APIServerDaemon activity
+     * in particular it provides:
+     *   - Start timestamp
+     *   - Current timestamp
+     *   - Number of elements in the queue
+     *   - Number of elements in the queue for each state
+     * @param asdConnectionURL 
+     */
+    void getAPIServerDaemonStatInfo(String asdConnectionURL) {
+        APIServerDaemonDB asdDB = null;
+        try {
+                _log.debug("Opening connection for retry command");
+                asdDB= new APIServerDaemonDB(asdConnectionURL);
+                
+        } catch (Exception e) {                  
+           _log.fatal("Unable retry task related to given command:"+LS+this.toString());
+        } finally {
+           if(asdDB!=null) asdDB.close(); 
+           _log.debug("Closing connection for update command");
+        }       
     }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">

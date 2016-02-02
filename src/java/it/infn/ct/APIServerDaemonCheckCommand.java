@@ -172,7 +172,9 @@ public class APIServerDaemonCheckCommand implements Runnable {
      */
     private void submit() {
         _log.debug("Checking submitted command: " + asdCommand);
-
+        // Add a check for long lasting PROCESSING commands
+        
+        // Check PROCESSED commands
         if (asdCommand.getStatus().equals("PROCESSED")) {
             // Verify the TargetId exists then check the status
             // If the TargetId does not exists then check consistency

@@ -25,7 +25,6 @@ package it.infn.ct;
 import java.util.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 
 /**
@@ -338,12 +337,12 @@ class APIServerDaemonCommand {
                 _log.debug("Opening connection for retry command");
                 asdDB= new APIServerDaemonDB(asdConnectionURL);
                 asdDB.retryTask(this);                
-            } catch (Exception e) {                  
-               _log.fatal("Unable retry task related to given command:"+LS+this.toString());
-            } finally {
-               if(asdDB!=null) asdDB.close(); 
-               _log.debug("Closing connection for update command");
-            }       
+        } catch (Exception e) {                  
+           _log.fatal("Unable retry task related to given command:"+LS+this.toString());
+        } finally {
+           if(asdDB!=null) asdDB.close(); 
+           _log.debug("Closing connection for update command");
+        }       
     }
     
     /**
@@ -357,11 +356,11 @@ class APIServerDaemonCommand {
                 _log.debug("Opening connection for trash command");
                 asdDB= new APIServerDaemonDB(asdConnectionURL);
                 asdDB.trashTask(this);                
-            } catch (Exception e) {                  
-               _log.fatal("Unable trash task related to given command:"+LS+this.toString());
-            } finally {
-               if(asdDB!=null) asdDB.close(); 
-               _log.debug("Closing connection for update command");
-            }       
+        } catch (Exception e) {                  
+           _log.fatal("Unable trash task related to given command:"+LS+this.toString());
+        } finally {
+           if(asdDB!=null) asdDB.close(); 
+           _log.debug("Closing connection for update command");
+        }       
     }
 }

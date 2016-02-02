@@ -82,7 +82,7 @@ public class APIServerServletListener implements ServletContextListener {
             PropertyConfigurator.configure(log4jPropPath);            
         } else {
             System.err.println("WARNING: '" + log4jPropPath + "' file not found, so initializing log4j with BasicConfigurator");
-                BasicConfigurator.configure();
+            BasicConfigurator.configure();
         }
         
         // Make a test with jdbc/geApiServerPool
@@ -122,8 +122,7 @@ public class APIServerServletListener implements ServletContextListener {
     }
 
     /**
-     * Called destroying servlet context, it instantiate the APIServerDaemon
- class
+     * Called while destroying servlet context
      * @param sce 
      * @see APIServerDaemon
      */
