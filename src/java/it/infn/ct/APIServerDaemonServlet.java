@@ -38,7 +38,7 @@ import org.apache.log4j.Logger;
  * execution statistics and generic information
  * @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
  */
-@WebServlet(name = "APIServerDaemonServlet", urlPatterns = {"/APIServerDaemon"})
+@WebServlet(name = "APIServerDaemonServlet", urlPatterns = {"/configuration"})
 public class APIServerDaemonServlet extends HttpServlet {
 
     /*
@@ -76,8 +76,9 @@ public class APIServerDaemonServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
+        /*
         try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
+            // TODO output your page here. You may use following sample code. 
             out.println("<!DOCTYPE html>");
             out.println("<html>");
             out.println("<head>");
@@ -88,8 +89,29 @@ public class APIServerDaemonServlet extends HttpServlet {
             out.println("<h2>APIServer configuration</h2>");
             out.println("<p>"+asdConfig.toString()+"</p>");
             out.println("</body>");
-            out.println("</html>");
+            out.println("</html>");        
         }
+        */
+        //Context path
+        request.setAttribute("contextPath", request.getContextPath()); // This will be available as ${message}
+        // APIServerDaemon DB settings        
+        request.setAttribute("apisrv_dbhost",asdConfig.getApisrv_dbhost());
+        request.setAttribute("apisrv_dbport",asdConfig.getApisrv_dbport());
+        request.setAttribute("apisrv_dbname",asdConfig.getApisrv_dbname());
+        request.setAttribute("apisrv_dbuser",asdConfig.getApisrv_dbuser());
+        request.setAttribute("apisrv_dbpass",asdConfig.getApisrv_dbpass());
+        // APIServerDaemon Threads settings
+        request.setAttribute("asdMaxThreads",asdConfig.getMaxThreads());
+        request.setAttribute("asdCloseTimeout",asdConfig.getCloseTimeout());
+        // GridEngine DB Settings
+        request.setAttribute("utdb_jndi",asdConfig.getGridEngine_db_jndi());
+        request.setAttribute("utdb_host",asdConfig.getGridEngine_db_host());
+        request.setAttribute("utdb_port",asdConfig.getGridEngine_db_port());
+        request.setAttribute("utdb_name",asdConfig.getGridEngine_db_name());
+        request.setAttribute("utdb_user",asdConfig.getGridEngine_db_user());
+        request.setAttribute("utdb_pass",asdConfig.getGridEngine_db_pass());
+        // Render the HTML
+        request.getRequestDispatcher("config.jsp").forward(request, response);
     }
     
     /**

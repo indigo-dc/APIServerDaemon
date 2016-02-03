@@ -20,18 +20,8 @@ and open the template in the editor.
     </head>
     <body>
         <h1>APIServerDaemon</h1>
-        <p>The APIServerDaemon executes commands prepared by the FutureGateway APIServer front-end.
-           The front-end is responsible to get user requests from its REST interface and prepares 
-           the task execution for the APIServer which physically executes the task. 
-           The APIServer daemon retrieves the list of tasks to execute from a database table. 
-           Each task may involve a different executor identified by the task queue field 'Target'.
-        </p>
-        <h2>Actions</h2>
-        <p>Below a list of actions that could be performed by the APIServerDaemon web interface.
-        <ul>
-            <li>View current <a href="/APIServerDaemon/configuration">configuration</a></li>
-            <li>Show server <a href="/APIServerDaemon/tbd.jsp">statistics</a></li>
-        </ul>
+        <p>
+            TBD - Sorry, this action is not yet available 
         </p>
     </body>
 </html>

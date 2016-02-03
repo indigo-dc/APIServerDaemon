@@ -65,7 +65,7 @@ public class APIServerServletListener implements ServletContextListener {
         
         context = sce.getServletContext();
         String APISrvDaemonPath = context.getRealPath(PS);   
-        System.setProperty("APISrvDaemonPath", context.getRealPath("/"));
+        System.setProperty("APISrvDaemonPath", context.getRealPath("/"));        
         
         // Notify execution
         System.out.println("--- Starting APIServerDaemon ---");        

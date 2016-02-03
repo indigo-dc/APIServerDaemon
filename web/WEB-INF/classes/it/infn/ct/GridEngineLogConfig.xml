@@ -8,7 +8,7 @@
 		</layout>
 	</appender>
 	<appender name="APPENDER_FILE" class="org.apache.log4j.DailyRollingFileAppender">
-		<param name="File" value="/home/futuregateway/FutureGateway/GridEngine/log/GridEngineLog.log" />
+		<param name="File" value="${APISrvDaemonPath}WEB-INF/logs/GridEngineLog.log" />
 		<param name="DatePattern" value="'.'yyyy-MM-dd" />
 		<param name="Append" value="true"/>
 		<!--param name="Threshold" value="DEBUG" /-->
