@@ -203,9 +203,9 @@ public class APIServerDaemonCheckCommand implements Runnable {
                             + asdCommand.getTaskId() + " is '"
                             + geJobStatus + "'");
                     asdCommand.setTargetStatus(geJobStatus);
-                    if (asdCommand.getTargetStatus() != null
-                            && asdCommand.getTargetStatus().equals("DONE")) {
-                        asdCommand.setStatus("DONE");
+                    if (   asdCommand.getTargetStatus() != null
+                        && asdCommand.getTargetStatus().equals("DONE")) {
+                        asdCommand.setStatus("DONE");                        
                         // DONE command means that jobOutput is ready
                         String outputDir = geInterface.prepareJobOutput();
                         updateOutputPaths(outputDir);

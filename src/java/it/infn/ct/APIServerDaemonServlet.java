@@ -60,7 +60,7 @@ public class APIServerDaemonServlet extends HttpServlet {
         // Read init parameters (web.xml)
         //String initParamValue = config.getInitParameter("initParamName");
         _log.debug("Loading preferences for Servlet");
-        asdConfig = new APIServerDaemonConfig();
+        asdConfig = new APIServerDaemonConfig(false);
     }
     
     

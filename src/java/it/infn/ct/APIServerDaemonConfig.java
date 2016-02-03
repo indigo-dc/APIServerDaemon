@@ -94,15 +94,16 @@ public class APIServerDaemonConfig {
     
     /**
      * Load the given configuration file which overrides static settings
-     * @param configFile 
+     * @param showConf - when true shows loaded configuration parameters      
      */
-    public APIServerDaemonConfig() { 
+    public APIServerDaemonConfig(boolean showConf) { 
         /*
           Load a configuration file containing APIServerDaemon settings
           wich override the static settings defined in the class
         */    
         loadProperties();
-        _log.info("APIServerDaemon config:"+LS+this.toString());
+        if(showConf)
+            _log.info("APIServerDaemon config:"+LS+this.toString());        
     }
     
     /**

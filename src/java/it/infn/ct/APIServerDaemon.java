@@ -69,7 +69,7 @@ public class APIServerDaemon {
     public APIServerDaemon() {
         // Load static configuration
         _log.debug("Loading preferences for APIServerDaemon");
-        asdConfig = new APIServerDaemonConfig();
+        asdConfig = new APIServerDaemonConfig(true);
         
         // Set configuration values for this class
         this.apisrv_dbhost = asdConfig.getApisrv_dbhost();

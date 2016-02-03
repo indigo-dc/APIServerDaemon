@@ -32,8 +32,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 import java.net.InetAddress;
 import java.nio.charset.Charset;
+import java.util.Properties;
 import java.util.Random;
 import org.json.*;
 import org.apache.commons.io.IOUtils;
@@ -75,8 +77,12 @@ public class GridEngineInterface {
      */
     public GridEngineInterface() {
         _log.debug("Initializing GridEngineInterface");
+        // Retrieve host IP address, used by JobSubmission
         getIP();
+        // Prepare environment variable for GridEngineLogConfig.xml
+        setupGELogConfig();
     }
+    
     /**
      * Constructor for GridEngineInterface taking as input a given command
      */
@@ -140,6 +146,20 @@ public class GridEngineInterface {
         catch(Exception e) {          
             _log.fatal("Unable to get the portal IP address");
         }
+    }
+    
+    /**
+     * Retrieve the APIServerDaemon PATH to the GridEngineLogConfig.xml file
+     * and setup the GridEngineLogConfig.path environment variable accordingly
+     * This variable will be taken by GridEngine while building up its log
+     */
+    private void setupGELogConfig() {
+        URL GELogConfig = this.getClass().getResource("GridEngineLogConfig.xml");
+        String GELogConfigEnvVar=GELogConfig.getPath();
+        _log.debug("GridEngineLogConfig.xml at '"+GELogConfigEnvVar+"'");
+        Properties props = System.getProperties();
+        props.setProperty("GridEngineLogConfig.path", "GELogConfigEnvVar");
+        System.setProperties(props);
     }
     
     /**
@@ -704,7 +724,7 @@ public class GridEngineInterface {
                                                 +gedCommand.getTargetId()+".tgz");
         _log.debug("tgzFileName: '"+tgzFileName+"'");
         try {
-        Process unpackTar = 
+            Process unpackTar = 
                 Runtime.getRuntime().exec("tar xzvf "
                                          +tgzFileName
                                          +" -C "
