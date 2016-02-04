@@ -277,6 +277,7 @@ public class APIServerDaemonDB {
                +"      ,retry"              +LS     
                +"      ,creation"           +LS
                +"      ,last_change"        +LS
+               +"      ,check_ts"           +LS
                +"      ,action_info"        +LS
                +"from as_queue"             +LS
                +"where status = 'QUEUED'"   +LS
@@ -298,6 +299,7 @@ public class APIServerDaemonDB {
                                ,resultSet.getInt      (        "retry") 
                                ,resultSet.getTimestamp(     "creation")                                       
                                ,resultSet.getTimestamp(  "last_change")
+                               ,resultSet.getTimestamp(     "check_ts") 
                                ,resultSet.getString   (  "action_info"));                
                 commandList.add(asdCmd);
                 _log.debug("Loaded command: "+LS+asdCmd);                
@@ -335,8 +337,8 @@ public class APIServerDaemonDB {
      * flagged as PROCESSING
      * Table as_queue will be locked to avoid any inconsistency in
      * concurrent access
-     * @param Maximum number of records to get from the ge_queue table
-     * @retun A list of APIServerDaemonCommand objects
+     * @param maxCommands Maximum number of records to get from the ge_queue table
+     * @return List of APIServerDaemonCommand objects     
      * @see APIServerDaemonCommand
      */
     public List<APIServerDaemonCommand> 
@@ -349,6 +351,9 @@ public class APIServerDaemonDB {
         try {
             String sql;
             // Lock ge_queue table first
+            sql="lock tables as_queue read;";
+            statement=connect.createStatement();
+            statement.execute(sql);
             sql="select task_id"                        +LS
                +"      ,target_id"                      +LS
                +"      ,target"                         +LS
@@ -358,11 +363,12 @@ public class APIServerDaemonDB {
                +"      ,retry"                          +LS
                +"      ,creation"                       +LS
                +"      ,last_change"                    +LS
-               +"      ,action_info"                    +LS
+               +"      ,check_ts"                       +LS
+               +"      ,action_info"                    +LS               
                +"from as_queue"                         +LS
                +"where status = 'PROCESSING'"           +LS
                + "  or status = 'PROCESSED'"            +LS               
-               +"order by last_change asc"              +LS
+               +"order by check_ts asc"                 +LS
                +"limit ?"                               +LS
                +";";
             preparedStatement = connect.prepareStatement(sql);
@@ -380,10 +386,15 @@ public class APIServerDaemonDB {
                                ,resultSet.getInt      (        "retry")
                                ,resultSet.getTimestamp(     "creation")                                       
                                ,resultSet.getTimestamp(  "last_change")
+                               ,resultSet.getTimestamp(     "check_ts") 
                                ,resultSet.getString   (  "action_info"));                
                 commandList.add(asdCmd);
                 _log.debug("Loaded command: "+LS+asdCmd);                
-            }            
+            }
+            // Unlock task_output_file table
+            sql="unlock tables;";
+          //statement=connect.createStatement();
+            statement.execute(sql);            
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
         } finally {
@@ -664,6 +675,45 @@ public class APIServerDaemonDB {
         } finally {
             closeSQLActivity();
         }         
+    }
+    
+    
+    /**
+     * Update values of a given command except for: date fields and 
+     * action_info; creation date will be ignored, while last_change 
+     * will be set to now()
+     * @param APIServerCommand object
+     * @param New command status
+     * @see APIServerCommand
+    */    
+    public void checkUpdateCommand(APIServerDaemonCommand command) throws SQLException {    
+        if (!connect()) {          
+            _log.fatal("Not connected to database");
+            return;
+        }        
+        try {
+            String sql;
+            // Lock ge_queue table first
+            sql="lock tables as_queue write, task write;";
+            statement=connect.createStatement();
+            statement.execute(sql);
+            // Update command values into as_queue table
+            sql="update as_queue set check_ts = now()"+LS
+               +"where task_id=?;";
+            preparedStatement = connect.prepareStatement(sql);            
+            preparedStatement.setInt(1, command.getTaskId());            
+            preparedStatement.execute();
+            preparedStatement.close(); preparedStatement = null;                        
+            // Unlock ge_queue table
+            sql="unlock tables;";
+          //statement=connect.createStatement();
+            statement.execute(sql);
+            _log.debug("Updated check_ts in as_queue: "+LS+command);                         
+        } catch (SQLException e) {                      
+            _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
+        }
     }
     
 }

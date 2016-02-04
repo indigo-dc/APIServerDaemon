@@ -18,7 +18,9 @@
 	</appender>
 	<appender name="ASYNCH" class="org.apache.log4j.AsyncAppender">
 		<appender-ref ref="APPENDER_FILE" />
+                <!-- Only FILE
 		<appender-ref ref="APPENDER_OUT" />
+                -->
 	</appender>
 	<category name="it.infn.ct.GridEngine" additivity="false">
 		<priority value="debug" />

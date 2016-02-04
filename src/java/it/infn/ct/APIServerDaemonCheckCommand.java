@@ -207,7 +207,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                 }   
             break;
                 
-            // The task target executor executed requested task
+            // The task target executor processed requested task
             case "PROCESSED":
                 // Verify that TargetId exists, if yes check the status
                 // otherwise check task consistency
@@ -281,6 +281,10 @@ public class APIServerDaemonCheckCommand implements Runnable {
             default:
                 _log.error("Ignoring unsupported status: '"+asdCommand.getStatus()+"' for task: "+asdCommand.getTaskId());
         } // switch on STATUS
+           
+        // Updating check_ts field a round-robing strategy will be
+        // applied while extracting command from the queue by controller
+        asdCommand.checkUpdate(asdConnectionURL);
     }
 
     /**

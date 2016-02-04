@@ -80,7 +80,7 @@ public class APIServerDaemon {
         // Load APIServerDaemon settings
         this.asdMaxThreads   = asdConfig.getMaxThreads();
         this.asdCloseTimeout = asdConfig.getCloseTimeout();   
-        _log.debug("API Server daemon config:"                        +LS
+        _log.debug("API Server daemon config:"                      +LS
                  +"  [Database]"                                    +LS
                  +"    db_host: '"+ this.apisrv_dbhost          +"'"+LS
                  +"    db_port: '"+ this.apisrv_dbport          +"'"+LS

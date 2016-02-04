@@ -45,6 +45,7 @@ class APIServerDaemonCommand {
     private int    retry;
     private Date   creation;
     private Date   last_change;
+    private Date   check_ts;
     private String action_info;
     
     private boolean modified_flag;
@@ -69,6 +70,7 @@ class APIServerDaemonCommand {
         retry         = -1;
         creation      = null;        
         last_change   = null;
+        check_ts      = null;
         action_info   = null;
         modified_flag = false;
     }
@@ -84,6 +86,7 @@ class APIServerDaemonCommand {
                                   ,int    retry
                                   ,Date   creation
                                   ,Date   last_change
+                                  ,Date   check_ts
                                   ,String action_info) {
         this();
         this.task_id       = task_id;
@@ -95,6 +98,7 @@ class APIServerDaemonCommand {
         this.retry         = retry;
         this.creation      = creation;
         this.last_change   = last_change;
+        this.check_ts      = check_ts;
         this.action_info   = action_info;
         this.modified_flag = false;
     }        
@@ -145,6 +149,11 @@ class APIServerDaemonCommand {
      * @return last_change
      */
     public Date getLastChange() { return this.last_change; }
+    /**
+     * Get APIServerCommand 'check_ts' field value
+     * @return check_ts
+     */
+    public Date getCheckTS() { return this.check_ts; }
     /**
      * Get APIServerCommand 'action_info' field value
      * @return action_info
@@ -280,6 +289,7 @@ class APIServerDaemonCommand {
               +"  \"retry\"        : \""+retry                   + "\""+LS   
               +"  \"creation\"     : \""+dFmt.format(creation)   + "\""+LS
               +"  \"last_change\"  : \""+dFmt.format(last_change)+ "\""+LS
+              +"  \"check_ts\"     : \""+dFmt.format(check_ts)   + "\""+LS
               +"  \"action_info\"  : \""+action_info             + "\""+LS
               +"[Obj Values]"                                          +LS
               +"  \"modified_flag\": \""+modified_flag           + "\""+LS
@@ -299,13 +309,33 @@ class APIServerDaemonCommand {
                     asdDB= new APIServerDaemonDB(asdConnectionURL);
                     asdDB.updateCommand(this); 
                     validate();
-                } catch (Exception e) {                  
-                    _log.fatal("Unable to update command:"+LS+this.toString()
-                                                          +LS+e.toString());
-                } finally {
-                   if(asdDB!=null) asdDB.close(); 
-                   _log.debug("Closing connection for update command");
-                }
+            } catch (Exception e) {                  
+                _log.fatal("Unable to update command:"+LS+this.toString()
+                                                      +LS+e.toString());
+            } finally {
+               if(asdDB!=null) asdDB.close(); 
+               _log.debug("Closing connection for update command");
+            }
+    }
+    
+    /**
+     * Update the command check timestamp, this call is independent 
+     * from the validation flag
+     */
+    public void checkUpdate(String asdConnectionURL) {
+        APIServerDaemonDB asdDB = null;
+                
+        try {
+                _log.debug("Opening connection for checkupdate command");
+                asdDB= new APIServerDaemonDB(asdConnectionURL);
+                asdDB.checkUpdateCommand(this);                 
+        } catch (Exception e) {                  
+            _log.fatal("Unable to update check timestamp for command:"+LS+this.toString()
+                                                  +LS+e.toString());
+        } finally {
+           if(asdDB!=null) asdDB.close(); 
+           _log.debug("Closing connection for chekupdate command");
+        }
     }
     
     /**
