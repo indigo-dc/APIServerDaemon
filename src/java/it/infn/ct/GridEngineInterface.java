@@ -158,7 +158,7 @@ public class GridEngineInterface {
         String GELogConfigEnvVar=GELogConfig.getPath();
         _log.debug("GridEngineLogConfig.xml at '"+GELogConfigEnvVar+"'");
         Properties props = System.getProperties();
-        props.setProperty("GridEngineLogConfig.path", "GELogConfigEnvVar");
+        props.setProperty("GridEngineLogConfig.path", GELogConfigEnvVar);
         System.setProperties(props);
     }
     
