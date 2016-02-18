@@ -193,12 +193,12 @@ public class GridEngineInterface {
         String inputSandbox = "";
         _log.debug("Input files:");
         for(int i=0; i<input_files.length(); i++) {               
-            JSONObject input_entry = output_files.getJSONObject(i);
-            String comma=(i==0)?"":",";
+            JSONObject input_entry = input_files.getJSONObject(i);            
             if (input_entry.getString("name").length() > 0) {
+                String comma=(i==0)?"":",";
                 inputSandbox += comma
                                +gedCommand.getActionInfo()+"/"
-                               +input_files.getString(i);
+                               +input_entry.getString("name");
             }
         }
         mijs.setInputFiles(inputSandbox);
