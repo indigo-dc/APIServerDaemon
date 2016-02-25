@@ -189,9 +189,9 @@ public class GridEngineInterface {
     private void prepareIOSandbox(MultiInfrastructureJobSubmission mijs
                     ,JSONArray input_files
                     ,JSONArray output_files) {
+        
         // InputSandbox
-        String inputSandbox = "";
-        _log.debug("Input files:");
+        String inputSandbox = "";        
         for(int i=0; i<input_files.length(); i++) {               
             JSONObject input_entry = input_files.getJSONObject(i);            
             if (input_entry.getString("name").length() > 0) {
@@ -205,8 +205,7 @@ public class GridEngineInterface {
         _log.debug("inputSandbox: '"+inputSandbox+"'");
         
         // OutputSandbox
-        String outputSandbox = "";
-        _log.debug("Output files:");
+        String outputSandbox = "";        
         for(int i=0; i<output_files.length(); i++) {            
             JSONObject output_entry = output_files.getJSONObject(i);
             if (output_entry.getString("name").length() > 0) {
@@ -377,7 +376,10 @@ public class GridEngineInterface {
                     _log.info("Entering wms adaptor ...");
                     
                     // Infrastructure values
+                    String infra_name = geInfrastructure.getString("name");
+                    _log.info("infrastructure name: '"+infra_name+"'");
                     String bdii = geInfrastructure.getString("bdii");
+                    _log.info("bdii: '"+bdii+"'");                    
                     // jdlRequirements and swtags are not mandatory
                     // catch JSONException exception if these values
                     // are missing
@@ -396,17 +398,20 @@ public class GridEngineInterface {
                     // Credentials values
                     String eToken_host = geCredentials.getString("eToken_host");
                     String eToken_port = geCredentials.getString("eToken_port");
-                    String eToken_id = geCredentials.getString("eToken_id");
-                    String voms = geCredentials.getString("voms");
-                    String voms_role = geCredentials.getString("voms_role");
-                    String rfc_proxy = geCredentials.getString("rfc_proxy");
-                                        
-                    String wmsList[] = { resourceManagers };                    
+                    String eToken_id   = geCredentials.getString("eToken_id");
+                    String voms        = geCredentials.getString("voms");
+                    String voms_role   = geCredentials.getString("voms_role");
+                    String rfc_proxy   = geCredentials.getString("rfc_proxy");
+                    
+                    // In wms case resourceManager could contain more than
+                    // one wms:// entrypoint specified by a comma separated
+                    // string
+                    String wmsList[] = resourceManagers.split(",");                    
                     infrastructures[0] = new 
                         InfrastructureInfo( 
-                            resourceManagers         // Infrastruture name
+                            infra_name               // Infra. name
                            ,"wms"                    // Adaptor
-                           ,wmsList                  //                           
+                           ,wmsList                  // List of wmses                           
                            ,eToken_host              // eTokenServer host
                            ,eToken_port              // eTokenServer port
                            ,eToken_id                // eToken id (md5sum)
@@ -419,16 +424,17 @@ public class GridEngineInterface {
                     prepareJobDescription(mijs,geJobDescription);
                     // I/O Sandbox
                     // In wms output and error files have to be removed
-                    // from output_files
+                    // from output_files array replacing file name
+                    // with an empty string
                     for(int i=0; i<output_files.length(); i++) {            
                         JSONObject output_entry = output_files.getJSONObject(i);
                         if (   output_entry.getString("name").equals(geJobDescription.getString("output"))
-                            || output_entry.getString("name").equals(geJobDescription.getString("error"))) {
+                            || output_entry.getString("name").equals(geJobDescription.getString("error"))) {                            
+                            _log.debug("Skipping unnecessary file: '"+output_entry.getString("name")+"'");
                             output_files.getJSONObject(i).put("name", "");
-                            _log.debug("Skipping file: '"+output_entry.getString("name")+"'");
                         }
                     }
-                    prepareIOSandbox(mijs,input_files,output_files);                    
+                    prepareIOSandbox(mijs,input_files,output_files);
                     // JDL requirements                    
                     if(jdlRequirements!=null && jdlRequirements.length > 0)
                         mijs.setJDLRequirements(jdlRequirements);                   
@@ -591,10 +597,10 @@ public class GridEngineInterface {
         selInfra = enabledInfras.getJSONObject(selInfraIdx);
         _log.debug("Selected infra:"+LS+selInfra.toString(4));
                 
-        // Process infrastructure parameters
+        // Process infrastructure: name, credentials and parameters
         JSONObject GridEngineInfrastructure = new JSONObject();
-        JSONObject GridEngineCredentials = new JSONObject();
-                
+        GridEngineInfrastructure.put("name",selInfra.getString("name"));        
+        JSONObject GridEngineCredentials = new JSONObject();                
         JSONArray infraParams = selInfra.getJSONArray("parameters");        
         for(int h=0; h<infraParams.length(); h++) {
             JSONObject infraParameter = infraParams.getJSONObject(h);
