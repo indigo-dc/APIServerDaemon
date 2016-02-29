@@ -319,10 +319,21 @@ public class GridEngineInterface {
                     _log.info("Entering rOCCI adaptor ...");
                     
                     // Infrastructure values
+                    String protocol="";
+                    String secured="";
                     String os_tpl=geInfrastructure.getString("os_tpl");
                     String resource_tpl=geInfrastructure.getString("resource_tpl");
-                    String attributes_title=geInfrastructure.getString("attributes_title");                    
-                    
+                    String attributes_title=geInfrastructure.getString("attributes_title");
+                    try {
+                      protocol = geInfrastructure.getString("protocol");                    
+                    } catch(JSONException e) {
+                        _log.warn("Non mandatory value exception: "+e.toString());
+                    }
+                    try {
+                      secured = geInfrastructure.getString("secured");
+                    } catch(JSONException e) {
+                        _log.warn("Non mandatory value exception: "+e.toString());
+                    }
                     // Credential values
                     String eToken_host = geCredentials.getString("eToken_host");
                     String eToken_port = geCredentials.getString("eToken_port");
@@ -330,16 +341,25 @@ public class GridEngineInterface {
                     String voms = geCredentials.getString("voms");
                     String voms_role = geCredentials.getString("voms_role");
                     String rfc_proxy = geCredentials.getString("rfc_proxy");
+                                       
+                    // Building option statements
+                    String mixin_res_tpl="mixin_resource_tpl="+resource_tpl+"&";
+                    String mixin_os_tpl="mixin_os_tpl="+os_tpl+"&";
+                    String attribute_title="attributes_title="+attributes_title+"&";
+                    String protocol_opt = (protocol.length()>0)?"prptocol="+protocol+"&":"";        
+                    String secured_flag = (secured.length()>0)?"secured="+secured+"&":"";
                     
                     // Generate the rOCCI endpoint
                     String rOCCIResourcesList[] = {
                         resourceManagers+"/?"                       
                        +"action=create&"
                        +"resource=compute&"
-                       +"mixin_resource_tpl="+resource_tpl+"&"
-                       +"mixin_os_tpl="+os_tpl+"&"
-                       +"attributes_title="+attributes_title+"&"
-                       +"auth=x509"
+                       +mixin_res_tpl
+                       +mixin_os_tpl
+                       +attribute_title
+                       +protocol_opt
+                       +secured_flag
+                       +"auth=x509"                       
                     };
                     _log.info("rOCCI endpoint: '"+rOCCIResourcesList[0]+"'");
                     // Prepare the infrastructure
@@ -387,13 +407,13 @@ public class GridEngineInterface {
                     try {
                         jdlRequirements = geInfrastructure.getString("jdlRequirements").split(";");                        
                     } catch (JSONException e) {                        
-                        _log.info("jdlRequirements not specified");
+                        _log.warn("jdlRequirements not specified");
                     }
                     String swtags = null;
                     try {                        
                         swtags = geInfrastructure.getString("swtags");
                     } catch (JSONException e) {                        
-                        _log.info("swtags not specified");
+                        _log.warn("swtags not specified");
                     }
                     // Credentials values
                     String eToken_host = geCredentials.getString("eToken_host");
@@ -614,6 +634,10 @@ public class GridEngineInterface {
                 GridEngineInfrastructure.put("os_tpl",param_value);
             else if(param_name.equals("resource_tpl"))
                 GridEngineInfrastructure.put("resource_tpl",param_value);
+            else if(param_name.equals("secured"))
+                GridEngineInfrastructure.put("secured",param_value);
+            else if(param_name.equals("protocol"))
+                GridEngineInfrastructure.put("protocol",param_value);
             else if(param_name.equals("attributes_title"))
                 GridEngineInfrastructure.put("attributes_title",param_value);
             else if(param_name.equals("bdii"))
@@ -639,6 +663,10 @@ public class GridEngineInterface {
                 GridEngineCredentials.put("voms_role",param_value);
             else if(param_name.equals("rfc_proxy"))
                 GridEngineCredentials.put("rfc_proxy",param_value);
+            else if(param_name.equals("disable-voms-proxy"))
+                GridEngineCredentials.put("disable-voms-proxy",param_value);
+            else if(param_name.equals("proxy-renewal"))
+                GridEngineCredentials.put("proxy-renewal",param_value);
             else {
                 _log.warn("Reached end of if-elif chain for infra_param name: '"
                         +param_name+"' with value: '"
