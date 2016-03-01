@@ -356,13 +356,13 @@ public class GridEngineInterface {
                     String rfc_proxy = geCredentials.getString("rfc_proxy");
                                        
                     // Building option statements
-                    String prefix_opt = (secured.length()>0)?"prefix="+prefix+"&":"";
+                    String prefix_opt = (prefix.length()>0)?"prefix="+prefix+"&":"";
                     String mixin_res_tpl="mixin_resource_tpl="+resource_tpl+"&";
                     String mixin_os_tpl="mixin_os_tpl="+os_tpl+"&";
                     String attribute_title="attributes_title="+attributes_title+"&";
                     String protocol_opt = (protocol.length()>0)?"prptocol="+protocol+"&":"";        
                     String secured_flag = (secured.length()>0)?"secured="+secured+"&":"";                    
-                    String user_data_opt = (secured.length()>0)?"user_data="+user_data+"&":"";
+                    String user_data_opt = (user_data.length()>0)?"user_data="+user_data+"&":"";
                     
                     // Generate the rOCCI endpoint
                     String rOCCIResourcesList[] = {
