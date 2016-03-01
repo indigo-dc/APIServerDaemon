@@ -321,9 +321,12 @@ public class GridEngineInterface {
                     // Infrastructure values
                     String protocol="";
                     String secured="";
+                    String prefix="";
+                    String user_data="";
                     String os_tpl=geInfrastructure.getString("os_tpl");
                     String resource_tpl=geInfrastructure.getString("resource_tpl");
                     String attributes_title=geInfrastructure.getString("attributes_title");
+                    // Infrastructure parameters that couldn't be specified
                     try {
                       protocol = geInfrastructure.getString("protocol");                    
                     } catch(JSONException e) {
@@ -331,6 +334,16 @@ public class GridEngineInterface {
                     }
                     try {
                       secured = geInfrastructure.getString("secured");
+                    } catch(JSONException e) {
+                        _log.warn("Non mandatory value exception: "+e.toString());
+                    }
+                    try {
+                      user_data = geInfrastructure.getString("user_data");
+                    } catch(JSONException e) {
+                        _log.warn("Non mandatory value exception: "+e.toString());
+                    }
+                    try {
+                      prefix = geInfrastructure.getString("prefix");
                     } catch(JSONException e) {
                         _log.warn("Non mandatory value exception: "+e.toString());
                     }
@@ -343,15 +356,18 @@ public class GridEngineInterface {
                     String rfc_proxy = geCredentials.getString("rfc_proxy");
                                        
                     // Building option statements
+                    String prefix_opt = (secured.length()>0)?"prefix="+prefix+"&":"";
                     String mixin_res_tpl="mixin_resource_tpl="+resource_tpl+"&";
                     String mixin_os_tpl="mixin_os_tpl="+os_tpl+"&";
                     String attribute_title="attributes_title="+attributes_title+"&";
                     String protocol_opt = (protocol.length()>0)?"prptocol="+protocol+"&":"";        
-                    String secured_flag = (secured.length()>0)?"secured="+secured+"&":"";
+                    String secured_flag = (secured.length()>0)?"secured="+secured+"&":"";                    
+                    String user_data_opt = (secured.length()>0)?"user_data="+user_data+"&":"";
                     
                     // Generate the rOCCI endpoint
                     String rOCCIResourcesList[] = {
-                        resourceManagers+"/?"                       
+                        resourceManagers+"/?"
+                       +prefix_opt
                        +"action=create&"
                        +"resource=compute&"
                        +mixin_res_tpl
@@ -359,6 +375,7 @@ public class GridEngineInterface {
                        +attribute_title
                        +protocol_opt
                        +secured_flag
+                       +user_data_opt
                        +"auth=x509"                       
                     };
                     _log.info("rOCCI endpoint: '"+rOCCIResourcesList[0]+"'");
@@ -646,6 +663,10 @@ public class GridEngineInterface {
                 GridEngineInfrastructure.put("swtags",param_value);
             else if(param_name.equals("jdlRequirements"))
                 GridEngineInfrastructure.put("jdlRequirements",param_value);
+            else if(param_name.equals("user_data"))
+                GridEngineInfrastructure.put("user_data",param_value);
+            else if(param_name.equals("prefix"))
+                GridEngineInfrastructure.put("prefix",param_value);
             // Credential settings
             else if(param_name.equals("username"))
                 GridEngineCredentials.put("username",param_value);
