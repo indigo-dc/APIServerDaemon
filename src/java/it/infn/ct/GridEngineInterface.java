@@ -323,6 +323,10 @@ public class GridEngineInterface {
                     String secured="";
                     String prefix="";
                     String user_data="";
+                    String link="";
+                    String waitms="";
+                    String waitsshms="";
+                    String sshport="";
                     String os_tpl=geInfrastructure.getString("os_tpl");
                     String resource_tpl=geInfrastructure.getString("resource_tpl");
                     String attributes_title=geInfrastructure.getString("attributes_title");
@@ -346,7 +350,28 @@ public class GridEngineInterface {
                       prefix = geInfrastructure.getString("prefix");
                     } catch(JSONException e) {
                         _log.warn("Non mandatory value exception: "+e.toString());
+                    }                                        
+                    try {
+                      link = geInfrastructure.getString("link");
+                    } catch(JSONException e) {
+                        _log.warn("Non mandatory value exception: "+e.toString());
                     }
+                    try {
+                      waitms = geInfrastructure.getString("waitms");
+                    } catch(JSONException e) {
+                        _log.warn("Non mandatory value exception: "+e.toString());
+                    }
+                    try {
+                      waitsshms = geInfrastructure.getString("waitsshms");
+                    } catch(JSONException e) {
+                        _log.warn("Non mandatory value exception: "+e.toString());
+                    }
+                    try {
+                      sshport = geInfrastructure.getString("sshport");
+                    } catch(JSONException e) {
+                        _log.warn("Non mandatory value exception: "+e.toString());
+                    }
+                    
                     // Credential values
                     String eToken_host = geCredentials.getString("eToken_host");
                     String eToken_port = geCredentials.getString("eToken_port");
@@ -363,6 +388,10 @@ public class GridEngineInterface {
                     String protocol_opt = (protocol.length()>0)?"prptocol="+protocol+"&":"";        
                     String secured_flag = (secured.length()>0)?"secured="+secured+"&":"";                    
                     String user_data_opt = (user_data.length()>0)?"user_data="+user_data+"&":"";
+                    String link_opt = (link.length()>0)?"link="+link+"&":"";
+                    String waitms_opt = (waitms.length()>0)?"waitms="+waitms+"&":"";
+                    String waitsshms_opt = (waitsshms.length()>0)?"waitsshms="+waitms+"&":"";
+                    String sshport_opt = (sshport.length()>0)?"sshport="+sshport+"&":"";
                     
                     // Generate the rOCCI endpoint
                     String rOCCIResourcesList[] = {
@@ -376,6 +405,10 @@ public class GridEngineInterface {
                        +protocol_opt
                        +secured_flag
                        +user_data_opt
+                       +link_opt
+                       +waitms_opt
+                       +waitsshms_opt
+                       +sshport_opt
                        +"auth=x509"                       
                     };
                     _log.info("rOCCI endpoint: '"+rOCCIResourcesList[0]+"'");
@@ -667,6 +700,14 @@ public class GridEngineInterface {
                 GridEngineInfrastructure.put("user_data",param_value);
             else if(param_name.equals("prefix"))
                 GridEngineInfrastructure.put("prefix",param_value);
+            else if(param_name.equals("link"))
+                GridEngineInfrastructure.put("link",param_value);
+            else if(param_name.equals("waitms"))
+                GridEngineInfrastructure.put("waitms",param_value);
+            else if(param_name.equals("waitsshms"))
+                GridEngineInfrastructure.put("waitsshms",param_value);
+            else if(param_name.equals("sshport"))
+                GridEngineInfrastructure.put("sshport",param_value);
             // Credential settings
             else if(param_name.equals("username"))
                 GridEngineCredentials.put("username",param_value);
