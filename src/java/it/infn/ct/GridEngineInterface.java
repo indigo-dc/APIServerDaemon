@@ -217,7 +217,7 @@ public class GridEngineInterface {
         mijs.setOutputFiles(outputSandbox);
         _log.debug("outputSandbox: '"+outputSandbox+"'");
     } 
-    
+        
     /**
      * submit the job identified by the gedCommand values
      * @return 
@@ -429,7 +429,18 @@ public class GridEngineInterface {
                     mijs.addInfrastructure(infrastructures[0]);                    
                     // Setup JobDescription
                     prepareJobDescription(mijs,geJobDescription);
-                    // I/O Sandbox                        
+                    // I/O Sandbox
+                    // In rOCCI output and error files have to be removed
+                    // from output_files array replacing the file name
+                    // with an empty string
+                    for(int i=0; i<output_files.length(); i++) {            
+                        JSONObject output_entry = output_files.getJSONObject(i);
+                        if (   output_entry.getString("name").equals(geJobDescription.getString("output"))
+                            || output_entry.getString("name").equals(geJobDescription.getString("error"))) {                            
+                            _log.debug("Skipping unnecessary file: '"+output_entry.getString("name")+"'");
+                            output_files.getJSONObject(i).put("name", "");
+                        }
+                    }
                     prepareIOSandbox(mijs,input_files,output_files);
                     // Submit asynchronously                        
                     agi_id = 0;
@@ -494,7 +505,7 @@ public class GridEngineInterface {
                     prepareJobDescription(mijs,geJobDescription);
                     // I/O Sandbox
                     // In wms output and error files have to be removed
-                    // from output_files array replacing file name
+                    // from output_files array replacing the file name
                     // with an empty string
                     for(int i=0; i<output_files.length(); i++) {            
                         JSONObject output_entry = output_files.getJSONObject(i);
