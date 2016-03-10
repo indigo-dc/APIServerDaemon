@@ -195,13 +195,15 @@ public class GridEngineInterfaceDB {
     }
     
     /**
-     * 
+     * Get description of the given ActiveGridInteraction record
+     * @param ActiveGridInteraction id
+     * @return jobStatus
      */
     public String getJobDescription(int agi_id) {
-        String jobStatus = null;
+        String uderDesc = null;
         if (!connect()) {          
             _log.fatal("Not connected to database"); 
-            return jobStatus;
+            return uderDesc;
         }
         try {
             String sql;            
@@ -212,13 +214,13 @@ public class GridEngineInterfaceDB {
             preparedStatement.setInt(1, agi_id);            
             resultSet=preparedStatement.executeQuery(); 
             resultSet.next();
-            jobStatus=resultSet.getString("user_description");
+            uderDesc=resultSet.getString("user_description");
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
         } finally {
             closeSQLActivity();
         }          
-        return jobStatus;
+        return uderDesc;
     }
 
     /**
@@ -252,4 +254,27 @@ public class GridEngineInterfaceDB {
         return agi_id;
     }  
     
+    
+    /**
+     * Remove the given record form ActiveGridInteraction table
+     * @param ActiveGridInteraction id     
+     */
+    public void removeAGIRecord(int agi_id) {
+        if (!connect()) {          
+            _log.fatal("Not connected to database"); 
+            return;
+        }
+        try {
+            String sql;            
+            sql="delete from ActiveGridInteractions" +LS
+               +"where id = ?;";               
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt(1, agi_id);            
+            resultSet=preparedStatement.executeQuery();             
+        } catch (SQLException e) {                      
+            _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
+        }                  
+    }
 }

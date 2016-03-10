@@ -225,7 +225,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                     // resubmitted by the GridEngine
                     int AGIId = geInterface.getAGIId();
                     _log.debug("AGIId for command having id:"+asdCommand.getTaskId()+" is: "+AGIId);
-                    asdCommand.setTargetId(geInterface.getAGIId());
+                    asdCommand.setTargetId(AGIId);
                     asdCommand.Update(asdConnectionURL);
                     
                     // Update target_status taking its value from the GridEngine'
@@ -335,10 +335,46 @@ public class APIServerDaemonCheckCommand implements Runnable {
      */
     private void removeTaksEntries() {
         APIServerDaemonDB asdDB = null;
-
+                
+        _log.debug("Removing task: '"+asdCommand.getTaskId()+"'");
+                
+        // Now remove task entries in APIServer DB
         try {
+            // First take care to remove specific target entries
+            switch(asdCommand.getTarget()) {
+                case "GridEngine":                
+                    // First prepare the GridEngineInterface passing config
+                    GridEngineInterface geInterface
+                            = new GridEngineInterface(asdConfig,asdCommand);                    
+                    // Retrieve the right agi_id field exploiting the
+                    // fixed jobDescription field inside the ActiveGridInteraction
+                    // AGIId may change during submission in casethe job is
+                    // resubmitted by the GridEngine
+                    int AGIId = geInterface.getAGIId();
+                    _log.debug("AGIId for command having id:"+asdCommand.getTaskId()+" is: "+AGIId);
+                    asdCommand.setTargetId(AGIId);
+                    asdCommand.Update(asdConnectionURL);
+                    // Now verify if target exists
+                    if(asdCommand.getTargetId() > 0) {
+                        _log.debug("Removing record for GridEngine: '"+asdCommand.getTaskId()+"' -> AGI: '"+asdCommand.getTargetId()+"'");
+                        // Task should be in RUNNING state
+                        if(asdCommand.getStatus().equals("RUNNING"))
+                                _log.warn("Removing a GridEngine' RUNNING task, its job execution will be lost");                        
+                        geInterface.removeAGIRecord(geInterface.getAGIId());
+                    } else {
+                        _log.debug("No GridEngine ActiveGridInteraction record is asssociated to the task: '"+asdCommand.getTaskId()+"'");
+                    }
+                    break;
+                // Place other targets below ...
+                // case "mytarget":
+                // break;
+                default:
+                    _log.warn("Unrecognized target '"+asdCommand.getTarget()+"' while deleting target specific task entries");
+            }
+            
+            // Now remove APIServer DB task entries
             asdDB = new APIServerDaemonDB(asdConnectionURL);
-            asdDB.removeTaksEntries(asdCommand.getTaskId());
+            asdDB.removeTaksEntries(asdCommand.getTaskId());                                
         } catch (Exception e) {            
             _log.fatal("Unable to remove task entries for command:" + LS + asdCommand
                     + LS + e.toString());

@@ -456,14 +456,25 @@ public class GridEngineInterface {
                 {
                     _log.info("Entering wms adaptor ...");
                     
-                    // Infrastructure values
+                    // Infrastructure values                    
                     String infra_name = geInfrastructure.getString("name");
                     _log.info("infrastructure name: '"+infra_name+"'");
                     String bdii = geInfrastructure.getString("bdii");
                     _log.info("bdii: '"+bdii+"'");                    
-                    // jdlRequirements and swtags are not mandatory
-                    // catch JSONException exception if these values
-                    // are missing
+                    // ce_list, jdlRequirements and swtags are not mandatory
+                    // catch JSONException exception if these values are
+                    // missing
+                    String ce_list[] = null;
+                    try {
+                        ce_list = geInfrastructure.getString("ce_list").split(",");
+                        if(ce_list != null && ce_list.length>0) {
+                            _log.info("ce_list:");
+                            for(int i=0; i<ce_list.length; i++)
+                                _log.info("CE["+i+"]: '"+ce_list[i]+"'");
+                        }
+                    } catch (JSONException e) {
+                        _log.warn("NO CE list specified");
+                    }
                     String jdlRequirements[] = null;
                     try {
                         jdlRequirements = geInfrastructure.getString("jdlRequirements").split(";");                        
@@ -487,19 +498,34 @@ public class GridEngineInterface {
                     // In wms case resourceManager could contain more than
                     // one wms:// entrypoint specified by a comma separated
                     // string
-                    String wmsList[] = resourceManagers.split(",");                    
+                    String wmsList[] = resourceManagers.split(",");    
+                    
+                    _log.info("Creating Infrastrcuture object");
                     infrastructures[0] = new 
-                        InfrastructureInfo( 
-                            infra_name               // Infra. name
-                           ,"wms"                    // Adaptor
-                           ,wmsList                  // List of wmses                           
-                           ,eToken_host              // eTokenServer host
-                           ,eToken_port              // eTokenServer port
-                           ,eToken_id                // eToken id (md5sum)
-                           ,voms                     // VO
-                           ,voms_role                // VO.group.role
-                           ,(null!=swtags)?swtags:"" // Software Tags
-                        );
+                    InfrastructureInfo( 
+                        infra_name               // Infra. name
+                       ,"wms"                    // Adaptor
+                       ,wmsList                  // List of wmses                           
+                       ,eToken_host              // eTokenServer host
+                       ,eToken_port              // eTokenServer port
+                       ,eToken_id                // eToken id (md5sum)
+                       ,voms                     // VO
+                       ,voms_role                // VO.group.role
+                       ,(null!=swtags)?swtags:"" // Software Tags
+                    );
+                    
+                    // Select one of the available CEs if specified
+                    // in the ce_list. The selection will be done 
+                    // randomly
+                    if(ce_list != null && ce_list.length>0) {
+                        Random rndGen = new Random();        
+                        int selCEindex = rndGen.nextInt(ce_list.length);
+                        mijs.setJobQueue(ce_list[selCEindex]);
+                        _log.info("Selected CE from the list: '"+ce_list[selCEindex]+"'");
+                    } else {
+                        _log.info("No CE list specified, wms will choose");
+                    }
+                    // Specify infrastructure
                     mijs.addInfrastructure(infrastructures[0]);                    
                     // Setup JobDescription
                     prepareJobDescription(mijs,geJobDescription);
@@ -691,6 +717,8 @@ public class GridEngineInterface {
             // Job settings
             if(param_name.equals("jobservice"))
                 GridEngineInfrastructure.put("resourceManagers",param_value);
+            else if(param_name.equals("ce_list"))
+                GridEngineInfrastructure.put("ce_list",param_value);
             else if(param_name.equals("os_tpl"))
                 GridEngineInfrastructure.put("os_tpl",param_value);
             else if(param_name.equals("resource_tpl"))
@@ -845,4 +873,29 @@ public class GridEngineInterface {
                                              +gedCommand.getTargetId());
     }
     
+    /**
+     * removeAGIRecord(int agi_id)
+     * 
+     * This method removes the specified ActiveGridInteraction record form
+     * the GridEngine' UsersTracking database
+     */
+    public void removeAGIRecord(int agi_id) {
+        GridEngineInterfaceDB geiDB = null;
+        _log.debug("Removing record from ActiveGridInteraction with id: '"+agi_id+"'");
+        
+        try {
+            geiDB = new GridEngineInterfaceDB(utdb_host
+                                             ,utdb_port
+                                             ,utdb_user
+                                             ,utdb_pass
+                                             ,utdb_name);
+            geiDB.removeAGIRecord(agi_id);
+        } catch (Exception e) {          
+            _log.fatal("Unable delete ActiveGridInteraction entry for id "+agi_id+"command"
+                    +LS+e.toString());
+        }
+        finally {
+           if(geiDB!=null) geiDB.close(); 
+        }
+    }
 }
