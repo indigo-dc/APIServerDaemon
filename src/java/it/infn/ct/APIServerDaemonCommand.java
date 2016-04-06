@@ -393,4 +393,5 @@ class APIServerDaemonCommand {
            _log.debug("Closing connection for update command");
         }       
     }
+        
 }

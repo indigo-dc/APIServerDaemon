@@ -129,6 +129,12 @@ class APIServerDaemonProcessCommand implements Runnable {
             int AGIId = geInterface.jobSubmit(); // Currently this returns 0            
             asdCommand.setStatus("PROCESSED");            
             asdCommand.Update(asdConnectionURL);
+        } else if(asdCommand.getTarget().equals("SimpleTosca")) {
+            SimpleToscaInterface stInterface = new SimpleToscaInterface(asdConfig,asdCommand);
+            int toscaId = stInterface.submitTosca();
+            asdCommand.setTargetId(toscaId);
+            asdCommand.setStatus("PROCESSED");
+            asdCommand.Update(asdConnectionURL);
         } /* else if(asdCommand.getTarget().equals(<other targets>)) {
         } */
         else {

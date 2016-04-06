@@ -183,7 +183,8 @@ public class APIServerDaemonCheckCommand implements Runnable {
                 // otherwise trash it
                 
                 // Provide a different behavior depending on the Target
-                if(asdCommand.getTarget().equals("GridEngine")) {                    
+                if(asdCommand.getTarget().equals("GridEngine")) {  
+                    /*
                     _log.debug("Consistency of PROCESSING task - id: "+asdCommand.getTaskId()
                             +      " lifetime: "+asdCommand.getLifetime()
                             +                "/"+asdConfig.getTaskMaxWait()
@@ -197,13 +198,17 @@ public class APIServerDaemonCheckCommand implements Runnable {
                         _log.debug("Trashing PROCESSING task having id: "+asdCommand.getTaskId());
                         asdCommand.trash(asdConnectionURL);
                     } else _log.debug("Ignoring at the moment PROCESSING task having id: "+asdCommand.getTaskId());
-                }/* else if(asdCommand.getTarget().equals(<other targets>)) {
+                    */
+                    taskConsistencyCheck();
+                } else if(asdCommand.getTarget().equals("SimpleTosca")) {
+                    taskConsistencyCheck();
+                } /* else if(asdCommand.getTarget().equals(<other targets>)) {
                 // Get/Use targetId to check task submission
                 // If targetId does not appear after a long while check consistency
                 // and eventually retry task submission.
                 }*/
                 else {
-                    _log.error("Unsupported target: '"+asdCommand.getTarget()+"'");
+                    _log.warn("Unsupported target: '"+asdCommand.getTarget()+"'");
                 }   
             break;
                 
@@ -248,34 +253,25 @@ public class APIServerDaemonCheckCommand implements Runnable {
                         asdCommand.Update(asdConnectionURL);
                     } else {
                         // TargetId is 0 - check consistency ...
-                        // This check consistency of the command execution
-                        // if it takes too long the command should be
-                        // resubmitted or flagged as FAILED reaching a given
-                        // threshold
-                        // Tasks will be retryed if creation and last change is
-                        // greater than max_wait and retries have not reached yet
-                        // the max_retry count
-                        // Trashed requests will be flagged as FAILED
-                        _log.debug("Consistency of PROCESSED task - id: "+asdCommand.getTaskId()
-                                +      " lifetime: "+asdCommand.getLifetime()
-                                +                "/"+asdConfig.getTaskMaxWait()
-                                +       " - retry: "+asdCommand.getRetry()
-                                +                "/"+asdConfig.getTaskMaxRetries());
-                        if(   asdCommand.getRetry()    < asdConfig.getTaskMaxRetries()
-                                && asdCommand.getLifetime() > asdConfig.getTaskMaxWait()) {
-                            _log.debug("Retrying PROCESSED task having id: "+asdCommand.getTaskId());
-                            asdCommand.retry(asdConnectionURL);
-                        } else if (asdCommand.getRetry() >= asdConfig.getTaskMaxRetries()) {
-                            _log.debug("Trashing PROCESSED task having id: "+asdCommand.getTaskId());
-                            asdCommand.trash(asdConnectionURL);
-                        } else _log.debug("Ignoring at the moment PROCESSED task having id: "+asdCommand.getTaskId());
+                        taskConsistencyCheck();
                     }
-                }/* else if(asdCommand.getTarget().equals(<other targets>)) {
+                } else if(asdCommand.getTarget().equals("SimpleTosca")) {
+                    // Determine the status and take care of the output files
+                    SimpleToscaInterface stInterface
+                            = new SimpleToscaInterface(asdConfig,asdCommand);
+                    String status = stInterface.getStatus();
+                    if(status != null && status.length() > 0)
+                        asdCommand.setTargetStatus(status);
+                    else {
+                        // No status is available - check consistency ...
+                        taskConsistencyCheck();
+                    }
+                } /* else if(asdCommand.getTarget().equals(<other targets>)) {
                 // Get/Use targetId to check task submission
                 // If targetId does not appear after a long while check consistency
                 // and eventually retry task submission.
                 }*/ else {
-                    _log.error("Unsupported target: '"+asdCommand.getTarget()+"'");
+                    _log.warn("Unsupported target: '"+asdCommand.getTarget()+"'");
                 }   
             break;
             default:
@@ -285,6 +281,33 @@ public class APIServerDaemonCheckCommand implements Runnable {
         // Updating check_ts field a round-robing strategy will be
         // applied while extracting command from the queue by controller
         asdCommand.checkUpdate(asdConnectionURL);
+    }
+
+    /**
+     * Check the consistency of the given command
+     */
+    private void taskConsistencyCheck() {
+        // This check consistency of the command execution
+        // if it takes too long the command should be
+        // resubmitted or flagged as FAILED reaching a given
+        // threshold
+        // Tasks will be retryed if creation and last change is
+        // greater than max_wait and retries have not reached yet
+        // the max_retry count
+        // Trashed requests will be flagged as FAILED
+        _log.debug("Consistency of PROCESSED task - id: "+asdCommand.getTaskId()
+                                     +      " lifetime: "+asdCommand.getLifetime()
+                                     +                "/"+asdConfig.getTaskMaxWait()
+                                     +       " - retry: "+asdCommand.getRetry()
+                                     +                "/"+asdConfig.getTaskMaxRetries());
+        if(   asdCommand.getRetry()    < asdConfig.getTaskMaxRetries()
+           && asdCommand.getLifetime() > asdConfig.getTaskMaxWait()) {
+            _log.debug("Retrying PROCESSED task having id: "+asdCommand.getTaskId());
+            asdCommand.retry(asdConnectionURL);
+        } else if (asdCommand.getRetry() >= asdConfig.getTaskMaxRetries()) {
+            _log.debug("Trashing PROCESSED task having id: "+asdCommand.getTaskId());
+            asdCommand.trash(asdConnectionURL);
+        } else _log.debug("Ignoring at the moment PROCESSED task having id: "+asdCommand.getTaskId());
     }
 
     /**

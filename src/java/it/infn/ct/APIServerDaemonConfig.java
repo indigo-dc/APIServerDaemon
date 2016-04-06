@@ -226,6 +226,19 @@ public class APIServerDaemonConfig {
     */
     
     /**
+     * Prepare a connectionURL from detailed connection settings
+     */
+    public String getApisrv_URL() {
+        String APIServerConnURL = "jdbc:mysql://" + getApisrv_dbhost()
+                                + ":"             + getApisrv_dbport() 
+                                + "/"             + getApisrv_dbname() 
+                                + "?user="        + getApisrv_dbuser() 
+                                + "&password="    + getApisrv_dbpass();
+        _log.debug("APIServerDB ConnectionURL: '"+APIServerConnURL+"'");
+        return APIServerConnURL;
+    }
+    
+    /**
      * Get APIServerDaemon database name
      * @return apisrv_dbname
      */
