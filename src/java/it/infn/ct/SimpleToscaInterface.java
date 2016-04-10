@@ -45,6 +45,7 @@ import org.ogf.saga.url.URL;
 import org.ogf.saga.url.URLFactory;
 import fr.in2p3.jsaga.impl.job.instance.JobImpl;
 import fr.in2p3.jsaga.impl.job.service.JobServiceImpl;
+import java.io.File;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -59,6 +60,7 @@ import java.io.OutputStream;
 //import java.nio.charset.Charset;
 //import java.util.Properties;
 import java.util.Random;
+import org.apache.commons.io.FileUtils;
 import org.json.*;
 import org.apache.commons.io.IOUtils;
 
@@ -73,6 +75,8 @@ public class SimpleToscaInterface {
     private static final Logger _log = Logger.getLogger(SimpleToscaInterface.class.getName());
     
     public static final String LS = System.getProperty("line.separator");
+    public static final String FS = System.getProperty("file.separator");
+    public static final String JO = "jobOutput";
 
     APIServerDaemonCommand toscaCommand;
     APIServerDaemonConfig asdConfig;
@@ -123,17 +127,31 @@ public class SimpleToscaInterface {
         
         _log.debug("Entering submitSimpleTosca");
         
-        String jobDescFileName = toscaCommand.getActionInfo()+"/"
+        String jobDescFileName = toscaCommand.getActionInfo()+FS
                                 +toscaCommand.getTaskId()
                                 +".json"; 
         _log.debug("JSON filename: '"+jobDescFileName+"'");
-        try {
+        try {                        
+            // Prepare jobOutput dir for output sandbox
+            String outputSandbox = toscaCommand.getActionInfo()+FS+JO;
+            _log.debug("Creating job output directory: '"+outputSandbox+"'");            
+            File outputSandboxDir = new File(outputSandbox);
+            if(!outputSandboxDir.exists()) {
+                _log.debug("Creating job output directory");
+                outputSandboxDir.mkdir();
+                _log.debug("Job output successfully created");
+            } else {
+                // Directory altready exists; clean all its content
+                _log.debug("Cleaning job output directory");
+                FileUtils.cleanDirectory(outputSandboxDir);
+                _log.debug("Successfully cleaned job output directory");
+            }                    
+
+            // Now read values from JSON and prepare the submission accordingly
             InputStream is = new FileInputStream(jobDescFileName);
             String jsonTxt = IOUtils.toString(is);            
             jsonJobDesc = (JSONObject) new JSONObject(jsonTxt);            
-            _log.debug("Loaded APIServer JobDesc:\n"+LS+jsonJobDesc);
-
-            // Now read values from JSON and prepare the submission accordingly
+            _log.debug("Loaded APIServer JobDesc:\n"+LS+jsonJobDesc);            
             // Username (unused yet but later used for accounting)
             String user = String.format("%s", jsonJobDesc.getString("user"));  
             // Prepare JSAGA IO file list
@@ -151,7 +169,7 @@ public class SimpleToscaInterface {
                 JSONObject fileEntry = inputFiles.getJSONObject(j);
                 String fileName = fileEntry.getString("name");
                 IOFiles += (IOFiles.length()>0?",":"")
-                          +toscaCommand.getActionInfo()+"/jobOutput/"
+                          +toscaCommand.getActionInfo()+FS+JO+FS
                           +fileEntry.getString("name")+"<"+fileEntry.getString("name");
             }
             String files[] = IOFiles.split(",");
@@ -174,7 +192,9 @@ public class SimpleToscaInterface {
                 String param_name  = appParameter.getString("param_name");
                 String param_value = appParameter.getString("param_value");
                 switch(param_name) {
-
+                    case "target_executor":
+                        _log.debug("target_executor: '"+param_value+"'");
+                        break;
                     case "jobdesc_executable":
                         executable=param_value;
                         _log.debug("executable: '"+executable+"'");
@@ -276,6 +296,8 @@ public class SimpleToscaInterface {
                 if(stiDB!=null) stiDB.close(); 
             }
 
+        } catch(SecurityException se){
+          _log.error("Unable to create job output folder in: '"+toscaCommand.getActionInfo()+"' directory");
         } catch (Exception ex) {
            _log.error("Caught exception: '"+ex.toString()+"'");
         }
@@ -331,11 +353,16 @@ public class SimpleToscaInterface {
                 service = JobFactory.createJobService(session, serviceURL);  
                 JobDescription desc = JobFactory.createJobDescription();
                 _log.info("Setting up tosca attributes ...");
-                desc.setAttribute(JobDescription.EXECUTABLE, executable);                	           
+                _log.debug("Executable: '"+executable+"'");
+                desc.setAttribute(JobDescription.EXECUTABLE, executable);
+                _log.debug("Output: '"+output+"'");
                 desc.setAttribute(JobDescription.OUTPUT, output);
+                _log.debug("Output: '"+error+"'");
                 desc.setAttribute(JobDescription.ERROR, error);                  
                 _log.info("Setting up tosca verctor attributes ...");
+                for(int i=0; i<args.length;i++) _log.debug("args["+i+"]='"+args[i]+"'");
                 desc.setVectorAttribute(JobDescription.ARGUMENTS, args); 
+                for(int j=0; j<args.length;j++) _log.debug("files["+j+"]='"+files[j]+"'");
                 desc.setVectorAttribute(desc.FILETRANSFER, files);
                 _log.info("Creating job ...");
                 job = service.createJob(desc);
@@ -379,7 +406,7 @@ public class SimpleToscaInterface {
             _log.debug("GetToscaId for task_id: '"+toscaCommand.getTaskId()+"'");
             toscaId = stiDB.getToscaId(toscaCommand);
         } catch (Exception e) {
-            _log.fatal("Unable to get tosca_id for task_id: '"+toscaCommand.getTaskId()+"'");
+            _log.error("Unable to get tosca_id for task_id: '"+toscaCommand.getTaskId()+"'");
         }
         finally {
             if(stiDB!=null) stiDB.close();
@@ -392,7 +419,7 @@ public class SimpleToscaInterface {
      *
      */
     public String getStatus() {
-        _log.info("getStatus");
+        _log.debug("getStatus (begin)");
         Session session = null;
         Context context = null;
         JobService service = null;
@@ -402,8 +429,9 @@ public class SimpleToscaInterface {
         String status="";
 
         System.setProperty("saga.factory", "fr.in2p3.jsaga.impl.SagaFactoryImpl");
- 
+       
         try {
+            _log.debug("Creating context and session");
             session = SessionFactory.createSession(false);
             context = ContextFactory.createContext("tosca");           
             
@@ -422,95 +450,103 @@ public class SimpleToscaInterface {
             context.setAttribute("token","AABBCCDDEEFF00112233445566778899");            
             session.addContext(context);
 
+            // toscaId comes from simple_tosca database table through
+            // toscaCommand.task_id field
             String toscaId=getToscaId();
-            _log.debug("toscaId: '"+toscaId+"'");
+                        
             if(toscaId != null && toscaId.length() > 0) {
+                _log.debug("Getting status for toscaId: '"+toscaId+"'");
                 ServiceURL = toscaId.substring(1,toscaId.indexOf("?"));            
                 URL serviceURL = URLFactory.createURL(ServiceURL);                
                 _log.debug("serviceURL = '" + serviceURL +"'");
                 service = JobFactory.createJobService(session, serviceURL);  
-
                 String nativeJobId = getNativeJobId(toscaId);
-                job = service.getJob(nativeJobId);                                
-
-                _log.debug("Fetching the status of the job: '" +toscaId+ "'");
-                _log.debug("nativeJobId: '" + nativeJobId + "'");
-
+                job = service.getJob(nativeJobId);                                                
                 State state = null;
-
+                while(true)
                 try { 
+                    _log.debug("Fetching the status of the job: '" +toscaId+ "'");
+                    _log.debug("nativeJobId: '" + nativeJobId + "'");
                     state = job.getState();
                     status = state.name();
                     _log.debug("Current Status = '" + status + "'");
+                    
                     //String executionHosts[];
                     //executionHosts = job.getVectorAttribute(Job.EXECUTIONHOSTS);
                     //_log.debug("Execution Host = " + executionHosts[0]);
-                } catch (Exception ex) {
-                    _log.error("Error in getting job status... [ FAILED ] ");
-                    _log.error(ex.toString());
-                    _log.error("Cause :" + ex.getCause());
-                }
-                
-                // Perform the right action related to its status  
-                if (State.CANCELED.compareTo(state) == 0) {
-                    _log.info("");
-                    _log.info("Job Status = CANCELED ");
-                } else if (State.FAILED.compareTo(state) == 0) {
-                    try {
-                            String exitCode = job.getAttribute(Job.EXITCODE);
-                            _log.info("");
-                            _log.info("Job Status = FAILED");
-                            _log.info("Exit Code (" + exitCode + ")");
-                    } catch (SagaException e) { 
-                        _log.error("Job failed."); 
-                    }
-                } else if (State.DONE.compareTo(state) == 0) { 
-                    String exitCode = "";
-                    _log.debug("Status is done, getting EXITCODE");
-                    try {
-                        exitCode = job.getAttribute(Job.EXITCODE);    
-                    } catch (Exception ex) {
-                        _log.error("Unable to get exit code");
-                        _log.debug(ex.toString());
-                    }
-                    _log.debug("Final Job Status = DONE");
-                    _log.debug("Exit Code ("+exitCode+")");                    
-                    _log.debug("Retrieving job results; this operation may take a few minutes to complete ...");
 
-                    // ========================================== //
-                    // === EXECUTING post-staging and cleanup === //
-                    // ========================================== //
-                    try { 
-                        ((JobImpl)job).postStagingAndCleanup();
-                        _log.info("Job outputs retrieved");
-                    } catch (NotImplementedException   ex) { _log.error(ex.toString()); 
-                    } catch (PermissionDeniedException ex) { _log.error(ex.toString()); 
-                    } catch (IncorrectStateException   ex) { _log.error(ex.toString()); 
-                    } catch (NoSuccessException        ex) { _log.error(ex.toString()); }
-                    
-                    try { 
-                        ((JobServiceImpl)service).disconnect();
-                        _log.debug("Service disconnected successfully");
-                    } catch (NoSuccessException ex) { 
-                        _log.debug("Service disconnected unsuccessfully");
-                        _log.error("See below the stack trace... ");
-                        _log.error(ex.toString()); 
-                    }
-                    session.close();
-                    _log.debug("Session closed");
-                } else {
-                    _log.debug("Unexpected job status: '" + state + "'");                    
+                    // Perform the right action related to its status  
+                    if (State.CANCELED.compareTo(state) == 0) {
+                        _log.info("");
+                        _log.info("Job Status == CANCELED ");
+                        break;
+                    } else if (State.FAILED.compareTo(state) == 0) {
+                        _log.info("Job Status == FAILED");
+                        _log.debug("getting EXITCODE");
+                        try {
+                            String exitCode = job.getAttribute(Job.EXITCODE);                        
+                            _log.info("Exit Code (" + exitCode + ")");
+                            break;
+                        } catch (SagaException ex) { 
+                            _log.error("Unable to get exit code"); 
+                            _log.debug(ex.toString());
+                            break;
+                        }
+                    } else if (State.DONE.compareTo(state) == 0) {                     
+                        _log.debug("Job Status == DONE");
+                        _log.debug("getting exit code");
+                        try {
+                            String exitCode = job.getAttribute(Job.EXITCODE);
+                            _log.debug("Exit code: '"+exitCode+"'");                            
+                            try { 
+                                ((JobServiceImpl)service).disconnect();
+                                _log.debug("Service disconnected successfully");
+                            } catch (NoSuccessException ex) { 
+                                _log.debug("Service disconnected unsuccessfully");
+                                _log.error("See below the stack trace... ");
+                                _log.error(ex.toString()); 
+                                break;
+                            }                                                        
+                            // postStaging and cleanup
+                            try {
+                                _log.debug("Post staging and cleanup");
+                                ((JobImpl)job).postStagingAndCleanup();
+                                _log.info("Job outputs successfully retrieved");                                
+                            } catch (NotImplementedException   ex) {
+                                _log.error(ex.toString()); break;
+                            } catch (PermissionDeniedException ex) { 
+                                _log.error(ex.toString()); break;
+                            } catch (IncorrectStateException   ex) {
+                                _log.error(ex.toString()); break;
+                            } catch (NoSuccessException        ex) { 
+                                _log.error(ex.toString()); break;
+                            }                            
+                            break;
+                        } catch (Exception ex) {
+                            _log.error("Unable to get exit code");
+                            break;
+                        }
+                    } else {
+                        _log.error("Unhandled status '"+state.name()+"'");
+                    }                                                                                                           
+                } catch (Exception ex) {
+                    _log.error("Error in getting job status");
+                    _log.error(ex.toString());
+                    _log.error("Cause : '" + ex.getCause()+"'");
+                    break;
                 }
             } else {
-              _log.debug("Unable to get status for task_id: '"+toscaCommand.getTaskId()+"'");
+                _log.error("Unable to get ToscaId");
+                // through...
             }
-        } catch (Exception ex) {
-            _log.error("Failed to initialize the security context"+LS
-                      +"See below the stack trace... "
-                      );
-            _log.error(ex.toString());
+        } catch(Exception ex) {
+            // Context problem
+            _log.error ("Unable to create context");
+        } finally {            
+            session.close();
+            _log.debug("Session closed");
         }
-        _log.debug("status: '"+status+"'"); 
+        _log.info("getStatus (end)");
         return status;
     }
 

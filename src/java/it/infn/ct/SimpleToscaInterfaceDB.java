@@ -167,62 +167,7 @@ public class SimpleToscaInterfaceDB {
             _log.fatal(e.toString());
         }
         _log.info("Closed DB: '"+this.connectionURL+"'");
-    }
-
-   
-   
-/* 
-    public String getJobStatus(int agi_id) {
-        String jobStatus = null;
-        if (!connect()) {          
-            _log.fatal("Not connected to database"); 
-            return jobStatus;
-        }
-        try {
-            String sql;            
-            sql="select status"               +LS
-               +"from ActiveGridInteractions" +LS
-               +"where id = ?;";               
-            preparedStatement = connect.prepareStatement(sql);
-            preparedStatement.setInt(1, agi_id);            
-            resultSet=preparedStatement.executeQuery(); 
-            if(resultSet.next());
-                jobStatus=resultSet.getString("status");
-        } catch (SQLException e) {                      
-            _log.fatal(e.toString());
-        } finally {
-            closeSQLActivity();
-        }     
-        return jobStatus;
-    }
-    
-     * Get description of the given ActiveGridInteraction record
-     * @param ActiveGridInteraction id
-     * @return jobStatus
-    public String getJobDescription(int agi_id) {
-        String uderDesc = null;
-        if (!connect()) {          
-            _log.fatal("Not connected to database"); 
-            return uderDesc;
-        }
-        try {
-            String sql;            
-            sql="select user_description"     +LS
-               +"from ActiveGridInteractions" +LS
-               +"where id = ?;";               
-            preparedStatement = connect.prepareStatement(sql);
-            preparedStatement.setInt(1, agi_id);            
-            resultSet=preparedStatement.executeQuery(); 
-            resultSet.next();
-            uderDesc=resultSet.getString("user_description");
-        } catch (SQLException e) {                      
-            _log.fatal(e.toString());
-        } finally {
-            closeSQLActivity();
-        }          
-        return uderDesc;
-    }
-    */
+    }  
 
     /**
      * Get toscaId

@@ -184,21 +184,6 @@ public class APIServerDaemonCheckCommand implements Runnable {
                 
                 // Provide a different behavior depending on the Target
                 if(asdCommand.getTarget().equals("GridEngine")) {  
-                    /*
-                    _log.debug("Consistency of PROCESSING task - id: "+asdCommand.getTaskId()
-                            +      " lifetime: "+asdCommand.getLifetime()
-                            +                "/"+asdConfig.getTaskMaxWait()
-                            +       " - retry: "+asdCommand.getRetry()
-                            +                "/"+asdConfig.getTaskMaxRetries());
-                    if(   asdCommand.getRetry()    < asdConfig.getTaskMaxRetries()
-                       && asdCommand.getLifetime() > asdConfig.getTaskMaxWait()) {
-                        _log.debug("Retrying PROCESSING task having id: "+asdCommand.getTaskId());
-                        asdCommand.retry(asdConnectionURL);
-                    } else if (asdCommand.getRetry() >= asdConfig.getTaskMaxRetries()) {
-                        _log.debug("Trashing PROCESSING task having id: "+asdCommand.getTaskId());
-                        asdCommand.trash(asdConnectionURL);
-                    } else _log.debug("Ignoring at the moment PROCESSING task having id: "+asdCommand.getTaskId());
-                    */
                     taskConsistencyCheck();
                 } else if(asdCommand.getTarget().equals("SimpleTosca")) {
                     taskConsistencyCheck();
