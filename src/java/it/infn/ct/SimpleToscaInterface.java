@@ -335,19 +335,6 @@ public class SimpleToscaInterface {
         try {
             session = SessionFactory.createSession(false);            
             context = ContextFactory.createContext("tosca");
-
-            //Set the public key for SSH connections
-            context.setAttribute("UserPublicKey",
-                    System.getProperty("user.home") + 
-                    System.getProperty("file.separator") + 
-                    ".ssh/id_rsa.pub");
-            
-            //Set the private key for SSH connections
-            context.setAttribute("UserPrivateKey",
-                    System.getProperty("user.home") + 
-                    System.getProperty("file.separator") + 
-                    ".ssh/id_rsa");
-
             context.setAttribute("token",token);                        
             session.addContext(context);
             

@@ -670,9 +670,9 @@ public class GridEngineInterface {
                 GridEgnineJobDescription.put("output", param_value);
             else if(param_name.equals("jobdesc_error"))
                 GridEgnineJobDescription.put("error", param_value);
-            else if(param_name.equals("target_executor"))
+            else if(param_name.equals("target_executor")) 
                 _log.debug("target_executor : '"+param_value+"'");
-            } else {
+            else {
                 _log.warn("Reached end of if-elif chain for application param name: '"
                          +param_name+"' with value: '"
                          +param_value+"'");
