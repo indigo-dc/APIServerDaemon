@@ -240,6 +240,7 @@ public class SimpleToscaInterface {
 
             // Infrastructure parameters
             String toscaEndPoint = "";
+            String toscaParameters = "";
             String toscaTemplate = "";
             String token = "";
             JSONArray infraParams = selInfra.getJSONArray("parameters");
@@ -260,6 +261,10 @@ public class SimpleToscaInterface {
                         toscaTemplate = toscaCommand.getActionInfo()+"/"+param_value;
                         _log.debug("tosca_template: '"+toscaTemplate+"'");
                         break;
+                    case "tosca_parameters":
+                        toscaParameters = "&" + param_value;
+                        _log.debug("tosca_parameters: '"+toscaParameters+"'");
+                        break;
                     default:
                         _log.warn("Unsupported infrastructure parameter name: '"+param_name+"' with value: '"+param_value+"'");
                 }    
@@ -269,6 +274,7 @@ public class SimpleToscaInterface {
             String tosca_id = submitJob(token
                                        ,toscaEndPoint
                                        ,toscaTemplate
+                                       ,toscaParameters
                                        ,executable
                                        ,output
                                        ,error
@@ -311,6 +317,7 @@ public class SimpleToscaInterface {
     public String submitJob(String token
                            ,String toscaEndPoint
                            ,String toscaTemplate
+                           ,String toscaParameters
                            ,String executable
                            ,String output
                            ,String error
@@ -346,7 +353,7 @@ public class SimpleToscaInterface {
             
             try {    
                 _log.info("Initialize the JobService context... ");
-                ServiceURL = toscaEndPoint + "?" + "tosca_template=" + toscaTemplate;
+                ServiceURL = toscaEndPoint + "?" + "tosca_template=" + toscaTemplate + toscaParameters;
                 URL serviceURL = URLFactory.createURL(ServiceURL);
                 _log.info("Tosca ServiceURL = '" + serviceURL +"'");
                 
