@@ -290,7 +290,8 @@ public class APIServerDaemonDB {
             while(resultSet.next()) {
                 APIServerDaemonCommand asdCmd = 
                         new APIServerDaemonCommand(
-                                resultSet.getInt      (      "task_id")                               
+                                connectionURL
+                               ,resultSet.getInt      (      "task_id")                               
                                ,resultSet.getInt      (    "target_id")
                                ,resultSet.getString   (       "target") 
                                ,resultSet.getString   (       "action")
@@ -377,7 +378,8 @@ public class APIServerDaemonDB {
             while(resultSet.next()) {
                 APIServerDaemonCommand asdCmd = 
                         new APIServerDaemonCommand(
-                                resultSet.getInt      (      "task_id")
+                                connectionURL
+                               ,resultSet.getInt      (      "task_id")
                                ,resultSet.getInt      (    "target_id")
                                ,resultSet.getString   (       "target") 
                                ,resultSet.getString   (       "action")

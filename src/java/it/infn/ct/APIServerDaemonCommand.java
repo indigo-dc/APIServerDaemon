@@ -49,6 +49,7 @@ class APIServerDaemonCommand {
     private String action_info;
     
     private boolean modified_flag;
+    private String  asdConnectionURL;
     
     /**
      * Logger
@@ -77,7 +78,8 @@ class APIServerDaemonCommand {
     /**
      * Constructor taking all GridEngineDaemon command values
      */
-    public APIServerDaemonCommand( int    task_id
+    public APIServerDaemonCommand( String asdConnectionURL
+                                  ,int    task_id
                                   ,int    target_id
                                   ,String target
                                   ,String action
@@ -89,20 +91,28 @@ class APIServerDaemonCommand {
                                   ,Date   check_ts
                                   ,String action_info) {
         this();
-        this.task_id       = task_id;
-        this.target_id     = target_id;
-        this.target        = target;
-        this.action        = action;
-        this.status        = status;
-        this.target_status = target_status;
-        this.retry         = retry;
-        this.creation      = creation;
-        this.last_change   = last_change;
-        this.check_ts      = check_ts;
-        this.action_info   = action_info;
-        this.modified_flag = false;
+        this.task_id          = task_id;
+        this.target_id        = target_id;
+        this.target           = target;
+        this.action           = action;
+        this.status           = status;
+        this.target_status    = target_status;
+        this.retry            = retry;
+        this.creation         = creation;
+        this.last_change      = last_change;
+        this.check_ts         = check_ts;
+        this.action_info      = action_info;
+        this.modified_flag    = false;
+        this.asdConnectionURL = asdConnectionURL;
     }        
     
+    /**
+     * Get the APIServerDaemon connectionURL string
+     * @return asdConnectionURL
+     */
+    public String getASDConnectionURL() {
+        return asdConnectionURL;
+    }
     /**
      * Get APIServerCommand 'task_id' field value
      * @return task_id
@@ -160,6 +170,13 @@ class APIServerDaemonCommand {
      */
     public String getActionInfo() { return this.action_info; }
     
+    /**
+     * Set the APIServerDaemon connectionURL string
+     * @return asdConnectionURL
+     */
+    public void setASDConnectionURL(String asdConnectionURL) {
+        this.asdConnectionURL = asdConnectionURL;
+    }
     /**
      * Set APIServerCommand 'task_id' field value
     */
@@ -300,9 +317,15 @@ class APIServerDaemonCommand {
     /**
      * Update the command values on the given DB
      */
-    public void Update(String asdConnectionURL) {
+    public void Update() {
         APIServerDaemonDB asdDB = null;
-        
+        if(asdConnectionURL == null || asdConnectionURL.length() == 0) {
+            _log.error(
+                "Command with no connection URL defined" + LS
+               +toString()
+            );
+            return;
+        }
         if(isModified())
             try {
                     _log.debug("Opening connection for update command");
@@ -322,9 +345,15 @@ class APIServerDaemonCommand {
      * Update the command check timestamp, this call is independent 
      * from the validation flag
      */
-    public void checkUpdate(String asdConnectionURL) {
+    public void checkUpdate() {
         APIServerDaemonDB asdDB = null;
-                
+        if(asdConnectionURL == null || asdConnectionURL.length() == 0) {
+            _log.error(
+                "Command with no connection URL defined" + LS
+               +toString()
+            );
+            return;
+        }        
         try {
                 _log.debug("Opening connection for checkupdate command");
                 asdDB= new APIServerDaemonDB(asdConnectionURL);
@@ -361,8 +390,15 @@ class APIServerDaemonCommand {
      * last_change = now()
      * increase current retry
      */
-    void retry(String asdConnectionURL) {
+    void retry() {
         APIServerDaemonDB asdDB = null;
+        if(asdConnectionURL == null || asdConnectionURL.length() == 0) {
+            _log.error(
+                "Command with no connection URL defined" + LS
+               +toString()
+            );
+            return;
+        }
         try {
                 _log.debug("Opening connection for retry command");
                 asdDB= new APIServerDaemonDB(asdConnectionURL);
@@ -380,8 +416,15 @@ class APIServerDaemonCommand {
      * status = FAILED - polling loops will never take it     
      * last_change = now()     
      */
-    void trash(String asdConnectionURL) {
+    void trash() {
         APIServerDaemonDB asdDB = null;
+        if(asdConnectionURL == null || asdConnectionURL.length() == 0) {
+            _log.error(
+                "Command with no connection URL defined" + LS
+               +toString()
+            );
+            return;
+        }
         try {
                 _log.debug("Opening connection for trash command");
                 asdDB= new APIServerDaemonDB(asdConnectionURL);

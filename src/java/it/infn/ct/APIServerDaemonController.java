@@ -157,9 +157,7 @@ public class APIServerDaemonController extends Observable
                 while (iterCmds.hasNext()) {
                     APIServerDaemonCommand asdCommand = iterCmds.next();
                     APIServerDaemonCheckCommand asdCheckCmd =
-                        new APIServerDaemonCheckCommand(
-                            asdCommand
-                           ,asdDB.getConnectionURL());
+                        new APIServerDaemonCheckCommand(asdCommand);
                     if (asdCheckCmd != null) {
                         asdCheckCmd.setConfig(asdConfig);
                         asdExecutor.execute(asdCheckCmd);

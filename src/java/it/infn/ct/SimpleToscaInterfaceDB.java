@@ -200,8 +200,9 @@ public class SimpleToscaInterfaceDB {
 
     
     //
-    // Remove the given record form ActiveGridInteraction table
-    // @param ActiveGridInteraction id     
+    // Register the tosca_id of the given toscaCommand
+    // @param toscaCommand
+    // @oaram toscaId
     // 
     public int registerToscaId(APIServerDaemonCommand toscaCommand, String toscaId) {
         int tosca_id = 0;
@@ -223,7 +224,7 @@ public class SimpleToscaInterfaceDB {
             preparedStatement.setString(2, toscaId); 
             preparedStatement.execute();       
             // Get the new Id
-            sql="select id from simple_tosca st where tosca_id = ?;";
+            sql="select id from simple_tosca where tosca_id = ?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setString(1, toscaId);
             resultSet=preparedStatement.executeQuery();
@@ -241,7 +242,9 @@ public class SimpleToscaInterfaceDB {
     }
 
     /**
-     * Update the toscaId value into an existing simple_tosca record 
+     * Update the toscaId value into an existing simple_tosca record
+     * @param simpleToscaId record index in simple_tosca table
+     * @oaram toscaId tosca submission UUID field
      */
     public void updateToscaId(int simpleToscaId, String toscaId) {
         if (!connect()) {
@@ -255,7 +258,7 @@ public class SimpleToscaInterfaceDB {
             statement=connect.createStatement();
             statement.execute(sql);
             // Insert new entry for simple tosca
-            sql="update simple_tosca set tosca_id=?, tosca_status='SUBMITTED', creation=now(), last_change=now() where toscaId=?;";
+            sql="update simple_tosca set tosca_id=?, tosca_status='SUBMITTED', creation=now(), last_change=now() where id=?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setString(1, toscaId);
             preparedStatement.setInt   (2, simpleToscaId);

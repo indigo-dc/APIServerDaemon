@@ -40,8 +40,7 @@ import org.apache.log4j.Logger;
  */
 public class APIServerDaemonCheckCommand implements Runnable {
 
-    private APIServerDaemonCommand asdCommand;
-    private String asdConnectionURL;
+    private APIServerDaemonCommand asdCommand;  
 
     /*
      APIServerDaemon config
@@ -76,9 +75,8 @@ public class APIServerDaemonCheckCommand implements Runnable {
      * @param asdCommand
      * @param asdConnectionURL
      */
-    public APIServerDaemonCheckCommand(APIServerDaemonCommand asdCommand, String asdConnectionURL) {
-        this.asdCommand = asdCommand;
-        this.asdConnectionURL = asdConnectionURL;
+    public APIServerDaemonCheckCommand(APIServerDaemonCommand asdCommand) {
+        this.asdCommand = asdCommand;      
         this.threadName = Thread.currentThread().getName();
     }
 
@@ -180,13 +178,14 @@ public class APIServerDaemonCheckCommand implements Runnable {
                 // Verify how long the task remains in PROCESSING state
                 // if longer than MaxWait, retry the command if the number
                 // of retries did not reached yet the MaxRetries value
-                // otherwise trash it
+                // otherwise trash the task request (marked as FAILED)
                 
                 // Provide a different behavior depending on the Target
                 if(asdCommand.getTarget().equals("GridEngine")) {  
                     taskConsistencyCheck();
                 } else if(asdCommand.getTarget().equals("SimpleTosca")) {
-                    taskConsistencyCheck();
+                    // Disable at the moment consistency check
+                    //taskConsistencyCheck();
                 } /* else if(asdCommand.getTarget().equals(<other targets>)) {
                 // Get/Use targetId to check task submission
                 // If targetId does not appear after a long while check consistency
@@ -216,7 +215,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                     int AGIId = geInterface.getAGIId();
                     _log.debug("AGIId for command having id:"+asdCommand.getTaskId()+" is: "+AGIId);
                     asdCommand.setTargetId(AGIId);
-                    asdCommand.Update(asdConnectionURL);
+                    asdCommand.Update();
                     
                     // Update target_status taking its value from the GridEngine'
                     // ActiveGridInteraction table, then if target_status is DONE
@@ -235,7 +234,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                             String outputDir = geInterface.prepareJobOutput();
                             updateOutputPaths(outputDir);
                         }
-                        asdCommand.Update(asdConnectionURL);
+                        asdCommand.Update();
                     } else {
                         // TargetId is 0 - check consistency ...
                         taskConsistencyCheck();
@@ -244,12 +243,21 @@ public class APIServerDaemonCheckCommand implements Runnable {
                     // Determine the status and take care of the output files
                     SimpleToscaInterface stInterface
                             = new SimpleToscaInterface(asdConfig,asdCommand);
+                    asdCommand.setStatus("HOLD"); // Avoid during check that futher checks occur
+                    asdCommand.Update();
                     String status = stInterface.getStatus();
-                    if(status != null && status.length() > 0)
+                    if(status != null && status.length() > 0) {
                         asdCommand.setTargetStatus(status);
-                    else {
+                        if(status=="DONE") {
+                            asdCommand.setStatus(status); // Ends the check loop for this command
+                        }                        
+                        asdCommand.Update();
+                    } else {
+                        _log.warn("No status available yet");
+                        asdCommand.setStatus("PROCESSED"); // Switch back to check loop
+                        asdCommand.Update();
                         // No status is available - check consistency ...
-                        taskConsistencyCheck();
+                        //!skip consistency at the moment taskConsistencyCheck();
                     }
                 } /* else if(asdCommand.getTarget().equals(<other targets>)) {
                 // Get/Use targetId to check task submission
@@ -265,7 +273,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
            
         // Updating check_ts field a round-robing strategy will be
         // applied while extracting command from the queue by controller
-        asdCommand.checkUpdate(asdConnectionURL);
+        asdCommand.checkUpdate();
     }
 
     /**
@@ -288,10 +296,10 @@ public class APIServerDaemonCheckCommand implements Runnable {
         if(   asdCommand.getRetry()    < asdConfig.getTaskMaxRetries()
            && asdCommand.getLifetime() > asdConfig.getTaskMaxWait()) {
             _log.debug("Retrying PROCESSED task having id: "+asdCommand.getTaskId());
-            asdCommand.retry(asdConnectionURL);
+            asdCommand.retry();
         } else if (asdCommand.getRetry() >= asdConfig.getTaskMaxRetries()) {
             _log.debug("Trashing PROCESSED task having id: "+asdCommand.getTaskId());
-            asdCommand.trash(asdConnectionURL);
+            asdCommand.trash();
         } else _log.debug("Ignoring at the moment PROCESSED task having id: "+asdCommand.getTaskId());
     }
 
@@ -325,7 +333,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
         APIServerDaemonDB asdDB = null;
 
         try {
-            asdDB = new APIServerDaemonDB(asdConnectionURL);
+            asdDB = new APIServerDaemonDB(asdCommand.getASDConnectionURL());
             asdDB.updateOutputPaths(asdCommand, outputDir);
         } catch (Exception e) {
             //_log.severe("Unable release command:"+LS+asdCommand
@@ -361,7 +369,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                     int AGIId = geInterface.getAGIId();
                     _log.debug("AGIId for command having id:"+asdCommand.getTaskId()+" is: "+AGIId);
                     asdCommand.setTargetId(AGIId);
-                    asdCommand.Update(asdConnectionURL);
+                    asdCommand.Update();
                     // Now verify if target exists
                     if(asdCommand.getTargetId() > 0) {
                         _log.debug("Removing record for GridEngine: '"+asdCommand.getTaskId()+"' -> AGI: '"+asdCommand.getTargetId()+"'");
@@ -381,7 +389,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
             }
             
             // Now remove APIServer DB task entries
-            asdDB = new APIServerDaemonDB(asdConnectionURL);
+            asdDB = new APIServerDaemonDB(asdCommand.getASDConnectionURL());
             asdDB.removeTaksEntries(asdCommand.getTaskId());                                
         } catch (Exception e) {            
             _log.fatal("Unable to remove task entries for command:" + LS + asdCommand

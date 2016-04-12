@@ -128,13 +128,13 @@ class APIServerDaemonProcessCommand implements Runnable {
             GridEngineInterface geInterface = new GridEngineInterface(asdConfig,asdCommand);
             int AGIId = geInterface.jobSubmit(); // Currently this returns 0            
             asdCommand.setStatus("PROCESSED");            
-            asdCommand.Update(asdConnectionURL);
+            asdCommand.Update();
         } else if(asdCommand.getTarget().equals("SimpleTosca")) {
             SimpleToscaInterface stInterface = new SimpleToscaInterface(asdConfig,asdCommand);
-            int toscaId = stInterface.submitTosca();
-            asdCommand.setTargetId(toscaId);
+            int simple_tosca_id = stInterface.submitTosca();
+            asdCommand.setTargetId(simple_tosca_id);
             asdCommand.setStatus("PROCESSED");
-            asdCommand.Update(asdConnectionURL);
+            asdCommand.Update();
         } /* else if(asdCommand.getTarget().equals(<other targets>)) {
         } */
         else {
@@ -152,7 +152,7 @@ class APIServerDaemonProcessCommand implements Runnable {
             GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
             asdCommand.setTargetStatus(geInterface.jobStatus());
             asdCommand.setStatus("PROCESSED");
-            asdCommand.Update(asdConnectionURL);
+            asdCommand.Update();
         }/* else if(asdCommand.getTarget().equals(<other targets>)) {
         } */
         else {
@@ -169,7 +169,7 @@ class APIServerDaemonProcessCommand implements Runnable {
         if(asdCommand.getTarget().equals("GridEngine")) {
             GridEngineInterface geInterface = new GridEngineInterface(asdCommand);        
             asdCommand.setStatus("PROCESSED");
-            asdCommand.Update(asdConnectionURL);
+            asdCommand.Update();
         }/* else if(asdCommand.getTarget().equals(<other targets>)) {
         } */
         else {
@@ -187,7 +187,7 @@ class APIServerDaemonProcessCommand implements Runnable {
             GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
             asdCommand.setTargetStatus(geInterface.jobOutput());
             asdCommand.setStatus("PROCESSED");
-            asdCommand.Update(asdConnectionURL);
+            asdCommand.Update();
         }/* else if(asdCommand.getTarget().equals(<other targets>)) {
         } */
         else {
@@ -204,7 +204,7 @@ class APIServerDaemonProcessCommand implements Runnable {
             GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
             geInterface.jobCancel();
             asdCommand.setStatus("PROCESSED");
-            asdCommand.Update(asdConnectionURL);
+            asdCommand.Update();
         }/* else if(asdCommand.getTarget().equals(<other targets>)) {
         } */
         else {
