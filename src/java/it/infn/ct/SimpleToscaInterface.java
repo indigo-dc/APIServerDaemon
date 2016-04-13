@@ -77,6 +77,9 @@ public class SimpleToscaInterface {
     public static final String LS = System.getProperty("line.separator");
     public static final String FS = System.getProperty("file.separator");
     public static final String JO = "jobOutput";
+    
+    // This method returns the job output dir used for this interface
+    public static String getOutputDir() { return JO; }
 
     APIServerDaemonCommand toscaCommand;
     APIServerDaemonConfig asdConfig;
@@ -117,7 +120,7 @@ public class SimpleToscaInterface {
         this.asdConfig=asdConfig;
         this.APIServerConnURL = asdConfig.getApisrv_URL();               
     }
-
+        
     /**
      * process JSON object containing information stored in file:
      * <action_info>/<task_id>.json and submit using tosca adaptor
@@ -153,30 +156,11 @@ public class SimpleToscaInterface {
             String jsonTxt = IOUtils.toString(is);            
             jsonJobDesc = (JSONObject) new JSONObject(jsonTxt);            
             _log.debug("Loaded APIServer JobDesc:\n"+LS+jsonJobDesc);            
+            
             // Username (unused yet but later used for accounting)
-            String user = String.format("%s", jsonJobDesc.getString("user"));  
-            // Prepare JSAGA IO file list
-            String IOFiles="";
-            JSONArray inputFiles=jsonJobDesc.getJSONArray("input_files");
-            for(int i=0; i<inputFiles.length(); i++) {
-                JSONObject fileEntry = inputFiles.getJSONObject(i);
-                String fileName = fileEntry.getString("name");
-                IOFiles += (IOFiles.length()>0?",":"")
-                          +toscaCommand.getActionInfo()+"/"
-                          +fileEntry.getString("name")+">"+fileEntry.getString("name");
-            } 
-            JSONArray outputFiles=jsonJobDesc.getJSONArray("output_files");
-            for(int j=0; j<inputFiles.length(); j++) {
-                JSONObject fileEntry = inputFiles.getJSONObject(j);
-                String fileName = fileEntry.getString("name");
-                IOFiles += (IOFiles.length()>0?",":"")
-                          +toscaCommand.getActionInfo()+FS+JO+FS
-                          +fileEntry.getString("name")+"<"+fileEntry.getString("name");
-            }
-            String files[] = IOFiles.split(",");
-            for(int i=0; i<files.length; i++)
-              _log.debug("IO Files["+i+"]: '"+files[i]+"'");
-
+            String user = String.format("%s", jsonJobDesc.getString("user"));             
+            _log.debug("User: '"+user+"'");
+            
             // Get app Info and Parameters
             JSONObject appInfo = new JSONObject();
             appInfo = jsonJobDesc.getJSONObject("application");
@@ -270,6 +254,31 @@ public class SimpleToscaInterface {
                         _log.warn("Unsupported infrastructure parameter name: '"+param_name+"' with value: '"+param_value+"'");
                 }    
             }
+            
+            // Prepare JSAGA IO file list
+            String IOFiles = "";
+                                                                            
+            JSONArray inputFiles=jsonJobDesc.getJSONArray("input_files");
+            for(int i=0; i<inputFiles.length(); i++) {
+                JSONObject fileEntry = inputFiles.getJSONObject(i);
+                String fileName = fileEntry.getString("name");
+                IOFiles += (IOFiles.length()>0?",":"")
+                        +toscaCommand.getActionInfo()+FS
+                        +fileEntry.getString("name")+">"+fileEntry.getString("name");
+            } 
+            JSONArray outputFiles=jsonJobDesc.getJSONArray("output_files");
+            for(int j=0; j<outputFiles.length(); j++) {
+                JSONObject fileEntry = outputFiles.getJSONObject(j);
+                String fileName = fileEntry.getString("name");
+                IOFiles += (IOFiles.length()>0?",":"")
+                          +toscaCommand.getActionInfo()+FS+JO+FS
+                          +fileEntry.getString("name")+"<"+fileEntry.getString("name");
+            }
+            _log.debug("IOFiles: '"+IOFiles+"'");
+            String files[] = IOFiles.split(",");
+            for(int i=0; i<files.length; i++)
+              _log.debug("IO Files["+i+"]: '"+files[i]+"'");
+
 
             // Finally submit the job
             String tosca_id = submitJob(token

@@ -64,6 +64,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
     private static final Logger _log = Logger.getLogger(APIServerDaemonCheckCommand.class.getName());
 
     public static final String LS = System.getProperty("line.separator");
+    public static final String FS = System.getProperty("file.separator");
 
     String threadName;
 
@@ -248,8 +249,9 @@ public class APIServerDaemonCheckCommand implements Runnable {
                     String status = stInterface.getStatus();
                     if(status != null && status.length() > 0) {
                         asdCommand.setTargetStatus(status);
-                        if(status=="DONE") {
-                            asdCommand.setStatus(status); // Ends the check loop for this command
+                        asdCommand.setStatus(status);
+                        if(status=="DONE") {                            
+                            updateOutputPaths(SimpleToscaInterface.getOutputDir());                            
                         }                        
                         asdCommand.Update();
                     } else {
