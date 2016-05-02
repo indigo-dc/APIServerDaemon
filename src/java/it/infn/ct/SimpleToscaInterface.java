@@ -472,7 +472,26 @@ public class SimpleToscaInterface {
                             _log.info("Exit Code (" + exitCode + ")");                            
                         } catch (SagaException ex) { 
                             _log.error("Unable to get exit code"); 
-                            _log.debug(ex.toString());
+                            _log.debug(ex.toString());                            
+                        } finally {
+                            // Release the resource
+                            try { 
+                                job.cancel();                                
+                                _log.debug("Job cancelled successfully");
+                            } catch (NoSuccessException ex) { 
+                                _log.debug("Service disconnected unsuccessfully");
+                                _log.error("See below the stack trace... ");
+                                _log.error(ex.toString());                                 
+                            } finally {
+                                try {
+                                    ((JobServiceImpl)service).disconnect();
+                                    _log.debug("Service disconnected successfully");
+                                } catch (NoSuccessException ex) { 
+                                _log.debug("Service disconnected unsuccessfully");
+                                _log.error("See below the stack trace... ");
+                                _log.error(ex.toString());                                 
+                                }
+                            }
                         }
                     } else if (State.DONE.compareTo(state) == 0) {                     
                         _log.debug("Job Status == DONE");
