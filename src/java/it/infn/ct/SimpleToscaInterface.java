@@ -171,6 +171,7 @@ public class SimpleToscaInterface {
             String executable = "";
             String output = "";
             String error = "";
+            String arguments = "";
             for(int i=0; i<appParams.length(); i++) {
                 JSONObject appParameter = appParams.getJSONObject(i);
                 // Get parameter name and value
@@ -192,12 +193,16 @@ public class SimpleToscaInterface {
                         error=param_value;
                         _log.debug("error: '"+error+"'");
                         break;
+                    case "jobdesc_arguments":
+                        arguments=param_value;
+                        _log.debug("arguments: '"+arguments+"'");
+                        break;
                     default:
                         _log.warn("Unsupported application parameter name: '"+param_name+"' with value: '"+param_value+"'");
                 }
             }
             // Arguments
-            String job_args="";
+            String job_args=arguments;
             JSONArray jobArguments = jsonJobDesc.getJSONArray("arguments");
             for(int j=0; j<jobArguments.length(); j++)
                 job_args += (job_args.length()>0?",":"") + jobArguments.getString(j);
