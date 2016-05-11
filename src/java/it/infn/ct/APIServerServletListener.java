@@ -66,7 +66,7 @@ public class APIServerServletListener implements ServletContextListener {
         context = sce.getServletContext();
         String APISrvDaemonPath = context.getRealPath(PS);   
         System.setProperty("APISrvDaemonPath", context.getRealPath("/"));        
-        System.setProperty("APISrvDaemonVersion", "v.0.0.2-8-gd75a0ef-d75a0ef-22");        
+        System.setProperty("APISrvDaemonVersion", "v.0.0.2-9-gbb10f46-bb10f46-24");        
         
         // Notify execution
         System.out.println("--- "

@@ -248,9 +248,9 @@ public class APIServerDaemonCheckCommand implements Runnable {
                     asdCommand.Update();
                     String status = stInterface.getStatus();
                     if(status != null && status.length() > 0) {
-                        asdCommand.setTargetStatus(status);
-                        asdCommand.setStatus(status);
-                        if(status=="DONE") {                            
+                        asdCommand.setTargetStatus(status);                      
+                        if(status=="DONE") {
+                            asdCommand.setStatus(status);
                             updateOutputPaths(SimpleToscaInterface.getOutputDir());                            
                         }                        
                         asdCommand.Update();
