@@ -298,28 +298,34 @@ public class SimpleToscaInterface {
 
             // Register JobId, if targetId exists it is a submission retry
             SimpleToscaInterfaceDB stiDB = null;
+            String submitStatus = "SUBMITTED";
             try {
                 stiDB = new SimpleToscaInterfaceDB(APIServerConnURL);
                 int toscaTargetId=toscaCommand.getTargetId();
-                if (toscaTargetId > 0) {
-                    _log.debug("Updating existing entry in simple_tosca table at id: '"+toscaTargetId+"'");
+                if (toscaTargetId > 0) {                    
                     // Update tosca_id if successful
                     if(tosca_id != null && tosca_id.length() > 0)
-                        stiDB.updateToscaId(toscaTargetId,tosca_id);
-                    else
-                        stiDB.updateToscaStatus(toscaTargetId,"ABORTED");
+                        stiDB.updateToscaId(toscaTargetId,tosca_id);                        
+                    else {   
+                        submitStatus = "ABORTED";
+                        stiDB.updateToscaStatus(toscaTargetId,submitStatus);                        
+                    }
+                    toscaCommand.setTargetStatus(submitStatus);                    
+                    _log.debug("Updated existing entry in simple_tosca table at id: '"+toscaTargetId+"'"+"' - status: '"+submitStatus+"'");
                 } else {
-                    _log.debug("Creating a new entry in simple_tosca table for submission: '"+tosca_id+"'");                    
-                    simple_tosca_id = stiDB.registerToscaId(toscaCommand,tosca_id);
+                    _log.debug("Creating a new entry in simple_tosca table for submission: '"+tosca_id+"'");                                        
                     if(tosca_id.length()==0)
-                        stiDB.updateToscaStatus(simple_tosca_id,"ABORTED");
-                    _log.debug("Registered in simple_tosca with id: '"+simple_tosca_id+"'");
-                }
+                        submitStatus = "ABORTED";                                        
+                    toscaCommand.setTargetStatus(submitStatus);                    
+                    simple_tosca_id = stiDB.registerToscaId(toscaCommand,tosca_id);                                        
+                    _log.debug("Registered in simple_tosca with id: '"+simple_tosca_id+"' - status: '"+submitStatus+"'");
+                }                
             } catch (Exception e) {          
                 _log.fatal("Unable to register tosca_id: '"+tosca_id+"'");
             }
             finally {
-                if(stiDB!=null) stiDB.close(); 
+                if(stiDB!=null) stiDB.close();
+                toscaCommand.Update();
             }
         } catch(SecurityException se){
           _log.error("Unable to create job output folder in: '"+toscaCommand.getActionInfo()+"' directory");
