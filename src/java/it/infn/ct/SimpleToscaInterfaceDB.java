@@ -244,9 +244,9 @@ public class SimpleToscaInterfaceDB {
     /**
      * Update the toscaId value into an existing simple_tosca record
      * @param simpleToscaId record index in simple_tosca table
-     * @oaram toscaId tosca submission UUID field
+     * @oaram toscaUUID tosca submission UUID field
      */
-    public void updateToscaId(int simpleToscaId, String toscaId) {
+    public void updateToscaId(int simpleToscaId, String toscaUUID) {
         if (!connect()) {
             _log.fatal("Not connected to database");
             return;
@@ -260,8 +260,40 @@ public class SimpleToscaInterfaceDB {
             // Insert new entry for simple tosca
             sql="update simple_tosca set tosca_id=?, tosca_status='SUBMITTED', creation=now(), last_change=now() where id=?;";
             preparedStatement = connect.prepareStatement(sql);
-            preparedStatement.setString(1, toscaId);
-            preparedStatement.setInt   (2, simpleToscaId);
+            preparedStatement.setString(1, toscaUUID);
+            preparedStatement.setInt   (2, simpleToscaId);                                                                                    
+            preparedStatement.execute();
+            sql="unlock tables;";
+            statement.execute(sql);
+        } catch (SQLException e) {
+            _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
+        }
+    }
+        
+    
+    /**
+     * Update the tosca status value into an existing simple_tosca record
+     * @param simpleToscaId record index in simple_tosca table
+     * @oaram toscaStatus tosca submission status
+     */
+    public void updateToscaStatus(int simpleToscaId, String toscaStatus) {
+        if (!connect()) {
+            _log.fatal("Not connected to database");
+            return;
+        }
+        try {
+            String sql;
+            // Lock ge_queue table first
+            sql="lock tables simple_tosca write;";
+            statement=connect.createStatement();
+            statement.execute(sql);
+            // Insert new entry for simple tosca
+            sql="update simple_tosca set tosca_status=?, last_change=now() where id=?;";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setString(1, toscaStatus);
+            preparedStatement.setInt   (2, simpleToscaId);            
             preparedStatement.execute();
             sql="unlock tables;";
             statement.execute(sql);

@@ -284,7 +284,6 @@ public class SimpleToscaInterface {
             for(int i=0; i<files.length; i++)
               _log.debug("IO Files["+i+"]: '"+files[i]+"'");
 
-
             // Finally submit the job
             String tosca_id = submitJob(token
                                        ,toscaEndPoint
@@ -301,13 +300,19 @@ public class SimpleToscaInterface {
             SimpleToscaInterfaceDB stiDB = null;
             try {
                 stiDB = new SimpleToscaInterfaceDB(APIServerConnURL);
-                if (toscaCommand.getTargetId() > 0) {
-                    _log.debug("Updating existing entry in simple_tosca table at id: '"+toscaCommand.getTargetId()+"'");
-                    int toscaTargetId=toscaCommand.getTargetId();
-                    stiDB.updateToscaId(toscaTargetId,tosca_id);
+                int toscaTargetId=toscaCommand.getTargetId();
+                if (toscaTargetId > 0) {
+                    _log.debug("Updating existing entry in simple_tosca table at id: '"+toscaTargetId+"'");
+                    // Update tosca_id if successful
+                    if(tosca_id != null && tosca_id.length() > 0)
+                        stiDB.updateToscaId(toscaTargetId,tosca_id);
+                    else
+                        stiDB.updateToscaStatus(toscaTargetId,"ABORTED");
                 } else {
-                    _log.debug("Creating a new entry in simple_tosca table for submission: '"+tosca_id+"'");
+                    _log.debug("Creating a new entry in simple_tosca table for submission: '"+tosca_id+"'");                    
                     simple_tosca_id = stiDB.registerToscaId(toscaCommand,tosca_id);
+                    if(tosca_id.length()==0)
+                        stiDB.updateToscaStatus(simple_tosca_id,"ABORTED");
                     _log.debug("Registered in simple_tosca with id: '"+simple_tosca_id+"'");
                 }
             } catch (Exception e) {          
