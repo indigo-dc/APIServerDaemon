@@ -246,21 +246,21 @@ public class APIServerDaemonCheckCommand implements Runnable {
                             = new SimpleToscaInterface(asdConfig,asdCommand);
                     asdCommand.setStatus("HOLD"); // Avoid during check that futher checks occur
                     asdCommand.Update();
+                    String currState="PROCESSED"; // Status after HOLD
                     String status = stInterface.getStatus();
                     if(status != null && status.length() > 0) {
                         asdCommand.setTargetStatus(status);                      
                         if(status=="DONE") {
-                            asdCommand.setStatus(status);
+                            currState = status;
                             updateOutputPaths(SimpleToscaInterface.getOutputDir());                            
-                        }                        
-                        asdCommand.Update();
+                        } 
                     } else {
-                        _log.warn("No status available yet");
-                        asdCommand.setStatus("PROCESSED"); // Switch back to check loop
-                        asdCommand.Update();
+                        _log.warn("No status available yet");                        
                         // No status is available - check consistency ...
                         //!skip consistency at the moment taskConsistencyCheck();
                     }
+                    asdCommand.setStatus(currState); // Setup the current state
+                    asdCommand.Update();
                 } /* else if(asdCommand.getTarget().equals(<other targets>)) {
                 // Get/Use targetId to check task submission
                 // If targetId does not appear after a long while check consistency

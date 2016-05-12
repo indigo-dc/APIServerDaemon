@@ -299,18 +299,17 @@ public class SimpleToscaInterface {
             // Register JobId, if targetId exists it is a submission retry
             SimpleToscaInterfaceDB stiDB = null;
             String submitStatus = "SUBMITTED";
-            try {
+            try {                                
                 stiDB = new SimpleToscaInterfaceDB(APIServerConnURL);
                 int toscaTargetId=toscaCommand.getTargetId();
-                if (toscaTargetId > 0) {                    
+                if(toscaTargetId > 0) {                    
                     // Update tosca_id if successful
                     if(tosca_id != null && tosca_id.length() > 0)
                         stiDB.updateToscaId(toscaTargetId,tosca_id);                        
-                    else {   
-                        submitStatus = "ABORTED";
-                        stiDB.updateToscaStatus(toscaTargetId,submitStatus);                        
-                    }
-                    toscaCommand.setTargetStatus(submitStatus);                    
+                    else
+                        submitStatus = "ABORTED";                                            
+                    toscaCommand.setTargetStatus(submitStatus);
+                    stiDB.updateToscaStatus(toscaTargetId,submitStatus);                    
                     _log.debug("Updated existing entry in simple_tosca table at id: '"+toscaTargetId+"'"+"' - status: '"+submitStatus+"'");
                 } else {
                     _log.debug("Creating a new entry in simple_tosca table for submission: '"+tosca_id+"'");                                        
@@ -555,6 +554,17 @@ public class SimpleToscaInterface {
             } finally {            
                 session.close();
                 _log.debug("Session closed");
+                
+                // Now update simple_tosca
+                SimpleToscaInterfaceDB stiDB = null;
+                try {
+                    stiDB = new SimpleToscaInterfaceDB(APIServerConnURL);
+                    stiDB.updateToscaStatus(toscaCommand.getTargetId(),status);                        
+                } catch (Exception ex) {
+                    
+                } finally {
+                    if(stiDB!=null) stiDB.close();
+                }
             }
         else _log.debug("Unable to get tosca_id");
         _log.info("getStatus (end)");
