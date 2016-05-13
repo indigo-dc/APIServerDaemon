@@ -186,7 +186,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                     taskConsistencyCheck();
                 } else if(asdCommand.getTarget().equals("SimpleTosca")) {
                     // Disable at the moment consistency check
-                    //taskConsistencyCheck();
+                    taskConsistencyCheck();
                 } /* else if(asdCommand.getTarget().equals(<other targets>)) {
                 // Get/Use targetId to check task submission
                 // If targetId does not appear after a long while check consistency
@@ -257,7 +257,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                     } else {
                         _log.warn("No status available yet");                        
                         // No status is available - check consistency ...
-                        //!skip consistency at the moment taskConsistencyCheck();
+                        taskConsistencyCheck();
                     }
                     asdCommand.setStatus(currState); // Setup the current state
                     asdCommand.Update();

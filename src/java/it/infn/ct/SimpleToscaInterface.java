@@ -309,14 +309,14 @@ public class SimpleToscaInterface {
                     else
                         submitStatus = "ABORTED";                                            
                     toscaCommand.setTargetStatus(submitStatus);
-                    stiDB.updateToscaStatus(toscaTargetId,submitStatus);                    
+                    stiDB.updateToscaStatus(toscaTargetId,submitStatus); 
                     _log.debug("Updated existing entry in simple_tosca table at id: '"+toscaTargetId+"'"+"' - status: '"+submitStatus+"'");
                 } else {
                     _log.debug("Creating a new entry in simple_tosca table for submission: '"+tosca_id+"'");                                        
                     if(tosca_id.length()==0)
                         submitStatus = "ABORTED";                                        
                     toscaCommand.setTargetStatus(submitStatus);                    
-                    simple_tosca_id = stiDB.registerToscaId(toscaCommand,tosca_id);                                        
+                    simple_tosca_id = stiDB.registerToscaId(toscaCommand,"",submitStatus);                                        
                     _log.debug("Registered in simple_tosca with id: '"+simple_tosca_id+"' - status: '"+submitStatus+"'");
                 }                
             } catch (Exception e) {          

@@ -204,7 +204,7 @@ public class SimpleToscaInterfaceDB {
     // @param toscaCommand
     // @oaram toscaId
     // 
-    public int registerToscaId(APIServerDaemonCommand toscaCommand, String toscaId) {
+    public int registerToscaId(APIServerDaemonCommand toscaCommand, String toscaId, String status) {
         int tosca_id = 0;
         if (!connect()) {          
             _log.fatal("Not connected to database"); 
@@ -218,10 +218,11 @@ public class SimpleToscaInterfaceDB {
             statement.execute(sql);
             // Insert new entry for simple tosca
             sql="insert into simple_tosca (id,task_id, tosca_id, tosca_status, creation, last_change)" + LS 
-               +"select (select if(max(id)>0,max(id)+1,1) from simple_tosca st),?,?,'SUBMITTED',now(),now();";
+               +"select (select if(max(id)>0,max(id)+1,1) from simple_tosca st),?,?,?,now(),now();";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt   (1, toscaCommand.getTaskId());
             preparedStatement.setString(2, toscaId); 
+            preparedStatement.setString(3, status); 
             preparedStatement.execute();       
             // Get the new Id
             sql="select id from simple_tosca where tosca_id = ?;";

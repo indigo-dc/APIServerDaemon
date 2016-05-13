@@ -503,6 +503,8 @@ public class APIServerDaemonDB {
     /**
      * Delete any task entry from the API Server DB including
      * the queue
+     * This method does not delete entries related to the
+     * target executor interface tables
      */
     void removeTaksEntries(int task_id) {
         if (!connect()) {          
