@@ -66,7 +66,7 @@ public class APIServerServletListener implements ServletContextListener {
         context = sce.getServletContext();
         String APISrvDaemonPath = context.getRealPath(PS);   
         System.setProperty("APISrvDaemonPath", context.getRealPath("/"));        
-        System.setProperty("APISrvDaemonVersion", "v.0.0.2-14-gef94ddb-ef94ddb-31");        
+        System.setProperty("APISrvDaemonVersion", "v.0.0.2-15-gadf6312-adf6312-32");        
         
         // Notify execution
         System.out.println("--- "
@@ -112,8 +112,7 @@ public class APIServerServletListener implements ServletContextListener {
             } finally {
                 try { connPools[i].close(); } catch(Exception e) 
                 { System.err.println("WARNING: "+currentPool+" failed to close"+LS+e.toString()); }
-            } 
-        //
+            }         
                 
         // Register MySQL driver
         APIServerDaemonDB.registerDriver();

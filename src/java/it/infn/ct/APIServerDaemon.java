@@ -119,6 +119,8 @@ public class APIServerDaemon {
         */
         // Verify DB version
         String dbVer=getDBVer();
+        System.out.println("CurrentDBVer: '" + dbVer        +"'");
+        System.out.println("RequestDBVer: '" + apisrv_dbver +"'");
         if(dbVer.equals(apisrv_dbver)) {            
             // SAGA stuff (how shoould I execute)
             /*
