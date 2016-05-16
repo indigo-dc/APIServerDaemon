@@ -246,6 +246,42 @@ public class APIServerDaemonDB {
     } 
     
     /**
+     * Get the current database version
+     */
+    public String getDBVer() {
+        if (!connect()) {          
+            _log.fatal("Not connected to database");
+            return null;
+        }
+        String dbVer="";
+        try {
+            String sql;
+            // Lock ge_queue table first
+            sql="lock tables as_queue read;";
+            statement=connect.createStatement();
+            statement.execute(sql);                                                        
+            sql="select max(version) as dbver from db_patches;";
+          //statement=connect.createStatement();            
+            resultSet=statement.executeQuery(sql);
+            while(resultSet.next()) {
+                dbVer = resultSet.getString("dbver");
+                _log.debug("DBVer: "+LS+dbVer);                
+            }
+            resultSet.close(); resultSet = null;
+            preparedStatement.close();            
+            // Unlock ge_queue table
+            sql="unlock tables;";
+          //statement=connect.createStatement();
+            statement.execute(sql);
+        } catch (SQLException e) {                      
+            _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
+        }        
+        return dbVer;
+    }
+    
+    /**
      * Retrieves available commands for the APIServer returning 
      * maxCommands records from the as_queue table
      * Commands must be in QUEUED status while taken records will be

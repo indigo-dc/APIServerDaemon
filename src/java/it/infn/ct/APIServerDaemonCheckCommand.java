@@ -224,36 +224,51 @@ public class APIServerDaemonCheckCommand implements Runnable {
                     // GetOutput call to work
                     if (asdCommand.getTargetId() != 0) {
                         String geJobStatus = geInterface.jobStatus();
-                        _log.debug("Status of job "
-                                + asdCommand.getTaskId() + " is '"
-                                + geJobStatus + "'");
+                        _log.debug("Status of job "+asdCommand.getTaskId()+" is '"+geJobStatus+"'");
                         asdCommand.setTargetStatus(geJobStatus);
                         if (   asdCommand.getTargetStatus() != null
-                                && asdCommand.getTargetStatus().equals("DONE")) {
-                            asdCommand.setStatus("DONE");
-                            // DONE command means that jobOutput is ready
-                            String outputDir = geInterface.prepareJobOutput();
-                            updateOutputPaths(outputDir);
-                        }
+                            && asdCommand.getTargetStatus().length() >0) 
+                            switch (asdCommand.getTargetStatus()) {
+                                case "DONE":
+                                    asdCommand.setStatus("DONE");
+                                    // DONE command means that jobOutput is ready
+                                    String outputDir = geInterface.prepareJobOutput();
+                                    updateOutputPaths(outputDir);
+                                    break;
+                                case "RUNNING":
+                                    asdCommand.setStatus("RUNNING");
+                                    break;
+                                default:
+                                    _log.warn("Unhandled status: '"+geJobStatus+"'");
+                                    break;
+                            }                        
                         asdCommand.Update();
                     } else {
                         // TargetId is 0 - check consistency ...
                         taskConsistencyCheck();
                     }
                 } else if(asdCommand.getTarget().equals("SimpleTosca")) {
-                    // Determine the status and take care of the output files
+                    // Determine the status and take care of the output files                    
                     SimpleToscaInterface stInterface
                             = new SimpleToscaInterface(asdConfig,asdCommand);
+                    String currState=asdCommand.getStatus(); // Register the current status (PROCESSED)
                     asdCommand.setStatus("HOLD"); // Avoid during check that futher checks occur
-                    asdCommand.Update();
-                    String currState="PROCESSED"; // Status after HOLD
+                    asdCommand.Update();                    
                     String status = stInterface.getStatus();
                     if(status != null && status.length() > 0) {
                         asdCommand.setTargetStatus(status);                      
-                        if(status=="DONE") {
-                            currState = status;
-                            updateOutputPaths(SimpleToscaInterface.getOutputDir());                            
-                        } 
+                        switch (status) {
+                            case "DONE":
+                                currState = status;
+                                updateOutputPaths(SimpleToscaInterface.getOutputDir());
+                                break;
+                            case "RUNNING":
+                                asdCommand.setStatus("RUNNING");
+                                break; 
+                            default:
+                                _log.warn("Unhandled status: '"+status+"'");
+                                break;
+                        }
                     } else {
                         _log.warn("No status available yet");                        
                         // No status is available - check consistency ...
@@ -269,6 +284,16 @@ public class APIServerDaemonCheckCommand implements Runnable {
                     _log.warn("Unsupported target: '"+asdCommand.getTarget()+"'");
                 }   
             break;
+                
+            // The task is currently running
+            case "RUNNING":
+                // Consistency checks on running status must have longer time checks
+                // and their elapse must depend from the Task (task/app parameters)
+                // A short running job has a different time elapse check than a 
+                // VM reservation
+                _log.error("Ignoring RUNNING status for task: "+asdCommand.getTaskId());
+            break;
+                
             default:
                 _log.error("Ignoring unsupported status: '"+asdCommand.getStatus()+"' for task: "+asdCommand.getTaskId());
         } // switch on STATUS

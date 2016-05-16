@@ -44,6 +44,7 @@ public class APIServerDaemon {
     private String apisrv_dbport;
     private String apisrv_dbuser;
     private String apisrv_dbpass;
+    private String apisrv_dbver;
     
     private int                       asdMaxThreads   =  100;
     private int                       asdCloseTimeout =   20;
@@ -77,6 +78,7 @@ public class APIServerDaemon {
         this.apisrv_dbuser = asdConfig.getApisrv_dbuser();
         this.apisrv_dbpass = asdConfig.getApisrv_dbpass();
         this.apisrv_dbname = asdConfig.getApisrv_dbname();
+        this.apisrv_dbver  = asdConfig.getApisrv_dbver();
         // Load APIServerDaemon settings
         this.asdMaxThreads   = asdConfig.getMaxThreads();
         this.asdCloseTimeout = asdConfig.getCloseTimeout();   
@@ -87,10 +89,24 @@ public class APIServerDaemon {
                  +"    db_user: '"+ this.apisrv_dbuser          +"'"+LS
                  +"    db_pass: '"+ this.apisrv_dbpass          +"'"+LS
                  +"    db_name: '"+ this.apisrv_dbname          +"'"+LS
+                 +"    db_ver : '"+ this.apisrv_dbver           +"'"+LS
                  +"  [ThreadPool config]"                           +LS
                  +"    gedMaxThreads  : '"+this.asdMaxThreads   +"'"+LS
                  +"    gedCloseTimeout: '" +this.asdCloseTimeout+"'"+LS
                  );
+    }
+    
+    /**
+     * Retrieve the database version
+     * @return 
+     */
+    private String getDBVer() {
+        APIServerDaemonDB asdDB = new APIServerDaemonDB( apisrv_dbhost
+                                                        ,apisrv_dbport
+                                                        ,apisrv_dbuser
+                                                        ,apisrv_dbpass
+                                                        ,apisrv_dbname);                                   
+        return asdDB.getDBVer();
     }
     
     /**
@@ -101,25 +117,30 @@ public class APIServerDaemon {
         /*
          Before to start the daemon, verify that all conditions are satisfied
         */
-        // APIServerDB (who polls otherwise)
-        // SAGA stuff (how shoould I execute)
-        /*
-         Initialize the thread pool
-        */
-        asdExecutor = Executors.newFixedThreadPool(asdMaxThreads);
-        /*
-         The first thread in the Pool is the polling thread
-        */
-        asdPolling = new APIServerDaemonPolling(asdExecutor);
-        asdPolling.setConfig(asdConfig);
-        asdExecutor.execute(asdPolling);
-        /*
-         The second thread in the Pool is the controller thread
-        */        
-        asdController = new APIServerDaemonController(asdExecutor);
-        asdController.setConfig(asdConfig);
-        asdExecutor.execute(asdController);
-        _log.info("Executed polling thread");
+        // Verify DB version
+        String dbVer=getDBVer();
+        if(dbVer.equals(apisrv_dbver)) {            
+            // SAGA stuff (how shoould I execute)
+            /*
+             Initialize the thread pool
+            */
+            asdExecutor = Executors.newFixedThreadPool(asdMaxThreads);
+            /*
+             The first thread in the Pool is the polling thread
+            */
+            asdPolling = new APIServerDaemonPolling(asdExecutor);
+            asdPolling.setConfig(asdConfig);
+            asdExecutor.execute(asdPolling);
+            /*
+             The second thread in the Pool is the controller thread
+            */        
+            asdController = new APIServerDaemonController(asdExecutor);
+            asdController.setConfig(asdConfig);
+            asdExecutor.execute(asdController);
+            _log.info("Executed polling thread");
+        } else {
+            _log.error("Current database version '"+dbVer+"' is not compatible with requested version '"+apisrv_dbver+"; the APIServerDaemon did not start!");
+        }
     }
 
     /**

@@ -57,6 +57,7 @@ public class APIServerDaemonConfig {
     private String apisrv_dbuser = "fgapiserver";
     private String apisrv_dbpass = "fgapiserver_password";
     private String apisrv_dbname = "fgapiserver";
+    private String apisrv_dbver  = "";
     
     /*
       GrigEngineDaemon settings
@@ -128,6 +129,7 @@ public class APIServerDaemonConfig {
             String prop_apisrv_dbuser = prop.getProperty("apisrv_dbuser");
             String prop_apisrv_dbpass = prop.getProperty("apisrv_dbpass");
             String prop_apisrv_dbname = prop.getProperty("apisrv_dbname");
+            String prop_apisrv_dbver  = prop.getProperty("apisrv_dbver");
                     
             // GridEngineDaemon thread settings
             String prop_asdMaxThreads = prop.getProperty("asdMaxThreads");
@@ -163,6 +165,7 @@ public class APIServerDaemonConfig {
             if(prop_apisrv_dbuser!=null) this.apisrv_dbuser=prop_apisrv_dbuser;
             if(prop_apisrv_dbpass!=null) this.apisrv_dbpass=prop_apisrv_dbpass;
             if(prop_apisrv_dbname!=null) this.apisrv_dbname=prop_apisrv_dbname;
+            if(prop_apisrv_dbver !=null) this.apisrv_dbname=prop_apisrv_dbver;
             
             // APIServerDaemon thread settings
             if(prop_asdMaxThreads!=null) 
@@ -326,6 +329,21 @@ public class APIServerDaemonConfig {
     public void setASDCloseTimeout(int asdCloseTimeout) {
         this.asdCloseTimeout = asdCloseTimeout;
     }
+    /**
+     * Get APIServerDaemon database version
+     * @return apisrv_dbname
+     */
+    public String getApisrv_dbver() {
+        return apisrv_dbver;
+    }
+    /**
+     * Set APIServer database version
+     * @param apisrv_dbver
+     */
+    public void setApisrv_dbver(String apisrv_dbver) {
+        this.apisrv_dbver = apisrv_dbver;
+    }
+    
         
     /*
       APIServerDaemon
