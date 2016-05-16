@@ -121,8 +121,15 @@ public class APIServerDaemon {
         String dbVer=getDBVer();
         System.out.println("CurrentDBVer: '" + dbVer        +"'");
         System.out.println("RequestDBVer: '" + apisrv_dbver +"'");
-        if(dbVer.equals(apisrv_dbver)) {            
-            // SAGA stuff (how shoould I execute)
+        
+        // Check SAGA stuff? (how shoould I execute)
+        
+        // Do checks: (DB Ver, SAGA stuff, ...)
+        if( // other conditions &&
+            dbVer.equals(apisrv_dbver)) {   
+            _log.info("Current database version '"+dbVer+"' is compatible with this code");
+            _log.info("Executing polling and controller threads ...");                        
+            
             /*
              Initialize the thread pool
             */
@@ -133,15 +140,19 @@ public class APIServerDaemon {
             asdPolling = new APIServerDaemonPolling(asdExecutor);
             asdPolling.setConfig(asdConfig);
             asdExecutor.execute(asdPolling);
+            
             /*
              The second thread in the Pool is the controller thread
             */        
             asdController = new APIServerDaemonController(asdExecutor);
             asdController.setConfig(asdConfig);
             asdExecutor.execute(asdController);
+            
             _log.info("Executed polling thread");
         } else {
-            _log.error("Current database version '"+dbVer+"' is not compatible with requested version '"+apisrv_dbver+"; the APIServerDaemon did not start!");
+            if(!dbVer.equals(apisrv_dbver))
+                _log.error("Current database version '"+dbVer+"' is not compatible with requested version '"+apisrv_dbver+"'");
+            _log.error("The APIServerDaemon did not start!");
         }
     }
 
