@@ -256,23 +256,15 @@ public class APIServerDaemonDB {
         String dbVer="";
         try {
             String sql;
-            // Lock ge_queue table first
-            sql="lock tables as_queue read;";
-            statement=connect.createStatement();
-            statement.execute(sql);                                                        
             sql="select max(version) as dbver from db_patches;";
-          //statement=connect.createStatement();            
+            statement=connect.createStatement();            
             resultSet=statement.executeQuery(sql);
             while(resultSet.next()) {
                 dbVer = resultSet.getString("dbver");
-                _log.debug("DBVer: "+LS+dbVer);                
+                _log.debug("DBVer: '"+dbVer+"'");                
             }
             resultSet.close(); resultSet = null;
-            preparedStatement.close();            
-            // Unlock ge_queue table
-            sql="unlock tables;";
-          //statement=connect.createStatement();
-            statement.execute(sql);
+            statement.close();          
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
         } finally {

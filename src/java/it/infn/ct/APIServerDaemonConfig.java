@@ -165,7 +165,7 @@ public class APIServerDaemonConfig {
             if(prop_apisrv_dbuser!=null) this.apisrv_dbuser=prop_apisrv_dbuser;
             if(prop_apisrv_dbpass!=null) this.apisrv_dbpass=prop_apisrv_dbpass;
             if(prop_apisrv_dbname!=null) this.apisrv_dbname=prop_apisrv_dbname;
-            if(prop_apisrv_dbver !=null) this.apisrv_dbname=prop_apisrv_dbver;
+            if(prop_apisrv_dbver !=null) this.apisrv_dbver =prop_apisrv_dbver;
             
             // APIServerDaemon thread settings
             if(prop_asdMaxThreads!=null) 
@@ -331,7 +331,7 @@ public class APIServerDaemonConfig {
     }
     /**
      * Get APIServerDaemon database version
-     * @return apisrv_dbname
+     * @return apisrv_dbver
      */
     public String getApisrv_dbver() {
         return apisrv_dbver;
