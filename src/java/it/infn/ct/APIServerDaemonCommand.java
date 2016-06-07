@@ -435,7 +435,7 @@ public class APIServerDaemonCommand {
            _log.fatal("Unable trash task related to given command:"+LS+this.toString());
         } finally {
            if(asdDB!=null) asdDB.close(); 
-           _log.debug("Closing connection for update command");
+           _log.debug("Closing connection for trash command");
         }                   
     }
     
@@ -457,7 +457,7 @@ public class APIServerDaemonCommand {
             return;
         }
         try {
-                _log.debug("Opening connection for trash command");
+                _log.debug("Opening connection for set command' runtime data");
                 asdDB= new APIServerDaemonDB(asdConnectionURL);
                 asdDB.setRunTimeData(rtdKey, rtdValue, rtdDesc, this);
                 _log.debug("Set run time data (key="+rtdKey+", value="+rtdValue+") to the given command:"+LS+toString());
@@ -465,7 +465,7 @@ public class APIServerDaemonCommand {
            _log.fatal("Unable set run time data (key="+rtdKey+", value="+rtdValue+") to the given command:"+LS+toString());
         } finally {
            if(asdDB!=null) asdDB.close(); 
-           _log.debug("Closing connection for update command");
+           _log.debug("Closing connection for set command' runtime data");
         }       
     }
      
