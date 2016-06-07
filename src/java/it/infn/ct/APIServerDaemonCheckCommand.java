@@ -183,10 +183,10 @@ public class APIServerDaemonCheckCommand implements Runnable {
                 
                 // Provide a different behavior depending on the Target
                 if(asdCommand.getTarget().equals("GridEngine")) {  
-                    taskConsistencyCheck();
+                    taskConsistencyCheck("PROCESSING");
                 } else if(asdCommand.getTarget().equals("SimpleTosca")) {
                     // Disable at the moment consistency check
-                    taskConsistencyCheck();
+                    taskConsistencyCheck("PROCESSING");
                 } /* else if(asdCommand.getTarget().equals(<other targets>)) {
                 // Get/Use targetId to check task submission
                 // If targetId does not appear after a long while check consistency
@@ -245,7 +245,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                         asdCommand.Update();
                     } else {
                         // TargetId is 0 - check consistency ...
-                        taskConsistencyCheck();
+                        taskConsistencyCheck("PROCESSED");
                     }
                 } else if(asdCommand.getTarget().equals("SimpleTosca")) {
                     // Determine the status and take care of the output files                    
@@ -259,20 +259,24 @@ public class APIServerDaemonCheckCommand implements Runnable {
                         asdCommand.setTargetStatus(status);                      
                         switch (status) {
                             case "DONE":
-                                currState = status;
+                                currState = status;                                
                                 updateOutputPaths(SimpleToscaInterface.getOutputDir());
                                 break;
                             case "RUNNING":
-                                asdCommand.setStatus("RUNNING");
+                                //as_queue status field must remain 'PROCESSED'
+                                //currState = status;                                
                                 break; 
                             default:
+                                asdCommand.setTargetStatus(status);
                                 _log.warn("Unhandled status: '"+status+"'");
                                 break;
                         }
                     } else {
                         _log.warn("No status available yet");                        
                         // No status is available - check consistency ...
-                        taskConsistencyCheck();
+                        taskConsistencyCheck("PROCESSED");  
+                        if(!asdCommand.getStatus().equals("HOLD"))
+                            currState = asdCommand.getStatus();
                     }
                     asdCommand.setStatus(currState); // Setup the current state
                     asdCommand.Update();
@@ -306,7 +310,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
     /**
      * Check the consistency of the given command
      */
-    private void taskConsistencyCheck() {
+    private void taskConsistencyCheck(String mode) {
         // This check consistency of the command execution
         // if it takes too long the command should be
         // resubmitted or flagged as FAILED reaching a given
@@ -327,7 +331,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
         } else if (asdCommand.getRetry() >= asdConfig.getTaskMaxRetries()) {
             _log.debug("Trashing PROCESSED task having id: "+asdCommand.getTaskId());
             asdCommand.trash();
-        } else _log.debug("Ignoring at the moment PROCESSED task having id: "+asdCommand.getTaskId());
+        } else _log.debug("Ignoring at the moment '"+mode+"' task having id: "+asdCommand.getTaskId());
     }
 
     /**

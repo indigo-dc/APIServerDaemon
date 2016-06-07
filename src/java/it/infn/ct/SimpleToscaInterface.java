@@ -107,7 +107,7 @@ public class SimpleToscaInterface {
      * APIServerDaemonConfig and a given command
      */
     public SimpleToscaInterface(APIServerDaemonConfig asdConfig
-                              ,APIServerDaemonCommand toscaCommand) {
+                               ,APIServerDaemonCommand toscaCommand) {
         this(toscaCommand);
         setConfig(asdConfig);
     }
@@ -283,6 +283,12 @@ public class SimpleToscaInterface {
             String files[] = IOFiles.split(",");
             for(int i=0; i<files.length; i++)
               _log.debug("IO Files["+i+"]: '"+files[i]+"'");
+            
+            // Add info file name to toscaParameters
+            String infoFile =(toscaParameters.length()>0?"&":"?")+"info="
+                             +toscaCommand.getActionInfo()+FS
+                             +toscaCommand.getTaskId()
+                             +"_simpleTosca.json";
 
             // Finally submit the job
             String tosca_id = submitJob(token
@@ -304,10 +310,13 @@ public class SimpleToscaInterface {
                 int toscaTargetId=toscaCommand.getTargetId();
                 if(toscaTargetId > 0) {                    
                     // Update tosca_id if successful
-                    if(tosca_id != null && tosca_id.length() > 0)
-                        stiDB.updateToscaId(toscaTargetId,tosca_id);                        
-                    else
-                        submitStatus = "ABORTED";                                            
+                    if(tosca_id != null && tosca_id.length() > 0) {
+                        stiDB.updateToscaId(toscaTargetId,tosca_id);
+                        // Save job related info in runtime_data
+                        //setRunTimeData(...)
+                    } else {
+                        submitStatus = "ABORTED";
+                    }
                     toscaCommand.setTargetStatus(submitStatus);
                     stiDB.updateToscaStatus(toscaTargetId,submitStatus); 
                     _log.debug("Updated existing entry in simple_tosca table at id: '"+toscaTargetId+"'"+"' - status: '"+submitStatus+"'");
@@ -316,7 +325,9 @@ public class SimpleToscaInterface {
                     if(tosca_id.length()==0)
                         submitStatus = "ABORTED";                                        
                     toscaCommand.setTargetStatus(submitStatus);                    
-                    simple_tosca_id = stiDB.registerToscaId(toscaCommand,"",submitStatus);                                        
+                    simple_tosca_id = stiDB.registerToscaId(toscaCommand,tosca_id,submitStatus);
+                    // Save job related info in runtime_data
+                    //setRunTimeData(...)
                     _log.debug("Registered in simple_tosca with id: '"+simple_tosca_id+"' - status: '"+submitStatus+"'");
                 }                
             } catch (Exception e) {          
@@ -387,8 +398,8 @@ public class SimpleToscaInterface {
 
                 // Getting the jobId
                 jobId = job.getAttribute(Job.JOBID);
-                _log.info("Job instance created with jobId: '"+jobId+"'");                
-
+                _log.info("Job instance created with jobId: '"+jobId+"'");  
+                
                 try {
                         ((JobServiceImpl)service).disconnect();                        
                 } catch (NoSuccessException ex) {

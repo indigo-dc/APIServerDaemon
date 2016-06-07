@@ -124,21 +124,32 @@ class APIServerDaemonProcessCommand implements Runnable {
      */
     private void submit() {
         _log.debug("Submitting command: "+asdCommand);
-        if(asdCommand.getTarget().equals("GridEngine")) {                    
-            GridEngineInterface geInterface = new GridEngineInterface(asdConfig,asdCommand);
-            int AGIId = geInterface.jobSubmit(); // Currently this returns 0            
-            asdCommand.setStatus("PROCESSED");            
-            asdCommand.Update();
-        } else if(asdCommand.getTarget().equals("SimpleTosca")) {
-            SimpleToscaInterface stInterface = new SimpleToscaInterface(asdConfig,asdCommand);
-            int simple_tosca_id = stInterface.submitTosca();
-            asdCommand.setTargetId(simple_tosca_id);
-            asdCommand.setStatus("PROCESSED");
-            asdCommand.Update();
-        } /* else if(asdCommand.getTarget().equals(<other targets>)) {
-        } */
-        else {
-            _log.error("Unsupported target: '"+asdCommand.getTarget()+"'");
+        
+        switch (asdCommand.getTarget()) {
+            case "GridEngine":
+                GridEngineInterface geInterface = new GridEngineInterface(asdConfig,asdCommand);
+                int AGIId = geInterface.jobSubmit(); // Currently this returns 0 
+                                                     // AGIId is taken from checkCommand loop
+                asdCommand.setStatus("PROCESSED");
+                asdCommand.Update();
+                _log.debug("Submitted command (GridEngine): "+asdCommand.toString());
+                break;
+            
+            case "SimpleTosca":
+                SimpleToscaInterface stInterface = new SimpleToscaInterface(asdConfig,asdCommand);
+                int simple_tosca_id = stInterface.submitTosca();
+                asdCommand.setTargetId(simple_tosca_id);
+                asdCommand.setStatus("PROCESSED");
+                asdCommand.Update();
+                _log.debug("Submitted command (SimpleTosca): "+asdCommand.toString());
+                break;
+            
+            //case "<other_target>"
+            //    break;
+                
+            default:
+                _log.error("Unsupported target: '"+asdCommand.getTarget()+"'");
+                break;
         }
     }
     

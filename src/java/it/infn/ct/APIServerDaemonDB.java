@@ -473,7 +473,7 @@ public class APIServerDaemonDB {
                +"where id=?";
             String newStatus=(command.getTargetStatus()==null?
                               "WAITING":command.getTargetStatus());
-            _log.debug("New status for task "+command.getTaskId()+" is: '"+newStatus+"'");
+            _log.debug("New task table status for task_id: '"+command.getTaskId()+"' is: '"+newStatus+"'");
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setString(1, newStatus);
             preparedStatement.setInt   (2, command.getTaskId());
@@ -697,11 +697,12 @@ public class APIServerDaemonDB {
                +"where task_id = ?;";
             preparedStatement = connect.prepareStatement(sql);            
             preparedStatement.setInt(1, asCommand.getTaskId());
-            preparedStatement.execute();            
+            preparedStatement.execute();
+            preparedStatement.close(); preparedStatement = null;
             // Unlock task_output_file table
             sql="unlock tables;";
             statement.execute(sql);            
-            _log.debug("Task '"+asCommand.getTaskId()+"' have been trashed");
+            _log.debug("Task '"+asCommand.getTaskId()+"' has been trashed");
         } catch (SQLException e) {                      
             _log.fatal("Unable to trash command with task_id"+asCommand.getTaskId()+LS+e.toString());
         } finally {
@@ -745,7 +746,39 @@ public class APIServerDaemonDB {
             _log.fatal(e.toString());
         } finally {
             closeSQLActivity();
-        }
+        }        
     }   
     
+    /**
+     * Set a keyName, keyValue, keyDesc record in runtime_data table
+     * @param rtdKey key name
+     * @param rtdValue key value
+     * @param rtdDesc key value
+     * @param command the associated APIServerDaemonCommand 
+     * @see APIServerDaemonCommand
+     */
+    public void setRunTimeData(String rtdKey, String rtdValue, String rtdDesc, APIServerDaemonCommand command) {
+        if (!connect()) {          
+            _log.fatal("Not connected to database"); 
+            return;
+        }
+        try {
+            String sql;            
+            sql="insert into runtime_data (task_id,   "+LS
+               +"                          data_name, "+LS
+               +"                          data_value,"+LS
+               +"                          data_desc) "+LS
+               +"select ?,?,?,?,now(),now();";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt   (1, command.getTaskId());
+            preparedStatement.setString(2, rtdKey);
+            preparedStatement.setString(3, rtdValue);
+            preparedStatement.setString(4, rtdDesc);
+            resultSet=preparedStatement.executeQuery();             
+        } catch (SQLException e) {                      
+            _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
+        }                  
+    }    
 }

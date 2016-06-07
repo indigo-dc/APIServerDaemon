@@ -32,7 +32,7 @@ import org.apache.log4j.Logger;
  * APIServer table asd_queue 
  * @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
  */
-class APIServerDaemonCommand {
+public class APIServerDaemonCommand {
     /*
      APIServer command fields
     */
@@ -360,7 +360,7 @@ class APIServerDaemonCommand {
                 asdDB.checkUpdateCommand(this);                 
         } catch (Exception e) {                  
             _log.fatal("Unable to update check timestamp for command:"+LS+this.toString()
-                                                  +LS+e.toString());
+                                                                      +LS+e.toString());
         } finally {
            if(asdDB!=null) asdDB.close(); 
            _log.debug("Closing connection for chekupdate command");
@@ -390,7 +390,8 @@ class APIServerDaemonCommand {
      * last_change = now()
      * increase current retry
      */
-    void retry() {
+    void retry() { 
+        setStatus("QUEUED");
         APIServerDaemonDB asdDB = null;
         if(asdConnectionURL == null || asdConnectionURL.length() == 0) {
             _log.error(
@@ -408,7 +409,7 @@ class APIServerDaemonCommand {
         } finally {
            if(asdDB!=null) asdDB.close(); 
            _log.debug("Closing connection for update command");
-        }       
+        }
     }
     
     /**
@@ -417,6 +418,36 @@ class APIServerDaemonCommand {
      * last_change = now()     
      */
     void trash() {
+        setStatus("FAILED");
+        APIServerDaemonDB asdDB = null;
+        if(asdConnectionURL == null || asdConnectionURL.length() == 0) {
+            _log.error(
+                "Command with no connection URL defined" + LS
+               +toString()
+            );
+            return;
+        }
+        try {                
+                _log.debug("Opening connection for trash command");
+                asdDB= new APIServerDaemonDB(asdConnectionURL);
+                asdDB.trashTask(this);                
+        } catch (Exception e) {                  
+           _log.fatal("Unable trash task related to given command:"+LS+this.toString());
+        } finally {
+           if(asdDB!=null) asdDB.close(); 
+           _log.debug("Closing connection for update command");
+        }                   
+    }
+    
+    /**
+     * Save a keyName,keyValue,keyDesc triple in runtime_data table
+     * This function is used by adaptors to store resource related 
+     * information relative to the current task
+     * @param rtdKey Key name
+     * @param rtdValue Key value
+     * @param rtdDesc Key description
+     */ 
+     void setRunTimeData(String rtdKey, String rtdValue, String rtdDesc) {
         APIServerDaemonDB asdDB = null;
         if(asdConnectionURL == null || asdConnectionURL.length() == 0) {
             _log.error(
@@ -428,13 +459,14 @@ class APIServerDaemonCommand {
         try {
                 _log.debug("Opening connection for trash command");
                 asdDB= new APIServerDaemonDB(asdConnectionURL);
-                asdDB.trashTask(this);                
+                asdDB.setRunTimeData(rtdKey, rtdValue, rtdDesc, this);
+                _log.debug("Set run time data (key="+rtdKey+", value="+rtdValue+") to the given command:"+LS+toString());
         } catch (Exception e) {                  
-           _log.fatal("Unable trash task related to given command:"+LS+this.toString());
+           _log.fatal("Unable set run time data (key="+rtdKey+", value="+rtdValue+") to the given command:"+LS+toString());
         } finally {
            if(asdDB!=null) asdDB.close(); 
            _log.debug("Closing connection for update command");
         }       
     }
-        
+     
 }
