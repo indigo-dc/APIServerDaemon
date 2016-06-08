@@ -51,6 +51,7 @@ import org.apache.log4j.Logger;
 
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -113,14 +114,65 @@ public class SimpleToscaInterface {
     }
 
     /**
-     * Load GridEngineDaemon configuration settings
-     * @param Config GridEngineDaemon configuration object
+     * Load APIServerDaemon  configuration settings
+     * @param Config APIServerDaemon configuration object
      */
     public void setConfig(APIServerDaemonConfig asdConfig) {
         this.asdConfig=asdConfig;
         this.APIServerConnURL = asdConfig.getApisrv_URL();               
     }
-        
+    
+    /**
+     * Return the SimpleTosca resource information file path
+     */
+    public String getInfoFilePath() {
+        return toscaCommand.getActionInfo()+FS+toscaCommand.getTaskId()+"_SimpleTosca.json";
+    }
+    
+    /**
+     *  Read TOSCA resource information json file and stores data in RuntimeData
+     */
+    public void saveResourceData() {
+        String infoFilePath = getInfoFilePath();        
+        try {                                                                               
+            InputStream isInfo = new FileInputStream(infoFilePath);
+            String jsonTxtInfo = IOUtils.toString(isInfo);            
+            JSONObject jsonResDesc = (JSONObject) new JSONObject(jsonTxtInfo);            
+            _log.debug("Loaded resource information json:"+LS+jsonResDesc);            
+            //"ip":"158.42.105.6"
+            String info_ip = String.format("%s", jsonResDesc.getString("ip"));
+            _log.debug("info_ip: '"+info_ip+"'");
+            toscaCommand.setRunTimeData("simple_tosca_ip",info_ip,"Resource IP address");            
+            //"port":22
+            String info_sshport = String.format("%s", ""+jsonResDesc.getInt("port"));
+            _log.debug("info_sshport: '"+info_sshport+"'");
+            toscaCommand.setRunTimeData("simple_tosca_sshport",info_sshport,"Resource ssh port address");            
+            //"username":"root"
+            String info_sshusername = String.format("%s", jsonResDesc.getString("username"));
+            _log.debug("info_sshusername: '"+info_sshusername+"'");            
+            toscaCommand.setRunTimeData("simple_tosca_sshusername",info_sshusername,"Resource ssh username");            
+            //"password":"Vqpx3Hm4"
+            String info_sshpassword = String.format("%s", jsonResDesc.getString("password"));
+            _log.debug("info_sshpassword: '"+info_sshpassword+"'");
+            toscaCommand.setRunTimeData("simple_tosca_sshpassword",info_sshusername,"Resource ssh user password");            
+            //"tosca_id":"13da6aa0-d5a4-415b-ad8b-29ded3d4d006"            
+            String info_tosca_id = String.format("%s", jsonResDesc.getString("tosca_id"));
+            _log.debug("info_tosca_id: '"+info_tosca_id+"'");
+            toscaCommand.setRunTimeData("simple_tosca_id",info_sshpassword,"TOSCA resource UUID");            
+            //"job_id":"6f4d8d6c-c879-45aa-9d16-c82ca04688ce#13da6aa0-d5a4-415b-ad8b-29ded3d4d006"
+            String info_job_id = String.format("%s", jsonResDesc.getString("job_id"));
+            _log.debug("info_job_id: '"+info_job_id+"'");
+            toscaCommand.setRunTimeData("simple_tosca_jobid",info_tosca_id,"JSAGA job identifier");             
+            _log.debug("Successfully stored all resource data in RunTimeData for task: '"+toscaCommand.getTaskId()+"'");
+        } catch (FileNotFoundException ex) {
+            _log.error("File not found: '"+infoFilePath+"'");
+        } catch (IOException ex) {
+            _log.error("I/O Exception reading file: '"+infoFilePath+"'");
+        } catch (Exception ex) {
+            _log.error("Caught exception: '"+ex.toString()+"'");
+        }        
+    }
+    
     /**
      * process JSON object containing information stored in file:
      * <action_info>/<task_id>.json and submit using tosca adaptor
@@ -313,7 +365,7 @@ public class SimpleToscaInterface {
                     if(tosca_id != null && tosca_id.length() > 0) {
                         stiDB.updateToscaId(toscaTargetId,tosca_id);
                         // Save job related info in runtime_data
-                        //setRunTimeData(...)
+                        saveResourceData();
                     } else {
                         submitStatus = "ABORTED";
                     }
@@ -326,8 +378,8 @@ public class SimpleToscaInterface {
                         submitStatus = "ABORTED";                                        
                     toscaCommand.setTargetStatus(submitStatus);                    
                     simple_tosca_id = stiDB.registerToscaId(toscaCommand,tosca_id,submitStatus);
-                    // Save job related info in runtime_data
-                    //setRunTimeData(...)
+                    // Save job related info in runtime_data                    
+                    saveResourceData();
                     _log.debug("Registered in simple_tosca with id: '"+simple_tosca_id+"' - status: '"+submitStatus+"'");
                 }                
             } catch (Exception e) {          
@@ -371,9 +423,10 @@ public class SimpleToscaInterface {
             context.setAttribute("token",token);                        
             session.addContext(context);
             
-            try {    
+            try {
+                String infoFilePath = getInfoFilePath();
                 _log.info("Initialize the JobService context... ");
-                ServiceURL = toscaEndPoint + "?" + "tosca_template=" + toscaTemplate + toscaParameters;
+                ServiceURL = toscaEndPoint + "?" + "tosca_template=" + toscaTemplate + toscaParameters + "&info=" + infoFilePath;
                 URL serviceURL = URLFactory.createURL(ServiceURL);
                 _log.info("Tosca ServiceURL = '" + serviceURL +"'");
                 

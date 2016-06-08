@@ -236,7 +236,8 @@ public class APIServerDaemonCheckCommand implements Runnable {
                                     updateOutputPaths(outputDir);
                                     break;
                                 case "RUNNING":
-                                    asdCommand.setStatus("RUNNING");
+                                    //as_queue status field must remain 'PROCESSED'
+                                    //asdCommand.setStatus("RUNNING");
                                     break;
                                 default:
                                     _log.warn("Unhandled status: '"+geJobStatus+"'");
@@ -287,16 +288,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                 }*/ else {
                     _log.warn("Unsupported target: '"+asdCommand.getTarget()+"'");
                 }   
-            break;
-                
-            // The task is currently running
-            case "RUNNING":
-                // Consistency checks on running status must have longer time checks
-                // and their elapse must depend from the Task (task/app parameters)
-                // A short running job has a different time elapse check than a 
-                // VM reservation
-                _log.error("Ignoring RUNNING status for task: "+asdCommand.getTaskId());
-            break;
+            break;                            
                 
             default:
                 _log.error("Ignoring unsupported status: '"+asdCommand.getStatus()+"' for task: "+asdCommand.getTaskId());
@@ -319,11 +311,11 @@ public class APIServerDaemonCheckCommand implements Runnable {
         // greater than max_wait and retries have not reached yet
         // the max_retry count
         // Trashed requests will be flagged as FAILED
-        _log.debug("Consistency of PROCESSED task - id: "+asdCommand.getTaskId()
-                                     +      " lifetime: "+asdCommand.getLifetime()
-                                     +                "/"+asdConfig.getTaskMaxWait()
-                                     +       " - retry: "+asdCommand.getRetry()
-                                     +                "/"+asdConfig.getTaskMaxRetries());
+        _log.debug("Consistency of '"+mode+"' task - id: "+asdCommand.getTaskId()
+                                     +       " lifetime: "+asdCommand.getLifetime()
+                                     +                 "/"+asdConfig.getTaskMaxWait()
+                                     +        " - retry: "+asdCommand.getRetry()
+                                     +                 "/"+asdConfig.getTaskMaxRetries());
         if(   asdCommand.getRetry()    < asdConfig.getTaskMaxRetries()
            && asdCommand.getLifetime() > asdConfig.getTaskMaxWait()) {
             _log.debug("Retrying PROCESSED task having id: "+asdCommand.getTaskId());

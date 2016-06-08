@@ -764,17 +764,23 @@ public class APIServerDaemonDB {
         }
         try {
             String sql;            
-            sql="insert into runtime_data (task_id,   "+LS
-               +"                          data_name, "+LS
-               +"                          data_value,"+LS
-               +"                          data_desc) "+LS
-               +"select ?,?,?,?,now(),now();";
+            sql="insert into runtime_data (task_id,    "+LS
+               +"                          data_id,    "+LS
+               +"                          data_name,  "+LS
+               +"                          data_value, "+LS
+               +"                          data_desc,  "+LS
+               +"                          creation,   "+LS
+               +"                          last_change)"+LS
+               +"select ?,(select if(max(data_id) is null,1,max(data_id)+1)"+LS
+               +"          from runtime_data rd where rd.task_id=?),"       +LS
+               + "      ?,?,?,now(),now();";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt   (1, command.getTaskId());
-            preparedStatement.setString(2, rtdKey);
-            preparedStatement.setString(3, rtdValue);
-            preparedStatement.setString(4, rtdDesc);
-            resultSet=preparedStatement.executeQuery();             
+            preparedStatement.setInt   (2, command.getTaskId());
+            preparedStatement.setString(3, rtdKey);
+            preparedStatement.setString(4, rtdValue);
+            preparedStatement.setString(5, rtdDesc);
+            preparedStatement.execute();             
         } catch (SQLException e) {                      
             _log.fatal(e.toString());
         } finally {
