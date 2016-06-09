@@ -154,15 +154,15 @@ public class SimpleToscaInterface {
             //"password":"Vqpx3Hm4"
             String info_sshpassword = String.format("%s", jsonResDesc.getString("password"));
             _log.debug("info_sshpassword: '"+info_sshpassword+"'");
-            toscaCommand.setRunTimeData("simple_tosca_sshpassword",info_sshusername,"Resource ssh user password");            
+            toscaCommand.setRunTimeData("simple_tosca_sshpassword",info_sshpassword,"Resource ssh user password");            
             //"tosca_id":"13da6aa0-d5a4-415b-ad8b-29ded3d4d006"            
             String info_tosca_id = String.format("%s", jsonResDesc.getString("tosca_id"));
             _log.debug("info_tosca_id: '"+info_tosca_id+"'");
-            toscaCommand.setRunTimeData("simple_tosca_id",info_sshpassword,"TOSCA resource UUID");            
+            toscaCommand.setRunTimeData("simple_tosca_id",info_tosca_id,"TOSCA resource UUID");            
             //"job_id":"6f4d8d6c-c879-45aa-9d16-c82ca04688ce#13da6aa0-d5a4-415b-ad8b-29ded3d4d006"
             String info_job_id = String.format("%s", jsonResDesc.getString("job_id"));
             _log.debug("info_job_id: '"+info_job_id+"'");
-            toscaCommand.setRunTimeData("simple_tosca_jobid",info_tosca_id,"JSAGA job identifier");             
+            toscaCommand.setRunTimeData("simple_tosca_jobid",info_job_id,"JSAGA job identifier");             
             _log.debug("Successfully stored all resource data in RunTimeData for task: '"+toscaCommand.getTaskId()+"'");
         } catch (FileNotFoundException ex) {
             _log.error("File not found: '"+infoFilePath+"'");
