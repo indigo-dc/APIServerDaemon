@@ -21,9 +21,6 @@
  * @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
 ***************************************************************************
  */
-
-
-
 package java.it.infn.ct;
 
 import java.lang.Runtime;

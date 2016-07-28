@@ -20,9 +20,6 @@ limitations under the License.
 
 @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
 ****************************************************************************/
-
-
-
 package java.it.infn.ct;
 
 import java.util.concurrent.ExecutorService;
