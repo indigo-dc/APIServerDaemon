@@ -21,7 +21,7 @@ limitations under the License.
 @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
 ****************************************************************************/
 
-package it.infn.ct;
+package java.it.infn.ct;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -540,30 +540,30 @@ public class APIServerDaemonConfig {
         /*
           Database settings
         */
-        return "[API Server DB settings]"                                   +LS              
-              +"    db_host : '"                +apisrv_dbhost          +"'"+LS
-              +"    db_port : '"                +apisrv_dbport          +"'"+LS
-              +"    db_user : '"                +apisrv_dbuser          +"'"+LS        
-              +"    db_pass : '"                +apisrv_dbpass          +"'"+LS        
-              +"    db_name : '"                +apisrv_dbname          +"'"+LS
-              +"[APIServerDaemon settings]"                            +"'"+LS
-              +"    asdMaxThreads   : '"        +asdMaxThreads          +"'"+LS
-              +"    asdCloseTimeout : '"        +asdCloseTimeout        +"'"+LS
-              +"[APIServerDaemonPolling settings]"                     +"'"+LS
-              +"    asPollingDelay       : '"   +asPollingDelay         +"'"+LS
-              +"    asPollingMaxCommands : '"   +asPollingMaxCommands   +"'"+LS 
-              +"[APIServerDaemonController settings]"                  +"'"+LS
-              +"    asControllerDelay       : '"+asControllerDelay      +"'"+LS
-              +"    asControllerMaxCommands : '"+asControllerMaxCommands+"'"+LS
-              +"[APIServerDaemon task retry policies]"                      +LS
-              +"    asTaskMaxRetries  : '"      +asTaskMaxRetries       +"'"+LS
-              +"    asTaskMaxWait     : '"      +asTaskMaxWait          +"'"+LS  
-              +"[GridEngine UsersTracking DB settings]"                     +LS
-              +"    db_jndi : '"                +utdb_jndi              +"'"+LS
-              +"    db_host : '"                +utdb_host              +"'"+LS
-              +"    db_port : '"                +utdb_port              +"'"+LS
-              +"    db_user : '"                +utdb_user              +"'"+LS        
-              +"    db_pass : '"                +utdb_pass              +"'"+LS        
-              +"    db_name : '"                +utdb_name              +"'"+LS;                   
+        return "[API Server DB settings]" + LS              
+               + "    db_host : '" + apisrv_dbhost + "'" + LS
+               + "    db_port : '" + apisrv_dbport + "'" + LS
+               + "    db_user : '" + apisrv_dbuser + "'" + LS        
+               + "    db_pass : '" + apisrv_dbpass + "'" + LS        
+               + "    db_name : '" + apisrv_dbname + "'" + LS
+               + "[APIServerDaemon settings]" + "'" + LS
+               + "    asdMaxThreads   : '" + asdMaxThreads + "'" + LS
+               + "    asdCloseTimeout : '" +asdCloseTimeout + "'" + LS
+               + "[APIServerDaemonPolling settings]" + "'" + LS
+               + "    asPollingDelay       : '" + asPollingDelay + "'" + LS
+               + "    asPollingMaxCommands : '" + asPollingMaxCommands + "'" + LS 
+               + "[APIServerDaemonController settings]" + "'" + LS
+               + "    asControllerDelay       : '" + asControllerDelay + "'" + LS
+               + "    asControllerMaxCommands : '" + asControllerMaxCommands + "'" + LS
+               + "[APIServerDaemon task retry policies]"                      +LS
+               + "    asTaskMaxRetries  : '" + asTaskMaxRetries + "'" + LS
+               + "    asTaskMaxWait     : '" + asTaskMaxWait + "'" + LS  
+               + "[GridEngine UsersTracking DB settings]" + LS
+               + "    db_jndi : '" + utdb_jndi + "'" + LS
+               + "    db_host : '" + utdb_host + "'" + LS
+               + "    db_port : '" + utdb_port + "'" + LS
+               + "    db_user : '" + utdb_user + "'" + LS        
+               + "    db_pass : '" + utdb_pass + "'" + LS        
+               + "    db_name : '" + utdb_name + "'" + LS;                   
     }
 }
