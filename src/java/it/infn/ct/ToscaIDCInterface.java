@@ -22,7 +22,19 @@ limitations under the License.
 ****************************************************************************/
 package it.infn.ct;
 
+import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.URL;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import org.apache.log4j.Logger;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 /**
  * APIServerDaemon interface for TOSCA
@@ -40,6 +52,12 @@ public class ToscaIDCInterface {
     String                      APIServerConnURL = "";
     APIServerDaemonCommand      toscaCommand;
     APIServerDaemonConfig       asdConfig;
+    
+    /**
+     *  Tosca parameters
+     */
+    URL toscaEndPoint = null;
+    String toscaToken = "";
 
     /**
      * Empty constructor for SimpleToscaInterface
@@ -76,5 +94,80 @@ public class ToscaIDCInterface {
         this.APIServerConnURL = asdConfig.getApisrv_URL();
     }
     
-    
+    /**
+     * Submit to TOSCA a template
+     */
+     private String submitTosca(String tosca_template) {
+         
+        StringBuilder orchestrator_result=new StringBuilder("");
+        StringBuilder postData = new StringBuilder();
+        postData.append("{ \"template\": \"");
+        String tosca_template_content="";
+        String tosca_UUID="";
+        try {            
+            tosca_template_content = new String(Files.readAllBytes(Paths.get(tosca_template))).replace("\n", "\\n"); 
+            postData.append(tosca_template_content);
+        } catch (IOException ex) {
+            _log.error("Template '"+tosca_template+"'is not readable");
+        }
+        postData.append("\" }");
+
+        _log.debug("JSON Data prepared: \n" + postData);
+        
+        HttpURLConnection conn;
+        String orchestratorDoc="";
+        try {
+            conn = (HttpURLConnection) toscaEndPoint.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty ("Authorization: Bearer",toscaToken);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("charset", "utf-8");
+            conn.setDoOutput(true);
+            OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
+            wr.write(postData.toString());
+            wr.flush();
+            wr.close();
+            _log.debug("Orchestrator status code: " + conn.getResponseCode());
+            _log.debug("Orchestrator status message: " + conn.getResponseMessage());
+            if (conn.getResponseCode() == 201) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                orchestrator_result = new StringBuilder();
+                String ln;
+                while ((ln = br.readLine()) != null) {
+                    orchestrator_result.append(ln);
+                }                
+                _log.debug("Orchestrator result: " + orchestrator_result);
+                orchestratorDoc = orchestrator_result.toString();
+                tosca_UUID = getDocumentValue(orchestratorDoc,"uuid");
+                _log.debug("Created resource has UUID: '"+tosca_UUID+"'");                              
+            }
+        } catch (IOException ex) {
+            _log.error("Connection error with the service at " + toscaEndPoint.toString());
+            _log.error(ex);            
+        } catch (ParseException ex) {
+            _log.error("Error parsing JSON:" + orchestratorDoc);
+            _log.error(ex);            
+        }
+        return tosca_UUID;
+    }
+     
+    /**
+     * Read values from the json.
+     *
+     * @param json The json from where to
+     * @param key The element to return. It can retrieve nested elements
+     * providing the full chain as
+     * &lt;element&gt;.&lt;element&gt;.&lt;element&gt;
+     * @return The element value
+     * @throws ParseException If the json cannot be parsed
+     */
+    protected String getDocumentValue(String json, String key) throws ParseException {
+        JSONParser parser = new JSONParser();
+        JSONObject jsonObject = (JSONObject) parser.parse(json);
+        String keyelement[] = key.split("\\.");
+        for (int i = 0; i < (keyelement.length - 1); i++) {
+            jsonObject = (JSONObject) jsonObject.get(keyelement[i]);
+        }
+        return (String) jsonObject.get(keyelement[keyelement.length - 1]);
+    }
 }
