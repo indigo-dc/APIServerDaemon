@@ -33,17 +33,16 @@ import java.sql.Statement;
 import org.apache.log4j.Logger;
 
 /**
- * This class interfaces the GridEngine userstracking database; it helps
- * the GridEngineInterface class
+ * This class interfaces the SimpleTosca database table;
  * @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
- * @see GridEngineInterface
+ * @see SimpleToscaInterface
  */
-public class GridEngineInterfaceDB {
+public class SimpleToscaInterfaceDB {
 
     /*
      * Logger
      */
-    private static final Logger _log          = Logger.getLogger(GridEngineInterfaceDB.class.getName());
+    private static final Logger _log          = Logger.getLogger(SimpleToscaInterfaceDB.class.getName());
     public static final String  LS            = System.getProperty("line.separator");
     private String              connectionURL = null;
 
@@ -58,17 +57,17 @@ public class GridEngineInterfaceDB {
     /*
      * GridEngine UsersTracking DB
      */
-    private String utdb_host;
-    private String utdb_port;
-    private String utdb_user;
-    private String utdb_pass;
-    private String utdb_name;
+    private String asdb_host;
+    private String asdb_port;
+    private String asdb_user;
+    private String asdb_pass;
+    private String asdb_name;
 
     /**
-     * Empty constructor for GridEngineInterface
+     * Empty constructor for SimpleToscaInterface
      */
-    public GridEngineInterfaceDB() {
-        _log.debug("Initializing GridEngineInterfaceDB");
+    public SimpleToscaInterfaceDB() {
+        _log.debug("Initializing SimpleToscaInterfaceDB");
     }
 
     /**
@@ -76,29 +75,29 @@ public class GridEngineInterfaceDB {
      * @param connectionURL jdbc connection URL containing: dbhost, dbport,
      * dbuser, dbpass and dbname in a single line
      */
-    public GridEngineInterfaceDB(String connectionURL) {
+    public SimpleToscaInterfaceDB(String connectionURL) {
         this();
-        _log.debug("GridEngineInterfaceDB connection URL:" + LS + connectionURL);
+        _log.debug("SimpleTosca connection URL:" + LS + connectionURL);
         this.connectionURL = connectionURL;
     }
 
     /**
-     * Initializing GridEngineInterface using userstrackingdb
+     * Initializing SimpleToscaInterface database
      * database connection settings
-     * @param utdb_host UsersTrackingDB database hostname
-     * @param utdb_port UsersTrackingDB database listening port
-     * @param utdb_user UsersTrackingDB database user name
-     * @param utdb_pass UsersTrackingDB database user password
-     * @param utdb_name UsersTrackingDB database name
+     * @param asdb_host APIServerDaemon database hostname
+     * @param asdb_port APIServerDaemon database listening port
+     * @param asdb_user APIServerDaemon database user name
+     * @param asdb_pass APIServerDaemon database user password
+     * @param asdb_name APIServerDaemon database name
      */
-    public GridEngineInterfaceDB(String utdb_host, String utdb_port, String utdb_user, String utdb_pass,
-                                 String utdb_name) {
+    public SimpleToscaInterfaceDB(String asdb_host, String asdb_port, String asdb_user, String asdb_pass,
+                                  String asdb_name) {
         this();
-        this.utdb_host = utdb_host;
-        this.utdb_port = utdb_port;
-        this.utdb_user = utdb_user;
-        this.utdb_pass = utdb_pass;
-        this.utdb_name = utdb_name;
+        this.asdb_host = asdb_host;
+        this.asdb_port = asdb_port;
+        this.asdb_user = asdb_user;
+        this.asdb_pass = asdb_pass;
+        this.asdb_name = asdb_name;
         prepareConnectionURL();
     }
 
@@ -171,16 +170,70 @@ public class GridEngineInterfaceDB {
      * Prepare a connectionURL from detailed conneciton settings
      */
     private void prepareConnectionURL() {
-        this.connectionURL = "jdbc:mysql://" + utdb_host + ":" + utdb_port + "/" + utdb_name + "?user=" + utdb_user
-                             + "&password=" + utdb_pass;
-        _log.debug("DBURL: '" + this.connectionURL + "'");
+        this.connectionURL = "jdbc:mysql://" + asdb_host + ":" + asdb_port + "/" + asdb_name + "?user=" + asdb_user
+                             + "&password=" + asdb_pass;
+        _log.debug("SimpleToscaInterface connectionURL: '" + this.connectionURL + "'");
+    }
+
+    //
+    // Register the tosca_id of the given toscaCommand
+    // @param toscaCommand
+    // @oaram toscaId
+    //
+    public int registerToscaId(APIServerDaemonCommand toscaCommand, String toscaId, String status) {
+        int tosca_id = 0;
+
+        if (!connect()) {
+            _log.fatal("Not connected to database");
+
+            return tosca_id;
+        }
+
+        try {
+            String sql;
+
+            // Lock ge_queue table first
+            sql       = "lock tables simple_tosca write, simple_tosca as st read;";
+            statement = connect.createStatement();
+            statement.execute(sql);
+
+            // Insert new entry for simple tosca
+            sql = "insert into simple_tosca (id,task_id, tosca_id, tosca_status, creation, last_change)" + LS
+                  + "select (select if(max(id)>0,max(id)+1,1) from simple_tosca st),?,?,?,now(),now();";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt(1, toscaCommand.getTaskId());
+            preparedStatement.setString(2, toscaId);
+            preparedStatement.setString(3, status);
+            preparedStatement.execute();
+
+            // Get the new Id
+            sql               = "select id from simple_tosca where tosca_id = ?;";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setString(1, toscaId);
+            resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                tosca_id = resultSet.getInt("id");
+            }
+
+            // Unlock tables
+            sql = "unlock tables;";
+            statement.execute(sql);
+        } catch (SQLException e) {
+            _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
+        }
+
+        return tosca_id;
     }
 
     /**
-     * Remove the given record form ActiveGridInteraction table
-     * @param ActiveGridInteraction id
+     * Update the toscaId value into an existing simple_tosca record
+     * @param simpleToscaId record index in simple_tosca table
+     * @oaram toscaUUID tosca submission UUID field
      */
-    public void removeAGIRecord(int agi_id) {
+    public void updateToscaId(int simpleToscaId, String toscaUUID) {
         if (!connect()) {
             _log.fatal("Not connected to database");
 
@@ -190,10 +243,19 @@ public class GridEngineInterfaceDB {
         try {
             String sql;
 
-            sql               = "delete from ActiveGridInteractions" + LS + "where id = ?;";
+            // Lock ge_queue table first
+            sql       = "lock tables simple_tosca write;";
+            statement = connect.createStatement();
+            statement.execute(sql);
+
+            // Insert new entry for simple tosca
+            sql = "update simple_tosca set tosca_id=?, tosca_status='SUBMITTED', creation=now(), last_change=now() where id=?;";
             preparedStatement = connect.prepareStatement(sql);
-            preparedStatement.setInt(1, agi_id);
-            resultSet = preparedStatement.executeQuery();
+            preparedStatement.setString(1, toscaUUID);
+            preparedStatement.setInt(2, simpleToscaId);
+            preparedStatement.execute();
+            sql = "unlock tables;";
+            statement.execute(sql);
         } catch (SQLException e) {
             _log.fatal(e.toString());
         } finally {
@@ -202,109 +264,79 @@ public class GridEngineInterfaceDB {
     }
 
     /**
-     * Get ActiveGridInteraction' id field from task_id
-     * @param taskId
-     * @return
+     * Update the tosca status value into an existing simple_tosca record
+     * @param simpleToscaId record index in simple_tosca table
+     * @oaram toscaStatus tosca submission status
      */
-    int getAGIId(APIServerDaemonCommand geCommand) {
-        int agi_id = 0;
-
+    public void updateToscaStatus(int simpleToscaId, String toscaStatus) {
         if (!connect()) {
             _log.fatal("Not connected to database");
 
-            return agi_id;
+            return;
         }
 
         try {
-            String jobDesc = geCommand.getTaskId() + "@" + geCommand.getActionInfo();
             String sql;
 
-            sql               = "select id" + LS + "from ActiveGridInteractions" + LS + "where user_description = ?;";
-            preparedStatement = connect.prepareStatement(sql);
-            preparedStatement.setString(1, jobDesc);
-            resultSet = preparedStatement.executeQuery();
+            // Lock ge_queue table first
+            sql       = "lock tables simple_tosca write;";
+            statement = connect.createStatement();
+            statement.execute(sql);
 
-            if (resultSet.next()) {
-                agi_id = resultSet.getInt("id");
-            }
+            // Insert new entry for simple tosca
+            sql               = "update simple_tosca set tosca_status=?, last_change=now() where id=?;";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setString(1, toscaStatus);
+            preparedStatement.setInt(2, simpleToscaId);
+            preparedStatement.execute();
+            sql = "unlock tables;";
+            statement.execute(sql);
         } catch (SQLException e) {
             _log.fatal(e.toString());
         } finally {
             closeSQLActivity();
         }
-
-        return agi_id;
     }
 
     /**
      * Return object' connection URL
-     * @return  GridEngineDaemon database connection URL
+     * @return SimpleToscaInterface database connection URL
      */
     public String getConnectionURL() {
         return this.connectionURL;
     }
 
     /**
-     * Get description of the given ActiveGridInteraction record
-     * @param ActiveGridInteraction id
-     * @return jobStatus
+     * Get toscaId
+     * @param toscaCommand
+     * @return toscaid
      */
-    public String getJobDescription(int agi_id) {
-        String uderDesc = null;
+    public String getToscaId(APIServerDaemonCommand toscaCommand) {
+        String toscaId = "";
 
         if (!connect()) {
             _log.fatal("Not connected to database");
 
-            return uderDesc;
+            return toscaId;
         }
 
         try {
             String sql;
 
-            sql               = "select user_description" + LS + "from ActiveGridInteractions" + LS + "where id = ?;";
+            sql               = "select tosca_id" + LS + "from simple_tosca" + LS + "where task_id = ?;";
             preparedStatement = connect.prepareStatement(sql);
-            preparedStatement.setInt(1, agi_id);
-            resultSet = preparedStatement.executeQuery();
-            resultSet.next();
-            uderDesc = resultSet.getString("user_description");
-        } catch (SQLException e) {
-            _log.fatal(e.toString());
-        } finally {
-            closeSQLActivity();
-        }
-
-        return uderDesc;
-    }
-
-    public String getJobStatus(int agi_id) {
-        String jobStatus = null;
-
-        if (!connect()) {
-            _log.fatal("Not connected to database");
-
-            return jobStatus;
-        }
-
-        try {
-            String sql;
-
-            sql               = "select status" + LS + "from ActiveGridInteractions" + LS + "where id = ?;";
-            preparedStatement = connect.prepareStatement(sql);
-            preparedStatement.setInt(1, agi_id);
+            preparedStatement.setInt(1, toscaCommand.getTaskId());
             resultSet = preparedStatement.executeQuery();
 
             if (resultSet.next()) {
-                ;
+                toscaId = resultSet.getString("tosca_id");
             }
-
-            jobStatus = resultSet.getString("status");
         } catch (SQLException e) {
             _log.fatal(e.toString());
         } finally {
             closeSQLActivity();
         }
 
-        return jobStatus;
+        return toscaId;
     }
 }
-

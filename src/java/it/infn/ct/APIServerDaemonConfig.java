@@ -20,8 +20,7 @@ limitations under the License.
 
 @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
 ****************************************************************************/
-
-package it.infn.ct;
+package java.it.infn.ct;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -57,6 +56,7 @@ public class APIServerDaemonConfig {
     private String apisrv_dbuser = "fgapiserver";
     private String apisrv_dbpass = "fgapiserver_password";
     private String apisrv_dbname = "fgapiserver";
+    private String apisrv_dbver  = "";
     
     /*
       GrigEngineDaemon settings
@@ -128,6 +128,7 @@ public class APIServerDaemonConfig {
             String prop_apisrv_dbuser = prop.getProperty("apisrv_dbuser");
             String prop_apisrv_dbpass = prop.getProperty("apisrv_dbpass");
             String prop_apisrv_dbname = prop.getProperty("apisrv_dbname");
+            String prop_apisrv_dbver  = prop.getProperty("apisrv_dbver");
                     
             // GridEngineDaemon thread settings
             String prop_asdMaxThreads = prop.getProperty("asdMaxThreads");
@@ -163,6 +164,7 @@ public class APIServerDaemonConfig {
             if(prop_apisrv_dbuser!=null) this.apisrv_dbuser=prop_apisrv_dbuser;
             if(prop_apisrv_dbpass!=null) this.apisrv_dbpass=prop_apisrv_dbpass;
             if(prop_apisrv_dbname!=null) this.apisrv_dbname=prop_apisrv_dbname;
+            if(prop_apisrv_dbver !=null) this.apisrv_dbver =prop_apisrv_dbver;
             
             // APIServerDaemon thread settings
             if(prop_asdMaxThreads!=null) 
@@ -224,6 +226,19 @@ public class APIServerDaemonConfig {
     /*
       Database settings
     */
+    
+    /**
+     * Prepare a connectionURL from detailed connection settings
+     */
+    public String getApisrv_URL() {
+        String APIServerConnURL = "jdbc:mysql://" + getApisrv_dbhost()
+                                + ":"             + getApisrv_dbport() 
+                                + "/"             + getApisrv_dbname() 
+                                + "?user="        + getApisrv_dbuser() 
+                                + "&password="    + getApisrv_dbpass();
+        _log.debug("APIServerDB ConnectionURL: '"+APIServerConnURL+"'");
+        return APIServerConnURL;
+    }
     
     /**
      * Get APIServerDaemon database name
@@ -313,6 +328,21 @@ public class APIServerDaemonConfig {
     public void setASDCloseTimeout(int asdCloseTimeout) {
         this.asdCloseTimeout = asdCloseTimeout;
     }
+    /**
+     * Get APIServerDaemon database version
+     * @return apisrv_dbver
+     */
+    public String getApisrv_dbver() {
+        return apisrv_dbver;
+    }
+    /**
+     * Set APIServer database version
+     * @param apisrv_dbver
+     */
+    public void setApisrv_dbver(String apisrv_dbver) {
+        this.apisrv_dbver = apisrv_dbver;
+    }
+    
         
     /*
       APIServerDaemon
@@ -509,30 +539,30 @@ public class APIServerDaemonConfig {
         /*
           Database settings
         */
-        return "[API Server DB settings]"                                   +LS              
-              +"    db_host : '"                +apisrv_dbhost          +"'"+LS
-              +"    db_port : '"                +apisrv_dbport          +"'"+LS
-              +"    db_user : '"                +apisrv_dbuser          +"'"+LS        
-              +"    db_pass : '"                +apisrv_dbpass          +"'"+LS        
-              +"    db_name : '"                +apisrv_dbname          +"'"+LS
-              +"[APIServerDaemon settings]"                            +"'"+LS
-              +"    asdMaxThreads   : '"        +asdMaxThreads          +"'"+LS
-              +"    asdCloseTimeout : '"        +asdCloseTimeout        +"'"+LS
-              +"[APIServerDaemonPolling settings]"                     +"'"+LS
-              +"    asPollingDelay       : '"   +asPollingDelay         +"'"+LS
-              +"    asPollingMaxCommands : '"   +asPollingMaxCommands   +"'"+LS 
-              +"[APIServerDaemonController settings]"                  +"'"+LS
-              +"    asControllerDelay       : '"+asControllerDelay      +"'"+LS
-              +"    asControllerMaxCommands : '"+asControllerMaxCommands+"'"+LS
-              +"[APIServerDaemon task retry policies]"                      +LS
-              +"    asTaskMaxRetries  : '"      +asTaskMaxRetries       +"'"+LS
-              +"    asTaskMaxWait     : '"      +asTaskMaxWait          +"'"+LS  
-              +"[GridEngine UsersTracking DB settings]"                     +LS
-              +"    db_jndi : '"                +utdb_jndi              +"'"+LS
-              +"    db_host : '"                +utdb_host              +"'"+LS
-              +"    db_port : '"                +utdb_port              +"'"+LS
-              +"    db_user : '"                +utdb_user              +"'"+LS        
-              +"    db_pass : '"                +utdb_pass              +"'"+LS        
-              +"    db_name : '"                +utdb_name              +"'"+LS;                   
+        return "[API Server DB settings]" + LS              
+               + "    db_host : '" + apisrv_dbhost + "'" + LS
+               + "    db_port : '" + apisrv_dbport + "'" + LS
+               + "    db_user : '" + apisrv_dbuser + "'" + LS        
+               + "    db_pass : '" + apisrv_dbpass + "'" + LS        
+               + "    db_name : '" + apisrv_dbname + "'" + LS
+               + "[APIServerDaemon settings]" + "'" + LS
+               + "    asdMaxThreads   : '" + asdMaxThreads + "'" + LS
+               + "    asdCloseTimeout : '" +asdCloseTimeout + "'" + LS
+               + "[APIServerDaemonPolling settings]" + "'" + LS
+               + "    asPollingDelay       : '" + asPollingDelay + "'" + LS
+               + "    asPollingMaxCommands : '" + asPollingMaxCommands + "'" + LS 
+               + "[APIServerDaemonController settings]" + "'" + LS
+               + "    asControllerDelay       : '" + asControllerDelay + "'" + LS
+               + "    asControllerMaxCommands : '" + asControllerMaxCommands + "'" + LS
+               + "[APIServerDaemon task retry policies]"                      +LS
+               + "    asTaskMaxRetries  : '" + asTaskMaxRetries + "'" + LS
+               + "    asTaskMaxWait     : '" + asTaskMaxWait + "'" + LS  
+               + "[GridEngine UsersTracking DB settings]" + LS
+               + "    db_jndi : '" + utdb_jndi + "'" + LS
+               + "    db_host : '" + utdb_host + "'" + LS
+               + "    db_port : '" + utdb_port + "'" + LS
+               + "    db_user : '" + utdb_user + "'" + LS        
+               + "    db_pass : '" + utdb_pass + "'" + LS        
+               + "    db_name : '" + utdb_name + "'" + LS;                   
     }
 }
