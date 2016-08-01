@@ -164,7 +164,8 @@ class APIServerDaemonProcessCommand implements Runnable {
      * Execute a GridEngineDaemon 'submit' command
      */
     private void submit() {
-        _log.debug("Submitting command: " + asdCommand);
+        _log.debug("Submitting command: " + asdCommand 
+                + " - for target: '" + asdCommand.getTarget() + "'");
 
         switch (asdCommand.getTarget()) {
         case "GridEngine" :
@@ -186,6 +187,17 @@ class APIServerDaemonProcessCommand implements Runnable {
             asdCommand.setStatus("PROCESSED");
             asdCommand.Update();
             _log.debug("Submitted command (SimpleTosca): " + asdCommand.toString());
+
+            break;
+            
+        case "ToscaIDC" :
+            ToscaIDCInterface tidcInterface = new ToscaIDCInterface(asdConfig, asdCommand);
+            int               toscaIDC_id   = tidcInterface.submitTosca();
+
+            asdCommand.setTargetId(toscaIDC_id);
+            asdCommand.setStatus("PROCESSED");
+            asdCommand.Update();
+            _log.debug("Submitted command (ToscaIDC): " + asdCommand.toString());
 
             break;
 

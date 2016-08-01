@@ -539,7 +539,6 @@ public class SimpleToscaInterface {
                 if (stiDB != null) {
                     stiDB.close();
                 }
-
                 toscaCommand.Update();
             }
         } catch (SecurityException se) {
