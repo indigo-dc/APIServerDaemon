@@ -269,9 +269,9 @@ public class ToscaIDCInterface {
                     break;
 
                 case "tosca_parameters" :
-                    toscaParameters = ((toscaParameters.length() > 0)
+                    toscaParameters += ((toscaParameters.length() > 0)
                                        ? "&"
-                                       : "") + toscaParameters;
+                                       : "") + param_value;
                     _log.debug("tosca_parameters: '" + toscaParameters + "'");
 
                     break;
@@ -319,8 +319,8 @@ public class ToscaIDCInterface {
             // Add info file name to toscaParameters
             toscaParameters += ((toscaParameters.length() > 0)
                                ? "&"
-                               : "?") + "info=" + toscaCommand.getActionInfo() + FS + toscaCommand.getTaskId()
-                                      + "_toscaIDC.json";
+                               : "") + "info=" + toscaCommand.getActionInfo() + FS + toscaCommand.getTaskId()
+                                     + "_toscaIDC.json";
             _log.debug("TOSCA parameters: '"+toscaParameters+"'");
             
             
