@@ -824,7 +824,7 @@ public class APIServerDaemonDB {
      * @param command the associated APIServerDaemonCommand
      * @see APIServerDaemonCommand
      */
-    public void setRunTimeData(String rtdKey, String rtdValue, String rtdDesc, APIServerDaemonCommand command) {
+    public void setRunTimeData(String rtdKey, String rtdValue, String rtdDesc, String rtdProto, String rtdType, APIServerDaemonCommand command) {
         if (!connect()) {
             _log.fatal("Not connected to database");
 
@@ -834,23 +834,70 @@ public class APIServerDaemonDB {
         try {
             String sql;
 
-            sql = "insert into runtime_data (task_id,    " + LS + "                          data_id,    " + LS
-                  + "                          data_name,  " + LS + "                          data_value, " + LS
-                  + "                          data_desc,  " + LS + "                          creation,   " + LS
-                  + "                          last_change)" + LS
+            sql = "insert into runtime_data (task_id,    " + LS 
+                  + "                        data_id,    " + LS
+                  + "                        data_name,  " + LS 
+                  + "                        data_value, " + LS
+                  + "                        data_desc,  " + LS 
+                  + "                        data_proto, " + LS  
+                  + "                        data_type,  " + LS 
+                  + "                        creation,   " + LS
+                  + "                        last_change)" + LS
                   + "select ?,(select if(max(data_id) is null,1,max(data_id)+1)" + LS
-                  + "          from runtime_data rd where rd.task_id=?)," + LS + "      ?,?,?,now(),now();";
+                  + "          from runtime_data rd where rd.task_id=?)," + LS + "      ?,?,?,?,?,now(),now();";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, command.getTaskId());
             preparedStatement.setInt(2, command.getTaskId());
             preparedStatement.setString(3, rtdKey);
             preparedStatement.setString(4, rtdValue);
             preparedStatement.setString(5, rtdDesc);
+            preparedStatement.setString(6, rtdProto);
+            preparedStatement.setString(7, rtdType);
             preparedStatement.execute();
         } catch (SQLException e) {
             _log.fatal(e.toString());
         } finally {
             closeSQLActivity();
         }
+    }
+    
+    /**
+     * Retrieve keyValue from a given runtime data keyName
+     */
+    String getRunTimeData(String rtdKey, APIServerDaemonCommand command) {
+        String rtdValue="";
+        if (!connect()) {
+            _log.fatal("Not connected to database");
+
+            return null;
+        }
+
+        String dbVer = "";
+
+        try {
+            String sql;
+
+            sql               = "select data_value from runtime_data where task_id=? and data_name=?;";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt(1, command.getTaskId());
+            preparedStatement.setString(2, rtdKey);           
+            resultSet = preparedStatement.executeQuery();
+
+            while (resultSet.next()) {
+                rtdValue = resultSet.getString("data_value");
+                _log.debug("rtdValue: '" + rtdValue + "'");
+            }
+
+            resultSet.close();
+            resultSet = null;
+            preparedStatement.close();
+            preparedStatement = null;
+        } catch (SQLException e) {
+            _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
+        }
+
+        return rtdValue;
     }
 }

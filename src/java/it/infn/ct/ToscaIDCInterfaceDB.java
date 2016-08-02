@@ -264,7 +264,7 @@ public class ToscaIDCInterfaceDB {
      * @param ToscaIDCId record index in simple_tosca table
      * @oaram toscaStatus tosca submission status
      */
-    public void updateToscaStatus(int ToscaIDCId, String toscaStatus) {
+    public void updateToscaStatus(int simpleToscaId, String toscaStatus) {
         if (!connect()) {
             _log.fatal("Not connected to database");
 
@@ -283,7 +283,7 @@ public class ToscaIDCInterfaceDB {
             sql               = "update simple_tosca set tosca_status=?, last_change=now() where id=?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setString(1, toscaStatus);
-            preparedStatement.setInt(2, ToscaIDCId);
+            preparedStatement.setInt(2, simpleToscaId);
             preparedStatement.execute();
             sql = "unlock tables;";
             statement.execute(sql);
@@ -335,4 +335,45 @@ public class ToscaIDCInterfaceDB {
 
         return toscaId;
     }
+
+    /**
+     * Retrieve session token from the given command looking up to
+     * @param toscaCommand 
+     */
+    String getToken(APIServerDaemonCommand toscaCommand) {        
+        String token = "";
+
+        if (!connect()) {
+            _log.fatal("Not connected to database");
+            return token;
+        }
+
+        try {
+            String sql;
+
+            sql               = "select tk.token" + LS +
+                                "from as_queue aq," + LS +
+                                "     task t," + LS +
+                                "     fg_token tk" + LS +
+                                "where aq.task_id=t.id" + LS +
+                                "  and tk.user_id = (select id" + LS +
+                                "                    from fg_user u" + LS +
+                                "                    where u.name=t.user)" + LS +
+                                "  and aq.task_id=?" + LS +
+                                "order by tk.creation desc limit 1;";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt(1, toscaCommand.getTaskId());
+            resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                token = resultSet.getString("tk.token");
+            }
+        } catch (SQLException e) {
+            _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
+        }
+
+        return token;
+    }
+    
 }

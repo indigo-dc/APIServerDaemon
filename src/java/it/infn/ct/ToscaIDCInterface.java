@@ -39,6 +39,7 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Random;
+import java.util.logging.Level;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
@@ -67,11 +68,13 @@ public class ToscaIDCInterface {
     /**
      *  Tosca parameters
      */
-    URL toscaEndPoint = null;
-    String toscaToken = "";
-    String toscaTemplate="";
-    String toscaParameters="";
-    String informtativeFile="";
+    URL        toscaEndPoint = null;
+    String        toscaToken = "";
+    String     toscaTemplate = "";
+    String   toscaParameters = "";
+    String  informtativeFile = "";
+    String         toscaUUID = "";
+    ToscaIDCInterfaceDB  tii = null;                        
 
     /**
      * Empty constructor for ToscaIDCInterface
@@ -96,7 +99,12 @@ public class ToscaIDCInterface {
      */
     public ToscaIDCInterface(APIServerDaemonConfig asdConfig, APIServerDaemonCommand toscaCommand) {
         this(toscaCommand);
-        setConfig(asdConfig);
+        setConfig(asdConfig);       
+        tii = new ToscaIDCInterfaceDB(APIServerConnURL);
+        if (tii == null)
+            _log.error("Unable to instantiate ToscaIDCInterface DB class");
+        else
+            _log.debug("Syccessfully instantiate ToscaIDCInterface DB class");
     }
     
     /**
@@ -258,6 +266,7 @@ public class ToscaIDCInterface {
                 switch (param_name) {
                 case "tosca_endpoint" :
                     toscaEndPoint = new URL(param_value);
+                    toscaCommand.setRunTimeData("tosca_endpoint", toscaEndPoint.toString(), "TOSCA endpoint","","");
                     _log.debug("tosca_endpoint: '" + toscaEndPoint + "'");
 
                     break;
@@ -322,29 +331,24 @@ public class ToscaIDCInterface {
                                : "") + "info=" + toscaCommand.getActionInfo() + FS + toscaCommand.getTaskId()
                                      + "_toscaIDC.json";
             _log.debug("TOSCA parameters: '"+toscaParameters+"'");
-            
+                        
+            toscaToken = tii.getToken(toscaCommand);
+            _log.debug("Token for toscaCommand having id: '" + toscaCommand.getTaskId() + "' is: '" + toscaToken + "'");
             
             // Finally submit the job
-            String toscaUUID = submitOrchestrator();
+            toscaUUID = submitOrchestrator();
             _log.info("toscaUUID: '" + toscaUUID + "'");
 
-            // Register JobId, if targetId exists it is a submission retry
-            ToscaIDCInterfaceDB tii        = null;
-            String                 submitStatus = "SUBMITTED";
-
+            // Register JobId, if targetId exists it is a submission retry            
             try {
-                tii = new ToscaIDCInterfaceDB(APIServerConnURL);
-
-                int toscaTargetId = toscaCommand.getTargetId();
+                String submitStatus = "SUBMITTED";
+                int   toscaTargetId = toscaCommand.getTargetId();
 
                 if (toscaTargetId > 0) {
 
                     // Update tosca_id if successful
                     if ((toscaUUID != null) && (toscaUUID.length() > 0)) {
-                        tii.updateToscaId(toscaTargetId, toscaUUID);
-
-                        // Save job related info in runtime_data
-                        saveResourceData();
+                        tii.updateToscaId(toscaTargetId, toscaUUID);                        
                     } else {
                         submitStatus = "ABORTED";
                     }
@@ -360,20 +364,15 @@ public class ToscaIDCInterface {
                         submitStatus = "ABORTED";
                     }
 
-                    toscaCommand.setTargetStatus(submitStatus);
+                    toscaCommand.setTargetStatus(submitStatus);                    
                     simple_tosca_id = tii.registerToscaId(toscaCommand, toscaUUID, submitStatus);
-
-                    // Save job related info in runtime_data
-                    saveResourceData();
+                    
                     _log.debug("Registered in simple_tosca (ToscaIDC) with id: '" + simple_tosca_id + "' - status: '"
                                + submitStatus + "'");
                 }
             } catch (Exception e) {
                 _log.fatal("Unable to register tosca_id: '" + toscaUUID + "'");
             } finally {
-                if (tii != null) {
-                    tii.close();
-                }
                 toscaCommand.Update();
             }
         } catch (SecurityException se) {
@@ -396,35 +395,54 @@ public class ToscaIDCInterface {
         String tosca_parameters="";
         String tosca_parameters_json="";
         String tosca_UUID="";
-        try {
-            String toscaParams[] = toscaParameters.split("&");
-            for(int i=0; i<toscaParams.length; i++) {
-                String param_args[] = toscaParams[i].split("=");
-                if(param_args[0].trim().equals("params")) {
-                    tosca_parameters_json = param_args[1].trim();
-                    tosca_parameters = new String(Files.readAllBytes(Paths.get(tosca_parameters_json)));
-                    break;
+        String toscaParams[] = toscaParameters.split("&");
+        String toscaParameters = "";
+        for(int i=0; i<toscaParams.length; i++) {
+            String param_args[] = toscaParams[i].split("=");
+            if(param_args[0].trim().equals("params")) {                
+                tosca_parameters_json = toscaCommand.getActionInfo() + FS + param_args[1].trim();
+                _log.debug("Loading params json file: '"+tosca_parameters_json+"'");
+                try{
+                   String params_json = new String(Files.readAllBytes(Paths.get(tosca_parameters_json)));
+                   _log.debug("params JSON: '"+params_json+"'");
+                    tosca_parameters = getDocumentValue(params_json,"parameters");
+                    _log.debug("extracted parameters: '"+toscaParameters+"'");
+                } catch (IOException ex) {
+                    _log.error("Parameters json file '"+tosca_parameters_json+"' is not readable");
+                    _log.error(ex);
+                } catch (ParseException ex) {
+                    _log.error("Parameters json file '"+tosca_parameters_json+"' is not parseable");
+                    _log.error(ex);
                 }
+                _log.debug("Parameters json file '"+tosca_parameters_json+"' successfully parsed");
+                break;
             }
-            postData.append("{ \"parameters\": \""+tosca_parameters+"\", \"template\": \"");
-            String tosca_template_content="";
-            
-            _log.debug("Escaping toscaTemplate file '"+toscaTemplate+"'");
-            tosca_template_content = new String(Files.readAllBytes(Paths.get(toscaTemplate))).replace("\n", "\\n"); 
-            postData.append(tosca_template_content);
+        }
+        if(tosca_parameters.length()>0) {
+            toscaParameters = "\"parameters\": \"" + tosca_parameters + "\", ";
+        }                
+        postData.append("{ " + toscaParameters + "\"template\": \"");
+        String tosca_template_content="";
+        _log.debug("Escaping toscaTemplate file '"+toscaTemplate+"'");
+        try {
+            tosca_template_content = new String(Files.readAllBytes(Paths.get(toscaTemplate))).replace("\n", "\\n");             
         } catch (IOException ex) {
              _log.error("Template '"+toscaTemplate+"'is not readable");
+             _log.error(ex);
         }
+        postData.append(tosca_template_content);
         postData.append("\" }");
 
         _log.debug("JSON Data (begin):\n" + postData + "\nJSON Data (end)");
+        
+        
         
         HttpURLConnection conn;
         String orchestratorDoc="";
         try {
             conn = (HttpURLConnection) toscaEndPoint.openConnection();
             conn.setRequestMethod("POST");
-            conn.setRequestProperty ("Authorization","Bearer "+toscaToken);
+            conn.setRequestProperty ("Authorization",toscaToken);
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setRequestProperty("charset", "utf-8");
             conn.setDoOutput(true);
@@ -445,6 +463,8 @@ public class ToscaIDCInterface {
                 orchestratorDoc = orchestrator_result.toString();
                 tosca_UUID = getDocumentValue(orchestratorDoc,"uuid");
                 _log.debug("Created resource has UUID: '"+tosca_UUID+"'");                              
+            } else {
+                _log.warn("Orchestrator return code is: "+conn.getResponseCode());
             }
         } catch (IOException ex) {
             _log.error("Connection error with the service at " + toscaEndPoint.toString());
@@ -473,67 +493,7 @@ public class ToscaIDCInterface {
         for (int i = 0; i < (keyelement.length - 1); i++) {
             jsonObject = (JSONObject) jsonObject.get(keyelement[i]);
         }
-        return (String) jsonObject.get(keyelement[keyelement.length - 1]);
-    }
-    
-    
-    /**
-     *  Read TOSCA resource information json file and stores data in RuntimeData
-     */
-    public void saveResourceData() {
-        String infoFilePath = getInfoFilePath();
-
-        try {
-            InputStream isInfo      = new FileInputStream(infoFilePath);
-            String      jsonTxtInfo = IOUtils.toString(isInfo);
-            org.json.JSONObject  jsonResDesc = (org.json.JSONObject) new org.json.JSONObject(jsonTxtInfo);
-
-            _log.debug("Loaded resource information json:" + LS + jsonResDesc);
-
-            // "ip":"158.42.105.6"
-            String info_ip = String.format("%s", jsonResDesc.getString("ip"));
-
-            _log.debug("info_ip: '" + info_ip + "'");
-            toscaCommand.setRunTimeData("simple_tosca_ip", info_ip, "Resource IP address");
-
-            // "port":22
-            String info_sshport = String.format("%s", "" + jsonResDesc.getInt("port"));
-
-            _log.debug("info_sshport: '" + info_sshport + "'");
-            toscaCommand.setRunTimeData("simple_tosca_sshport", info_sshport, "Resource ssh port address");
-
-            // "username":"root"
-            String info_sshusername = String.format("%s", jsonResDesc.getString("username"));
-
-            _log.debug("info_sshusername: '" + info_sshusername + "'");
-            toscaCommand.setRunTimeData("simple_tosca_sshusername", info_sshusername, "Resource ssh username");
-
-            // "password":"Vqpx3Hm4"
-            String info_sshpassword = String.format("%s", jsonResDesc.getString("password"));
-
-            _log.debug("info_sshpassword: '" + info_sshpassword + "'");
-            toscaCommand.setRunTimeData("simple_tosca_sshpassword", info_sshpassword, "Resource ssh user password");
-
-            // "tosca_id":"13da6aa0-d5a4-415b-ad8b-29ded3d4d006"
-            String info_tosca_id = String.format("%s", jsonResDesc.getString("tosca_id"));
-
-            _log.debug("info_tosca_id: '" + info_tosca_id + "'");
-            toscaCommand.setRunTimeData("simple_tosca_id", info_tosca_id, "TOSCA resource UUID");
-
-            // "job_id":"6f4d8d6c-c879-45aa-9d16-c82ca04688ce#13da6aa0-d5a4-415b-ad8b-29ded3d4d006"
-            String info_job_id = String.format("%s", jsonResDesc.getString("job_id"));
-
-            _log.debug("info_job_id: '" + info_job_id + "'");
-            toscaCommand.setRunTimeData("simple_tosca_jobid", info_job_id, "JSAGA job identifier");
-            _log.debug("Successfully stored all resource data in RunTimeData for task: '" + toscaCommand.getTaskId()
-                       + "'");
-        } catch (FileNotFoundException ex) {
-            _log.error("File not found: '" + infoFilePath + "'");
-        } catch (IOException ex) {
-            _log.error("I/O Exception reading file: '" + infoFilePath + "'");
-        } catch (Exception ex) {
-            _log.error("Caught exception: '" + ex.toString() + "'");
-        }
+        return jsonObject.get(keyelement[keyelement.length - 1]).toString();
     }
     
     // This method returns the job output dir used for this interface
@@ -542,23 +502,20 @@ public class ToscaIDCInterface {
     }
     
     /**
-     * GetStatus of TOSCA submission
+     * Return deployment information of a given toscaUUID
+     * @param toscaUUID
      * @return 
      */
-    public String getStatus() {
-        return "DONE";
-    }
-    
     protected String getToscaDeployment(String toscaUUID) {
         StringBuilder deployment = new StringBuilder();
         HttpURLConnection conn;
+        URL deploymentEndpoint = null;
         try {
             _log.debug("endpoint: '" + toscaEndPoint + "'");
-            URL deploymentEndpoint = new URL(toscaEndPoint.toString() + "/" + toscaUUID);
+            deploymentEndpoint = new URL(toscaEndPoint.toString() + "/" + toscaUUID);
             _log.debug("deploymentEndpoint: '" + deploymentEndpoint + "'");
             conn = (HttpURLConnection) deploymentEndpoint.openConnection();
             conn.setRequestMethod("GET");
-            conn.setRequestProperty ("Authorization","Bearer "+toscaToken);
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setRequestProperty("charset", "utf-8");
             _log.debug("Orchestrator status code: " + conn.getResponseCode());
@@ -572,12 +529,67 @@ public class ToscaIDCInterface {
                 _log.debug("Orchestrator result: " + deployment);
             }
         } catch (IOException ex) {
-            _log.error("Connection error with the service at " + toscaEndPoint.toString());
+            _log.error("Connection error with the service at " + deploymentEndpoint.toString());
             _log.error(ex);
         }
         return deployment.toString();
     }
+    
+    /**
+     * GetStatus of TOSCA submission
+     * @return 
+     */
+    public String getStatus() {
+        _log.debug("Entering IDC getStatus ...");
+        String status = "";
+        try {
+            toscaEndPoint = new URL(toscaCommand.getRunTimeData("tosca_endpoint"));
+        } catch (MalformedURLException ex) {
+            _log.error("Unable to get endpoint from command: '" + toscaCommand + "'");
+        }
+        _log.debug("tosca endpoint: '" + toscaEndPoint + "'");
+        String toscaUUID           = tii.getToscaId(toscaCommand);
+        _log.debug("tosca UUID: '" + toscaUUID + "'");
+        String toscaDeploymentInfo = getToscaDeployment(toscaUUID);
+        _log.debug("tosca deployment info: '" + toscaDeploymentInfo + "'");
+        try {
+          status = getDocumentValue(toscaDeploymentInfo,"status");
+        } catch (ParseException ex) {
+            _log.error("Unable to parse deployment result: '" + toscaDeploymentInfo + "'");
+        }
+        // Do status mapping (orchestrator->JSAGA style)
+        // Check for DONE status; this saves the informative file
+        if(status.equals("CREATE_COMPLETE")) {
+            status = "DONE";
+            // When deployment is done save in runtime data outputs field
+            informtativeFile = getInfoFilePath();
+            try {
+                String outputs = getDocumentValue(toscaDeploymentInfo,"outputs");
+                _log.debug("Output for deployment having UUID: '" + toscaUUID + "' is: '" + outputs + "'");
+                saveInformativeFile(outputs);
+                toscaCommand.setRunTimeData("tosca_outputs", informtativeFile, "TOSCA deployiment outputs field","file://","plain/text");
+                _log.debug("Successfully generated informativeFile at: '" +  informtativeFile + "' and registered it on runtime data");
+            } catch (Exception ex) {
+                _log.error("Unable to parse deployment info: '" + toscaDeploymentInfo + "' looking for outputs field");
+            }
+        }
+        else if(status.equals("CREATE_FAILED"))
+            status = "ABORT";
+        else if(status.equals("CREATE_IN_PROGRESS"))
+            status = "RUNNING";
+        else 
+            status = "UNKNOWN";                    
+        _log.debug("Status of deployment having id: '"+toscaUUID + "' is: '" + status + "'");
+        // Update target status
+        tii.updateToscaStatus(toscaCommand.getTargetId(), status);
+        _log.debug("Leaving IDC getStatus");
+        return status;
+    }
 
+    /**
+     * Delete deployment having the given UUID
+     * @param toscaUUID 
+     */
     protected void deleteToscaDeployment(String toscaUUID) {
         StringBuilder deployment = new StringBuilder();
         HttpURLConnection conn;
@@ -597,7 +609,11 @@ public class ToscaIDCInterface {
             _log.error(ex);
         }
     }
-        
+    
+    /**
+     * Save informative file
+     * @param infoData 
+     */
     protected void saveInformativeFile(String infoData) {
         Writer writer = null;
 

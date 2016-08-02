@@ -125,37 +125,37 @@ public class SimpleToscaInterface {
             String info_ip = String.format("%s", jsonResDesc.getString("ip"));
 
             _log.debug("info_ip: '" + info_ip + "'");
-            toscaCommand.setRunTimeData("simple_tosca_ip", info_ip, "Resource IP address");
+            toscaCommand.setRunTimeData("simple_tosca_ip", info_ip, "Resource IP address","","");
 
             // "port":22
             String info_sshport = String.format("%s", "" + jsonResDesc.getInt("port"));
 
             _log.debug("info_sshport: '" + info_sshport + "'");
-            toscaCommand.setRunTimeData("simple_tosca_sshport", info_sshport, "Resource ssh port address");
+            toscaCommand.setRunTimeData("simple_tosca_sshport", info_sshport, "Resource ssh port address","","");
 
             // "username":"root"
             String info_sshusername = String.format("%s", jsonResDesc.getString("username"));
 
             _log.debug("info_sshusername: '" + info_sshusername + "'");
-            toscaCommand.setRunTimeData("simple_tosca_sshusername", info_sshusername, "Resource ssh username");
+            toscaCommand.setRunTimeData("simple_tosca_sshusername", info_sshusername, "Resource ssh username","","");
 
             // "password":"Vqpx3Hm4"
             String info_sshpassword = String.format("%s", jsonResDesc.getString("password"));
 
             _log.debug("info_sshpassword: '" + info_sshpassword + "'");
-            toscaCommand.setRunTimeData("simple_tosca_sshpassword", info_sshpassword, "Resource ssh user password");
+            toscaCommand.setRunTimeData("simple_tosca_sshpassword", info_sshpassword, "Resource ssh user password","","");
 
             // "tosca_id":"13da6aa0-d5a4-415b-ad8b-29ded3d4d006"
             String info_tosca_id = String.format("%s", jsonResDesc.getString("tosca_id"));
 
             _log.debug("info_tosca_id: '" + info_tosca_id + "'");
-            toscaCommand.setRunTimeData("simple_tosca_id", info_tosca_id, "TOSCA resource UUID");
+            toscaCommand.setRunTimeData("simple_tosca_id", info_tosca_id, "TOSCA resource UUID","","");
 
             // "job_id":"6f4d8d6c-c879-45aa-9d16-c82ca04688ce#13da6aa0-d5a4-415b-ad8b-29ded3d4d006"
             String info_job_id = String.format("%s", jsonResDesc.getString("job_id"));
 
             _log.debug("info_job_id: '" + info_job_id + "'");
-            toscaCommand.setRunTimeData("simple_tosca_jobid", info_job_id, "JSAGA job identifier");
+            toscaCommand.setRunTimeData("simple_tosca_jobid", info_job_id, "JSAGA job identifier","","");
             _log.debug("Successfully stored all resource data in RunTimeData for task: '" + toscaCommand.getTaskId()
                        + "'");
         } catch (FileNotFoundException ex) {

@@ -421,7 +421,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                     switch (status) {
                     case "DONE" :
                         currState = status;
-                        updateOutputPaths(ToscaIDCInterface.getOutputDir());
+                        //updateOutputPaths(ToscaIDCInterface.getOutputDir());                        
 
                         break;
 

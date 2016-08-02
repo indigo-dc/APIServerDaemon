@@ -427,7 +427,7 @@ public class APIServerDaemonCommand {
      * @param rtdValue Key value
      * @param rtdDesc Key description
      */
-    void setRunTimeData(String rtdKey, String rtdValue, String rtdDesc) {
+    void setRunTimeData(String rtdKey, String rtdValue, String rtdDesc, String rtdProto, String rtdType) {
         APIServerDaemonDB asdDB = null;
 
         if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
@@ -439,7 +439,7 @@ public class APIServerDaemonCommand {
         try {
             _log.debug("Opening connection for set command' runtime data");
             asdDB = new APIServerDaemonDB(asdConnectionURL);
-            asdDB.setRunTimeData(rtdKey, rtdValue, rtdDesc, this);
+            asdDB.setRunTimeData(rtdKey, rtdValue, rtdDesc, rtdProto, rtdType, this);
             _log.debug("Set run time data (key=" + rtdKey + ", value=" + rtdValue + ") to the given command:" + LS
                        + toString());
         } catch (Exception e) {
@@ -452,6 +452,44 @@ public class APIServerDaemonCommand {
 
             _log.debug("Closing connection for set command' runtime data");
         }
+    }
+    
+    /**
+     * Retrieve keyValue from a given keyName in runtime_data table
+     * This function is used by adaptors to store resource related
+     * information relative to the current task
+     * @param rtdKey Key name
+     * @param rtdValue Key value
+     * @param rtdDesc Key description
+     */
+    public String getRunTimeData(String rtdKey) {
+        String rtdValue="";
+        APIServerDaemonDB asdDB = null;
+
+        if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
+            _log.error("Command with no connection URL defined" + LS + toString());
+
+            return rtdValue;
+        }
+
+        try {
+            _log.debug("Opening connection for get command' runtime data");
+            asdDB = new APIServerDaemonDB(asdConnectionURL);
+            rtdValue = asdDB.getRunTimeData(rtdKey,this);
+            _log.debug("Run time data for key = '" + rtdKey + "' has value = '" + rtdValue + "') from the given command:" + LS
+                       + toString());
+        } catch (Exception e) {
+            _log.fatal("Unable get run time data (key = '" + rtdKey + "', value = '" + rtdValue + "') from the given command:"
+                       + LS + toString());
+        } finally {
+            if (asdDB != null) {
+                asdDB.close();
+            }
+
+            _log.debug("Closing connection for set command' runtime data");
+        }
+        
+        return rtdValue;
     }
 
     /**
