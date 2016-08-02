@@ -21,7 +21,7 @@
  * @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
 ***************************************************************************
  */
-package java.it.infn.ct;
+package it.infn.ct;
 
 import java.lang.Runtime;
 
@@ -278,7 +278,11 @@ public class APIServerDaemonCheckCommand implements Runnable {
 
                 // Disable at the moment consistency check
                 taskConsistencyCheck("PROCESSING");
-            }    /*
+            } else if (asdCommand.getTarget().equals("ToscaIDC")) {
+
+                // Disable at the moment consistency check
+                taskConsistencyCheck("PROCESSING");
+            }    /*  
                   *  else if(asdCommand.getTarget().equals(<other targets>)) {
                   * // Get/Use targetId to check task submission
                   * // If targetId does not appear after a long while check consistency
@@ -372,6 +376,52 @@ public class APIServerDaemonCheckCommand implements Runnable {
                     case "DONE" :
                         currState = status;
                         updateOutputPaths(SimpleToscaInterface.getOutputDir());
+
+                        break;
+
+                    case "RUNNING" :
+
+                        // as_queue status field must remain 'PROCESSED'
+                        // currState = status;
+                        break;
+
+                    default :
+                        asdCommand.setTargetStatus(status);
+                        _log.warn("Unhandled status: '" + status + "'");
+
+                        break;
+                    }
+                } else {
+                    _log.warn("No status available yet");
+
+                    // No status is available - check consistency ...
+                    taskConsistencyCheck("PROCESSED");
+
+                    if (!asdCommand.getStatus().equals("HOLD")) {
+                        currState = asdCommand.getStatus();
+                    }
+                }
+
+                asdCommand.setStatus(currState);    // Setup the current state
+                asdCommand.Update();
+            } else if (asdCommand.getTarget().equals("ToscaIDC")) {
+
+                // Determine the status and take care of the output files
+                ToscaIDCInterface tidcInterface = new ToscaIDCInterface(asdConfig, asdCommand);                
+                String                currState = asdCommand.getStatus();    // Register the current status (PROCESSED)
+
+                asdCommand.setStatus("HOLD");    // Avoid during check that futher checks occur
+                asdCommand.Update();
+
+                String status = tidcInterface.getStatus();
+
+                if ((status != null) && (status.length() > 0)) {
+                    asdCommand.setTargetStatus(status);
+
+                    switch (status) {
+                    case "DONE" :
+                        currState = status;
+                        //updateOutputPaths(ToscaIDCInterface.getOutputDir());                        
 
                         break;
 
