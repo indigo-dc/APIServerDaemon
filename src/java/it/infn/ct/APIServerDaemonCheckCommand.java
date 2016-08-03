@@ -172,9 +172,9 @@ public class APIServerDaemonCheckCommand implements Runnable {
         } catch (Exception e) {
             _log.fatal("Unable to remove task entries for command:" + LS + asdCommand + LS + e.toString());
         } finally {
-            if (asdDB != null) {
-                asdDB.close();
-            }
+            //if (asdDB != null) {
+            //    asdDB.close();
+            //}
         }
     }
 
@@ -516,9 +516,9 @@ public class APIServerDaemonCheckCommand implements Runnable {
             // _log.severe("Unable release command:"+LS+asdCommand
             _log.fatal("Unable release command:" + LS + asdCommand + LS + e.toString());
         } finally {
-            if (asdDB != null) {
-                asdDB.close();
-            }
+            //if (asdDB != null) {
+            //    asdDB.close();
+            //}
         }
     }
 

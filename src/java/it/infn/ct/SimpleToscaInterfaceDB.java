@@ -103,7 +103,7 @@ public class SimpleToscaInterfaceDB {
 
     /**
      * Close all db opened elements: resultset,statement,cursor,connection
-     */
+     *
     public void close() {
         closeSQLActivity();
 
@@ -119,7 +119,8 @@ public class SimpleToscaInterfaceDB {
 
         _log.info("Closed DB: '" + this.connectionURL + "'");
     }
-
+    */
+    
     /**
      * Close all db opened elements except the connection
      */
@@ -142,8 +143,14 @@ public class SimpleToscaInterfaceDB {
                 preparedStatement.close();
                 preparedStatement = null;
             }
+            
+            if (connect != null) {
+                _log.debug("closing connect");
+                connect.close();
+                connect = null;
+            }
         } catch (SQLException e) {
-            _log.fatal("Unable to close SQLActivities (resultSet, statement, preparedStatement)");
+            _log.fatal("Unable to close SQLActivities (resultSet, statement, preparedStatement, connect)");
             _log.fatal(e.toString());
         }
     }

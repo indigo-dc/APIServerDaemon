@@ -144,7 +144,7 @@ public class APIServerDaemonDB {
 
     /**
      * Close all db opened elements: resultset,statement,cursor,connection
-     */
+     *
     public void close() {
         closeSQLActivity();
 
@@ -161,6 +161,7 @@ public class APIServerDaemonDB {
 
         _log.debug("Closed DB: '" + this.connectionURL + "'");
     }
+    */
 
     /**
      * Close all db opened elements except the connection
@@ -184,8 +185,14 @@ public class APIServerDaemonDB {
                 preparedStatement.close();
                 preparedStatement = null;
             }
+            
+            if (connect != null) {
+                _log.debug("closing connect");
+                connect.close();
+                connect = null;
+            }
         } catch (SQLException e) {
-            _log.fatal("Unable to close SQLActivities (resultSet, statement, preparedStatement)");
+            _log.fatal("Unable to close SQLActivities (resultSet, statement, preparedStatement,connect)");
             _log.fatal(e.toString());
         }
     }
@@ -276,9 +283,12 @@ public class APIServerDaemonDB {
             statement.execute(sql);
 
             // Update command values into as_queue table
-            sql = "update as_queue set target_id = ?" + LS + "                   ,status = ?" + LS
-                  + "                   ,target_status = ?" + LS + "                   ,last_change = now()" + LS
-                  + "where task_id=?" + LS + "  and action=?";
+            sql = "update as_queue set target_id = ?" + LS +
+                  "                   ,status = ?" + LS +
+                  "                   ,target_status = ?" + LS + 
+                  "                   ,last_change = now()" + LS + 
+                  "where task_id=?" + LS + 
+                  "  and action=?";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, command.getTargetId());
             preparedStatement.setString(2, command.getStatus());

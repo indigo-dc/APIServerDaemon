@@ -120,11 +120,10 @@ public class APIServerDaemonCommand {
             } catch (Exception e) {
                 _log.fatal("Unable to update command:" + LS + this.toString() + LS + e.toString());
             } finally {
-                if (asdDB != null) {
-                    asdDB.close();
-                }
-
-                _log.debug("Closing connection for update command");
+                //if (asdDB != null) {
+                //    asdDB.close();
+                //}
+                //_log.debug("Closing connection for update command");
             }
         }
     }
@@ -149,11 +148,10 @@ public class APIServerDaemonCommand {
         } catch (Exception e) {
             _log.fatal("Unable to update check timestamp for command:" + LS + this.toString() + LS + e.toString());
         } finally {
-            if (asdDB != null) {
-                asdDB.close();
-            }
-
-            _log.debug("Closing connection for chekupdate command");
+            //if (asdDB != null) {
+            //    asdDB.close();
+            //}
+            //_log.debug("Closing connection for chekupdate command");
         }
     }
 
@@ -189,11 +187,10 @@ public class APIServerDaemonCommand {
         } catch (Exception e) {
             _log.fatal("Unable retry task related to given command:" + LS + this.toString());
         } finally {
-            if (asdDB != null) {
-                asdDB.close();
-            }
-
-            _log.debug("Closing connection for update command");
+            //if (asdDB != null) {
+            //    asdDB.close();
+            //}
+            //_log.debug("Closing connection for update command");
         }
     }
 
@@ -246,11 +243,10 @@ public class APIServerDaemonCommand {
         } catch (Exception e) {
             _log.fatal("Unable trash task related to given command:" + LS + this.toString());
         } finally {
-            if (asdDB != null) {
-                asdDB.close();
-            }
-
-            _log.debug("Closing connection for trash command");
+            //if (asdDB != null) {
+            //    asdDB.close();
+            //
+            //_log.debug("Closing connection for trash command");
         }
     }
 
@@ -446,11 +442,10 @@ public class APIServerDaemonCommand {
             _log.fatal("Unable set run time data (key=" + rtdKey + ", value=" + rtdValue + ") to the given command:"
                        + LS + toString());
         } finally {
-            if (asdDB != null) {
-                asdDB.close();
-            }
-
-            _log.debug("Closing connection for set command' runtime data");
+            //if (asdDB != null) {
+            //    asdDB.close();
+            //}
+            //_log.debug("Closing connection for set command' runtime data");
         }
     }
     
@@ -482,11 +477,10 @@ public class APIServerDaemonCommand {
             _log.fatal("Unable get run time data (key = '" + rtdKey + "', value = '" + rtdValue + "') from the given command:"
                        + LS + toString());
         } finally {
-            if (asdDB != null) {
-                asdDB.close();
-            }
-
-            _log.debug("Closing connection for set command' runtime data");
+            //if (asdDB != null) {
+            //    asdDB.close();
+            //}
+            //_log.debug("Closing connection for set command' runtime data");
         }
         
         return rtdValue;

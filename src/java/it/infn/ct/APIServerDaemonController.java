@@ -141,9 +141,9 @@ public class APIServerDaemonController extends Observable implements Runnable {
                 /* Do something */
                 _log.fatal("Unable to get APIServer commands");
             } finally {
-                if (asdDB != null) {
-                    asdDB.close();
-                }
+                //if (asdDB != null) {
+                //    asdDB.close();
+                //}
             }
 
             /*

@@ -175,11 +175,10 @@ public class APIServerDaemonServlet extends HttpServlet {
         } catch (Exception e) {
             _log.fatal("Unable retry task related to given command:" + LS + this.toString());
         } finally {
-            if (asdDB != null) {
-                asdDB.close();
-            }
-
-            _log.debug("Closing connection for update command");
+            //if (asdDB != null) {
+            //    asdDB.close();
+            //}
+            //_log.debug("Closing connection for update command");
         }
     }
 

@@ -147,9 +147,9 @@ public class GridEngineInterface {
         } catch (Exception e) {
             _log.fatal("Unable get command status:" + LS + gedCommand + LS + e.toString());
         } finally {
-            if (geiDB != null) {
-                geiDB.close();
-            }
+            //if (geiDB != null) {
+            //    geiDB.close();
+            //}
         }
 
         return jobStatus;
@@ -461,9 +461,9 @@ public class GridEngineInterface {
         } catch (Exception e) {
             _log.fatal("Unable get id:" + LS + gedCommand + LS + e.toString());
         } finally {
-            if (geiDB != null) {
-                geiDB.close();
-            }
+            //if (geiDB != null) {
+            //    geiDB.close();
+            //}
         }
 
         return agi_id;
@@ -525,9 +525,9 @@ public class GridEngineInterface {
         } catch (Exception e) {
             _log.fatal("Unable get job description for command:" + LS + gedCommand + LS + e.toString());
         } finally {
-            if (geiDB != null) {
-                geiDB.close();
-            }
+            //if (geiDB != null) {
+            //    geiDB.close();
+            //}
         }
 
         return jobDesc;
@@ -975,9 +975,9 @@ public class GridEngineInterface {
         } catch (Exception e) {
             _log.fatal("Unable delete ActiveGridInteraction entry for id " + agi_id + "command" + LS + e.toString());
         } finally {
-            if (geiDB != null) {
-                geiDB.close();
-            }
+            //if (geiDB != null) {
+            //    geiDB.close();
+            //}
         }
     }
 }

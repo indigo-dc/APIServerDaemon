@@ -140,9 +140,9 @@ class APIServerDaemonPolling implements Runnable {
             } catch (Exception e) {
                 _log.fatal("Unable to get APIServer commands");
             } finally {
-                if (asdDB != null) {
-                    asdDB.close();
-                }
+                //if (asdDB != null) {
+                //    asdDB.close();
+                //}
             }
 
             /*

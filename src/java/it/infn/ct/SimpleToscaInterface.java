@@ -536,9 +536,9 @@ public class SimpleToscaInterface {
             } catch (Exception e) {
                 _log.fatal("Unable to register tosca_id: '" + tosca_id + "'");
             } finally {
-                if (stiDB != null) {
-                    stiDB.close();
-                }
+                //if (stiDB != null) {
+                //    stiDB.close();
+                //}
                 toscaCommand.Update();
             }
         } catch (SecurityException se) {
@@ -739,9 +739,9 @@ public class SimpleToscaInterface {
                     stiDB.updateToscaStatus(toscaCommand.getTargetId(), status);
                 } catch (Exception ex) {}
                 finally {
-                    if (stiDB != null) {
-                        stiDB.close();
-                    }
+                    //if (stiDB != null) {
+                    //    stiDB.close();
+                    //}
                 }
             }
         } else {
@@ -767,9 +767,9 @@ public class SimpleToscaInterface {
         } catch (Exception e) {
             _log.error("Unable to get tosca_id for task_id: '" + toscaCommand.getTaskId() + "'");
         } finally {
-            if (stiDB != null) {
-                stiDB.close();
-            }
+            //if (stiDB != null) {
+            //    stiDB.close();
+            //}
         }
 
         _log.debug("tosca_id: '" + toscaId + "'");
