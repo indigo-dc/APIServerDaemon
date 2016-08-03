@@ -176,7 +176,7 @@ public class ToscaIDCInterfaceDB {
     // @param toscaCommand
     // @oaram toscaId
     //
-    public int registerToscaId(APIServerDaemonCommand toscaCommand, String toscaId, String status) {
+    public int registerToscaId(APIServerDaemonCommand toscaCommand, String toscaId, String toscaEndPoint, String status) {
         int tosca_id = 0;
 
         if (!connect()) {
@@ -189,21 +189,22 @@ public class ToscaIDCInterfaceDB {
             String sql;
 
             // Lock ge_queue table first
-            sql       = "lock tables simple_tosca write, simple_tosca as st read;";
+            sql       = "lock tables tosca_idc write, tosca_idc as st read;";
             statement = connect.createStatement();
             statement.execute(sql);
 
-            // Insert new entry for simple tosca
-            sql = "insert into simple_tosca (id,task_id, tosca_id, tosca_status, creation, last_change)" + LS
-                  + "select (select if(max(id)>0,max(id)+1,1) from simple_tosca st),?,?,?,now(),now();";
+            // Insert new entry for tosca_idc
+            sql = "insert into tosca_idc (id,task_id, tosca_id, tosca_endpoint, tosca_status, creation, last_change)" + LS
+                  + "select (select if(max(id)>0,max(id)+1,1) from tosca_idc st),?,?,?,?,now(),now();";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, toscaCommand.getTaskId());
             preparedStatement.setString(2, toscaId);
-            preparedStatement.setString(3, status);
+            preparedStatement.setString(3, toscaEndPoint);
+            preparedStatement.setString(4, status);
             preparedStatement.execute();
 
             // Get the new Id
-            sql               = "select id from simple_tosca where tosca_id = ?;";
+            sql               = "select id from tosca_idc where tosca_id = ?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setString(1, toscaId);
             resultSet = preparedStatement.executeQuery();
@@ -225,8 +226,8 @@ public class ToscaIDCInterfaceDB {
     }
 
     /**
-     * Update the toscaId value into an existing simple_tosca record
-     * @param ToscaIDC id record index in simple_tosca table
+     * Update the toscaId value into an existing tosca_idc record
+     * @param ToscaIDC id record index in tosca_idc table
      * @oaram toscaUUID tosca submission UUID field
      */
     public void updateToscaId(int toscaIDCId, String toscaUUID) {
@@ -240,12 +241,12 @@ public class ToscaIDCInterfaceDB {
             String sql;
 
             // Lock ge_queue table first
-            sql       = "lock tables simple_tosca write;";
+            sql       = "lock tables tosca_idc write;";
             statement = connect.createStatement();
             statement.execute(sql);
 
             // Insert new entry for simple tosca
-            sql = "update simple_tosca set tosca_id=?, tosca_status='SUBMITTED', creation=now(), last_change=now() where id=?;";
+            sql = "update tosca_idc set tosca_id=?, tosca_status='SUBMITTED', creation=now(), last_change=now() where id=?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setString(1, toscaUUID);
             preparedStatement.setInt(2, toscaIDCId);
@@ -260,8 +261,8 @@ public class ToscaIDCInterfaceDB {
     }
 
     /**
-     * Update the tosca status value into an existing simple_tosca record
-     * @param ToscaIDCId record index in simple_tosca table
+     * Update the tosca status value into an existing tosca_idc record
+     * @param ToscaIDCId record index in tosca_idc table
      * @oaram toscaStatus tosca submission status
      */
     public void updateToscaStatus(int simpleToscaId, String toscaStatus) {
@@ -275,12 +276,12 @@ public class ToscaIDCInterfaceDB {
             String sql;
 
             // Lock ge_queue table first
-            sql       = "lock tables simple_tosca write;";
+            sql       = "lock tables tosca_idc write;";
             statement = connect.createStatement();
             statement.execute(sql);
 
             // Insert new entry for simple tosca
-            sql               = "update simple_tosca set tosca_status=?, last_change=now() where id=?;";
+            sql               = "update tosca_idc set tosca_status=?, last_change=now() where id=?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setString(1, toscaStatus);
             preparedStatement.setInt(2, simpleToscaId);
@@ -319,7 +320,7 @@ public class ToscaIDCInterfaceDB {
         try {
             String sql;
 
-            sql               = "select tosca_id" + LS + "from simple_tosca" + LS + "where task_id = ?;";
+            sql               = "select tosca_id" + LS + "from tosca_idc" + LS + "where task_id = ?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, toscaCommand.getTaskId());
             resultSet = preparedStatement.executeQuery();
@@ -334,6 +335,42 @@ public class ToscaIDCInterfaceDB {
         }
 
         return toscaId;
+    }
+    
+    /**
+     * Get toscaEndPoint
+     * @param toscaCommand
+     * @return toscaid
+     */
+    public String toscaEndPoint(APIServerDaemonCommand toscaCommand) {
+        String toscaEndPoint = "";
+
+        if (!connect()) {
+            _log.fatal("Not connected to database");
+
+            return toscaEndPoint;
+        }
+
+        try {
+            String sql;
+
+            sql               = "select tosca_endpoint" + LS + 
+                                "from tosca_idc" + LS + 
+                                "where task_id = ?;";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt(1, toscaCommand.getTaskId());
+            resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                toscaEndPoint = resultSet.getString("tosca_endpoint");
+            }
+        } catch (SQLException e) {
+            _log.fatal(e.toString());
+        } finally {
+            closeSQLActivity();
+        }
+
+        return toscaEndPoint;
     }
 
     /**

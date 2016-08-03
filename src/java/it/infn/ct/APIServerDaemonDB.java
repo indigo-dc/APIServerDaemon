@@ -352,11 +352,22 @@ public class APIServerDaemonDB {
             sql       = "lock tables as_queue read;";
             statement = connect.createStatement();
             statement.execute(sql);
-            sql = "select task_id" + LS + "      ,target_id" + LS + "      ,target" + LS + "      ,action" + LS
-                  + "      ,status" + LS + "      ,target_status" + LS + "      ,retry" + LS + "      ,creation" + LS
-                  + "      ,last_change" + LS + "      ,check_ts" + LS + "      ,action_info" + LS + "from as_queue"
-                  + LS + "where status = 'PROCESSING'" + LS + "  or status = 'PROCESSED'" + LS
-                  + "order by check_ts asc" + LS + "limit ?" + LS + ";";
+            sql = "select task_id" + LS +
+                  "      ,target_id" + LS + 
+                  "      ,target" + LS + 
+                  "      ,action" + LS + 
+                  "      ,status" + LS + 
+                  "      ,target_status" + LS + 
+                  "      ,retry" + LS + 
+                  "      ,creation" + LS +
+                  "      ,last_change" + LS + 
+                  "      ,check_ts" + LS + 
+                  "      ,action_info" + LS + 
+                  "from as_queue" + LS + 
+                  "where status = 'PROCESSING'" + LS + 
+                  "   or status = 'PROCESSED'" + LS +
+                  "order by check_ts asc" + LS +
+                  "limit ?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, maxCommands);
             resultSet = preparedStatement.executeQuery();

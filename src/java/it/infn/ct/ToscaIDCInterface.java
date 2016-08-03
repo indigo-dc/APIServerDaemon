@@ -182,35 +182,35 @@ public class ToscaIDCInterface {
                 String param_value = appParameter.getString("param_value");
 
                 switch (param_name) {
-                case "target_executor" :
-                    _log.debug("target_executor: '" + param_value + "'");
-                    break;
+                    case "target_executor" :
+                        _log.debug("target_executor: '" + param_value + "'");
+                        break;
 
-                case "jobdesc_executable" :
-                    executable = param_value;
-                    _log.debug("executable: '" + executable + "'");
-                    break;
+                    case "jobdesc_executable" :
+                        executable = param_value;
+                        _log.debug("executable: '" + executable + "'");
+                        break;
 
-                case "jobdesc_output" :
-                    output = param_value;
-                    _log.debug("output: '" + output + "'");
-                    break;
+                    case "jobdesc_output" :
+                        output = param_value;
+                        _log.debug("output: '" + output + "'");
+                        break;
 
-                case "jobdesc_error" :
-                    error = param_value;
-                    _log.debug("error: '" + error + "'");
-                    break;
+                    case "jobdesc_error" :
+                        error = param_value;
+                        _log.debug("error: '" + error + "'");
+                        break;
 
-                case "jobdesc_arguments" :
-                    arguments = param_value;
-                    _log.debug("arguments: '" + arguments + "'");
-                    break;
+                    case "jobdesc_arguments" :
+                        arguments = param_value;
+                        _log.debug("arguments: '" + arguments + "'");
+                        break;
 
-                default :
-                    _log.warn("Unsupported application parameter name: '"
-                              + param_name + "' with value: '"
-                              + param_value + "'");
-                }
+                    default :
+                        _log.warn("Unsupported application parameter name: '"
+                                  + param_name + "' with value: '"
+                                  + param_value + "'");
+                    }
             }
 
             // Arguments
@@ -365,7 +365,7 @@ public class ToscaIDCInterface {
                     }
 
                     toscaCommand.setTargetStatus(submitStatus);                    
-                    simple_tosca_id = tii.registerToscaId(toscaCommand, toscaUUID, submitStatus);
+                    simple_tosca_id = tii.registerToscaId(toscaCommand, toscaUUID, toscaEndPoint.toString(), submitStatus);
                     
                     _log.debug("Registered in simple_tosca (ToscaIDC) with id: '" + simple_tosca_id + "' - status: '"
                                + submitStatus + "'");
@@ -432,11 +432,8 @@ public class ToscaIDCInterface {
         }
         postData.append(tosca_template_content);
         postData.append("\" }");
-
         _log.debug("JSON Data (begin):\n" + postData + "\nJSON Data (end)");
-        
-        
-        
+                
         HttpURLConnection conn;
         String orchestratorDoc="";
         try {
@@ -541,9 +538,10 @@ public class ToscaIDCInterface {
      */
     public String getStatus() {
         _log.debug("Entering IDC getStatus ...");
-        String status = "";
+        String status = toscaCommand.getTargetStatus();
         try {
-            toscaEndPoint = new URL(toscaCommand.getRunTimeData("tosca_endpoint"));
+            //toscaEndPoint = new URL(toscaCommand.getRunTimeData("tosca_endpoint"));
+            toscaEndPoint = new URL(tii.toscaEndPoint(toscaCommand));
         } catch (MalformedURLException ex) {
             _log.error("Unable to get endpoint from command: '" + toscaCommand + "'");
         }
@@ -578,7 +576,8 @@ public class ToscaIDCInterface {
         else if(status.equals("CREATE_IN_PROGRESS"))
             status = "RUNNING";
         else 
-            status = "UNKNOWN";                    
+            //status = "UNKNOWN";
+            _log.error("Unhespected ToscaIDC status: '" + status + "'");
         _log.debug("Status of deployment having id: '"+toscaUUID + "' is: '" + status + "'");
         // Update target status
         tii.updateToscaStatus(toscaCommand.getTargetId(), status);
