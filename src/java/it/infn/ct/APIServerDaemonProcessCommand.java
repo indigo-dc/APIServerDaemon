@@ -28,11 +28,11 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 /**
- * Runnable class responsible to execute APIServerDaemon commands
- * This class does not handle directly APIServer API calls but rather
- * uses <target>Interface class instances
- * The use of interface classes allow targeting other command
- * executor services
+ * Runnable class responsible to execute APIServerDaemon commands This class
+ * does not handle directly APIServer API calls but rather uses
+ * <target>Interface class instances The use of interface classes allow
+ * targeting other command executor services
+ * 
  * @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
  * @see GridEngineInterface
  */
@@ -42,76 +42,77 @@ class APIServerDaemonProcessCommand implements Runnable {
      * Logger
      */
     private static final Logger _log = Logger.getLogger(APIServerDaemonProcessCommand.class.getName());
-    public static final String  LS   = System.getProperty("line.separator");
-    APIServerDaemonCommand      asdCommand;
-    String                      asdConnectionURL;
+    public static final String LS = System.getProperty("line.separator");
+    APIServerDaemonCommand asdCommand;
+    String asdConnectionURL;
 
     /*
      * APIServerDaemon config
      */
     APIServerDaemonConfig asdConfig;
-    String                threadName;
+    String threadName;
 
     /**
      * Supported commands
      */
-    private enum Commands { CLEAN, SUBMIT, GETSTATUS    // This command is directly handled by GE API Server
-            , GETOUTPUT                                 // This command is directly handled by GE API Server
-            , JOBCANCEL }
+    private enum Commands {
+	CLEAN, SUBMIT, GETSTATUS // This command is directly handled by GE API
+				 // Server
+	, GETOUTPUT // This command is directly handled by GE API Server
+	, JOBCANCEL
+    }
 
     /**
-     * Constructor that retrieves the command to execute and the
-     * APIServerDaemon database connection URL, necessary to finalize
-     * executed commands
+     * Constructor that retrieves the command to execute and the APIServerDaemon
+     * database connection URL, necessary to finalize executed commands
+     * 
      * @param asdCommand
      * @param asdConnectionURL
      */
     public APIServerDaemonProcessCommand(APIServerDaemonCommand asdCommand, String gedConnectionURL) {
-        this.asdCommand       = asdCommand;
-        this.asdConnectionURL = gedConnectionURL;
-        this.threadName       = Thread.currentThread().getName();
+	this.asdCommand = asdCommand;
+	this.asdConnectionURL = gedConnectionURL;
+	this.threadName = Thread.currentThread().getName();
     }
 
     /**
-     * Execute a GridEngineDaemon 'clean' command; just set PROCESSED
-     * so that the Controller can process it
+     * Execute a GridEngineDaemon 'clean' command; just set PROCESSED so that
+     * the Controller can process it
      */
     private void clean() {
-        _log.debug("Clean command: " + asdCommand);
+	_log.debug("Clean command: " + asdCommand);
 
-        if (asdCommand.getTarget().equals("GridEngine")) {
-            GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
+	if (asdCommand.getTarget().equals("GridEngine")) {
+	    GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
 
-            asdCommand.setStatus("PROCESSED");
-            asdCommand.Update();
-        }    /*
-              *  else if(asdCommand.getTarget().equals(<other targets>)) {
-              * }
-              */
-        else {
-            _log.error("Unsupported target: '" + asdCommand.getTarget() + "'");
-        }
+	    asdCommand.setStatus("PROCESSED");
+	    asdCommand.Update();
+	} /*
+	   * else if(asdCommand.getTarget().equals(<other targets>)) { }
+	   */
+	else {
+	    _log.error("Unsupported target: '" + asdCommand.getTarget() + "'");
+	}
     }
 
     /**
      * Execute a GridEngineDaemon 'job cancel' command
      */
     private void jobCancel() {
-        _log.debug("Job cancel command: " + asdCommand);
+	_log.debug("Job cancel command: " + asdCommand);
 
-        if (asdCommand.getTarget().equals("GridEngine")) {
-            GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
+	if (asdCommand.getTarget().equals("GridEngine")) {
+	    GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
 
-            geInterface.jobCancel();
-            asdCommand.setStatus("PROCESSED");
-            asdCommand.Update();
-        }    /*
-              *  else if(asdCommand.getTarget().equals(<other targets>)) {
-              * }
-              */
-        else {
-            _log.error("Unsupported target: '" + asdCommand.getTarget() + "'");
-        }
+	    geInterface.jobCancel();
+	    asdCommand.setStatus("PROCESSED");
+	    asdCommand.Update();
+	} /*
+	   * else if(asdCommand.getTarget().equals(<other targets>)) { }
+	   */
+	else {
+	    _log.error("Unsupported target: '" + asdCommand.getTarget() + "'");
+	}
     }
 
     /**
@@ -119,41 +120,41 @@ class APIServerDaemonProcessCommand implements Runnable {
      */
     @Override
     public void run() {
-        _log.info("EXECUTING command: " + asdCommand);
+	_log.info("EXECUTING command: " + asdCommand);
 
-        switch (Commands.valueOf(asdCommand.getAction())) {
-        case CLEAN :
-            clean();
+	switch (Commands.valueOf(asdCommand.getAction())) {
+	case CLEAN:
+	    clean();
 
-            break;
+	    break;
 
-        case SUBMIT :
-            submit();
+	case SUBMIT:
+	    submit();
 
-            break;
+	    break;
 
-        case GETSTATUS :
-            getStatus();
+	case GETSTATUS:
+	    getStatus();
 
-            break;
+	    break;
 
-        case GETOUTPUT :
-            getOutput();
+	case GETOUTPUT:
+	    getOutput();
 
-            break;
+	    break;
 
-        case JOBCANCEL :
-            jobCancel();
+	case JOBCANCEL:
+	    jobCancel();
 
-            break;
+	    break;
 
-        default :
-            _log.warn("Unsupported command: '" + asdCommand.getAction() + "'");
+	default:
+	    _log.warn("Unsupported command: '" + asdCommand.getAction() + "'");
 
-            // Set a final state for this command
-            // todo ...
-            break;
-        }
+	    // Set a final state for this command
+	    // todo ...
+	    break;
+	}
     }
 
     /*
@@ -164,103 +165,102 @@ class APIServerDaemonProcessCommand implements Runnable {
      * Execute a GridEngineDaemon 'submit' command
      */
     private void submit() {
-        _log.debug("Submitting command: " + asdCommand 
-                + " - for target: '" + asdCommand.getTarget() + "'");
+	_log.debug("Submitting command: " + asdCommand + " - for target: '" + asdCommand.getTarget() + "'");
 
-        switch (asdCommand.getTarget()) {
-        case "GridEngine" :
-            GridEngineInterface geInterface = new GridEngineInterface(asdConfig, asdCommand);
-            int                 AGIId       = geInterface.jobSubmit();    // Currently this returns 0
+	switch (asdCommand.getTarget()) {
+	case "GridEngine":
+	    GridEngineInterface geInterface = new GridEngineInterface(asdConfig, asdCommand);
+	    int AGIId = geInterface.jobSubmit(); // Currently this returns 0
 
-            // AGIId is taken from checkCommand loop
-            asdCommand.setStatus("PROCESSED");
-            asdCommand.Update();
-            _log.debug("Submitted command (GridEngine): " + asdCommand.toString());
+	    // AGIId is taken from checkCommand loop
+	    asdCommand.setStatus("PROCESSED");
+	    asdCommand.Update();
+	    _log.debug("Submitted command (GridEngine): " + asdCommand.toString());
 
-            break;
+	    break;
 
-        case "SimpleTosca" :
-            SimpleToscaInterface stInterface     = new SimpleToscaInterface(asdConfig, asdCommand);
-            int                  simple_tosca_id = stInterface.submitTosca();
+	case "SimpleTosca":
+	    SimpleToscaInterface stInterface = new SimpleToscaInterface(asdConfig, asdCommand);
+	    int simple_tosca_id = stInterface.submitTosca();
 
-            asdCommand.setTargetId(simple_tosca_id);
-            asdCommand.setStatus("PROCESSED");
-            asdCommand.Update();
-            _log.debug("Submitted command (SimpleTosca): " + asdCommand.toString());
+	    asdCommand.setTargetId(simple_tosca_id);
+	    asdCommand.setStatus("PROCESSED");
+	    asdCommand.Update();
+	    _log.debug("Submitted command (SimpleTosca): " + asdCommand.toString());
 
-            break;
-            
-        case "ToscaIDC" :
-            ToscaIDCInterface tidcInterface = new ToscaIDCInterface(asdConfig, asdCommand);
-            int               toscaIDC_id   = tidcInterface.submitTosca();
+	    break;
 
-            asdCommand.setTargetId(toscaIDC_id);
-            asdCommand.setStatus("PROCESSED");
-            asdCommand.Update();
-            _log.debug("Submitted command (ToscaIDC): " + asdCommand.toString());
+	case "ToscaIDC":
+	    ToscaIDCInterface tidcInterface = new ToscaIDCInterface(asdConfig, asdCommand);
+	    int toscaIDC_id = tidcInterface.submitTosca();
 
-            break;
+	    asdCommand.setTargetId(toscaIDC_id);
+	    asdCommand.setStatus("PROCESSED");
+	    asdCommand.Update();
+	    _log.debug("Submitted command (ToscaIDC): " + asdCommand.toString());
 
-        // case "<other_target>"
-        // break;
-        default :
-            _log.error("Unsupported target: '" + asdCommand.getTarget() + "'");
+	    break;
 
-            break;
-        }
+	// case "<other_target>"
+	// break;
+	default:
+	    _log.error("Unsupported target: '" + asdCommand.getTarget() + "'");
+
+	    break;
+	}
     }
 
     /**
      * Load APIServerDaemon configuration settings
-     * @param asdConfig APIServerDaemon configuration object
+     * 
+     * @param asdConfig
+     *            APIServerDaemon configuration object
      */
     public void setConfig(APIServerDaemonConfig asdConfig) {
 
-        // Save all configs
-        this.asdConfig = asdConfig;
+	// Save all configs
+	this.asdConfig = asdConfig;
     }
 
     /**
-     * Execute a GridEngineDaemon 'get output' command
-     * Asynchronous GETOUTPUT commands should never come here
+     * Execute a GridEngineDaemon 'get output' command Asynchronous GETOUTPUT
+     * commands should never come here
      */
     private void getOutput() {
-        _log.debug("Get output command: " + asdCommand);
+	_log.debug("Get output command: " + asdCommand);
 
-        if (asdCommand.getTarget().equals("GridEngine")) {
-            GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
+	if (asdCommand.getTarget().equals("GridEngine")) {
+	    GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
 
-            asdCommand.setTargetStatus(geInterface.jobOutput());
-            asdCommand.setStatus("PROCESSED");
-            asdCommand.Update();
-        }    /*
-              *  else if(asdCommand.getTarget().equals(<other targets>)) {
-              * }
-              */
-        else {
-            _log.error("Unsupported target: '" + asdCommand.getTarget() + "'");
-        }
+	    asdCommand.setTargetStatus(geInterface.jobOutput());
+	    asdCommand.setStatus("PROCESSED");
+	    asdCommand.Update();
+	} /*
+	   * else if(asdCommand.getTarget().equals(<other targets>)) { }
+	   */
+	else {
+	    _log.error("Unsupported target: '" + asdCommand.getTarget() + "'");
+	}
     }
 
     /**
-     * Execute a GridEngineDaemon 'status' command
-     * Asynchronous GETSTATUS commands should never come here
+     * Execute a GridEngineDaemon 'status' command Asynchronous GETSTATUS
+     * commands should never come here
      */
     private void getStatus() {
-        _log.debug("Get status command: " + asdCommand);
+	_log.debug("Get status command: " + asdCommand);
 
-        if (asdCommand.getTarget().equals("GridEngine")) {
-            GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
+	if (asdCommand.getTarget().equals("GridEngine")) {
+	    GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
 
-            asdCommand.setTargetStatus(geInterface.jobStatus());
-            asdCommand.setStatus("PROCESSED");
-            asdCommand.Update();
-        }    /*
-              *  else if(asdCommand.getTarget().equals(<other targets>)) {
-              * }
-              */
-        else {
-            _log.error("Unsupported target: '" + asdCommand.getTarget() + "'");
-        }
+	    asdCommand.setTargetStatus(geInterface.jobStatus());
+	    asdCommand.setStatus("PROCESSED");
+	    asdCommand.Update();
+	} /*
+	   * else if(asdCommand.getTarget().equals(<other targets>)) { }
+	   */
+	else {
+	    _log.error("Unsupported target: '" + asdCommand.getTarget() + "'");
+	}
     }
 }

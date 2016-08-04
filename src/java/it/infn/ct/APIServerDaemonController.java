@@ -30,13 +30,12 @@ import java.util.concurrent.ExecutorService;
 import org.apache.log4j.Logger;
 
 /**
- * Runnable class that controls APIServerDaemon activities such as:
- * - Update job status values of any submitted task
- * - Manage job output request
- * - Preserve consistency status of any broken activity
- * - Cleanup done operations
- * This class implements one of the two principal APIServerDaemon threads
- * together with APIServerDaemonPolling class
+ * Runnable class that controls APIServerDaemon activities such as: - Update job
+ * status values of any submitted task - Manage job output request - Preserve
+ * consistency status of any broken activity - Cleanup done operations This
+ * class implements one of the two principal APIServerDaemon threads together
+ * with APIServerDaemonPolling class
+ * 
  * @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
  * @see APIServerDaemonPolling
  */
@@ -46,7 +45,7 @@ public class APIServerDaemonController extends Observable implements Runnable {
      * Logger
      */
     private static final Logger _log = Logger.getLogger(APIServerDaemonController.class.getName());
-    public static final String  LS   = System.getProperty("line.separator");
+    public static final String LS = System.getProperty("line.separator");
 
     /*
      * APIServerDaemon Controller settings
@@ -66,95 +65,92 @@ public class APIServerDaemonController extends Observable implements Runnable {
     private String apisrv_dbport;
     private String apisrv_dbuser;
     private String apisrv_dbpass;
-    private int    asControllerDelay;
-    private int    asControllerMaxCommands;
+    private int asControllerDelay;
+    private int asControllerMaxCommands;
 
     /*
      * APIServerDaemon config
      */
     APIServerDaemonConfig asdConfig;
-    String                threadName;
+    String threadName;
 
     /**
      * Instantiate a APIServerDaemonController allowing to execute further
      * threads using the given Executor object
-     * @param asdExecutor Executor object created by the APIServerDaemon
+     * 
+     * @param asdExecutor
+     *            Executor object created by the APIServerDaemon
      */
     public APIServerDaemonController(ExecutorService asdExecutor) {
-        this.asdExecutor = asdExecutor;
-        threadName       = Thread.currentThread().getName();
-        _log.info("Initializing APIServer PollingThread");
+	this.asdExecutor = asdExecutor;
+	threadName = Thread.currentThread().getName();
+	_log.info("Initializing APIServer PollingThread");
     }
 
     @Override
     public void run() {
-        APIServerDaemonDB asdDB = null;
+	APIServerDaemonDB asdDB = null;
 
-        _log.info("Starting APIServer ControllerThread");
+	_log.info("Starting APIServer ControllerThread");
 
-        /**
-         * APIServerDaemonController 'run' method loops until geControllerStatus
-         * is true
-         * Polling loops takes only the following kind of command statuses
-         * from the as_queue:
-         *  - PROCESSING: Verify time consistency retrying command if necessary
-         *  - SUBMITTED : as above
-         *  - RUNNING   : as above
-         *  - DONE      : Cleanup allocated space for expired tasks
-         * table and then process them with the GrirEngineDaemonProcessCommand
-         * The same kind of loop exists in the GridEngineDaemonPolling
-         * @see APIServerDaemonProcessCommand
-         * @see APIServerDaemonPolling
-         */
-        while (asControllerStatus) {
-            try {
+	/**
+	 * APIServerDaemonController 'run' method loops until geControllerStatus
+	 * is true Polling loops takes only the following kind of command
+	 * statuses from the as_queue: - PROCESSING: Verify time consistency
+	 * retrying command if necessary - SUBMITTED : as above - RUNNING : as
+	 * above - DONE : Cleanup allocated space for expired tasks table and
+	 * then process them with the GrirEngineDaemonProcessCommand The same
+	 * kind of loop exists in the GridEngineDaemonPolling
+	 * 
+	 * @see APIServerDaemonProcessCommand
+	 * @see APIServerDaemonPolling
+	 */
+	while (asControllerStatus) {
+	    try {
 
-                /*
-                 * Retrieves commands from DB
-                 */
-                asdDB = new APIServerDaemonDB(apisrv_dbhost,
-                                              apisrv_dbport,
-                                              apisrv_dbuser,
-                                              apisrv_dbpass,
-                                              apisrv_dbname);
+		/*
+		 * Retrieves commands from DB
+		 */
+		asdDB = new APIServerDaemonDB(apisrv_dbhost, apisrv_dbport, apisrv_dbuser, apisrv_dbpass,
+			apisrv_dbname);
 
-                List<APIServerDaemonCommand> commands = asdDB.getControllerCommands(asControllerMaxCommands);
+		List<APIServerDaemonCommand> commands = asdDB.getControllerCommands(asControllerMaxCommands);
 
-                _log.debug("Received " + commands.size() + "/" + asControllerMaxCommands + " controller commands");
+		_log.debug("Received " + commands.size() + "/" + asControllerMaxCommands + " controller commands");
 
-                /*
-                 * Process retrieved commands
-                 */
-                Iterator<APIServerDaemonCommand> iterCmds = commands.iterator();
+		/*
+		 * Process retrieved commands
+		 */
+		Iterator<APIServerDaemonCommand> iterCmds = commands.iterator();
 
-                while (iterCmds.hasNext()) {
-                    APIServerDaemonCommand      asdCommand  = iterCmds.next();
-                    APIServerDaemonCheckCommand asdCheckCmd = new APIServerDaemonCheckCommand(asdCommand);
+		while (iterCmds.hasNext()) {
+		    APIServerDaemonCommand asdCommand = iterCmds.next();
+		    APIServerDaemonCheckCommand asdCheckCmd = new APIServerDaemonCheckCommand(asdCommand);
 
-                    if (asdCheckCmd != null) {
-                        asdCheckCmd.setConfig(asdConfig);
-                        asdExecutor.execute(asdCheckCmd);
-                    }
-                }
-            } catch (Exception e) {
+		    if (asdCheckCmd != null) {
+			asdCheckCmd.setConfig(asdConfig);
+			asdExecutor.execute(asdCheckCmd);
+		    }
+		}
+	    } catch (Exception e) {
 
-                /* Do something */
-                _log.fatal("Unable to get APIServer commands");
-            } finally {
-                if (asdDB != null) {
-                    asdDB.close();
-                }
-            }
+		/* Do something */
+		_log.fatal("Unable to get APIServer commands");
+	    } finally {
+		// if (asdDB != null) {
+		// asdDB.close();
+		// }
+	    }
 
-            /*
-             * Wait for next loop
-             */
-            try {
-                Thread.sleep(asControllerDelay);
-            } catch (InterruptedException e) {
-                asControllerStatus = false;
-            }
-        }
+	    /*
+	     * Wait for next loop
+	     */
+	    try {
+		Thread.sleep(asControllerDelay);
+	    } catch (InterruptedException e) {
+		asControllerStatus = false;
+	    }
+	}
     }
 
     /**
@@ -162,41 +158,38 @@ public class APIServerDaemonController extends Observable implements Runnable {
      */
     public void terminate() {
 
-        /*
-         * Tells to the controller thread to exit from its loop
-         */
-        asControllerStatus = false;
-        notifyObservers();
+	/*
+	 * Tells to the controller thread to exit from its loop
+	 */
+	asControllerStatus = false;
+	notifyObservers();
     }
 
     /**
      * Load APIServerDaemon configuration settings
-     * @param asdConfig APIServerDaemon configuration object
+     * 
+     * @param asdConfig
+     *            APIServerDaemon configuration object
      */
     public void setConfig(APIServerDaemonConfig asdConfig) {
 
-        // Save configs
-        this.asdConfig = asdConfig;
+	// Save configs
+	this.asdConfig = asdConfig;
 
-        // Set configuration values for this class
-        this.apisrv_dbhost = asdConfig.getApisrv_dbhost();
-        this.apisrv_dbport = asdConfig.getApisrv_dbport();
-        this.apisrv_dbuser = asdConfig.getApisrv_dbuser();
-        this.apisrv_dbpass = asdConfig.getApisrv_dbpass();
-        this.apisrv_dbname = asdConfig.getApisrv_dbname();
+	// Set configuration values for this class
+	this.apisrv_dbhost = asdConfig.getApisrv_dbhost();
+	this.apisrv_dbport = asdConfig.getApisrv_dbport();
+	this.apisrv_dbuser = asdConfig.getApisrv_dbuser();
+	this.apisrv_dbpass = asdConfig.getApisrv_dbpass();
+	this.apisrv_dbname = asdConfig.getApisrv_dbname();
 
-        // Load APIServerDaemon settings
-        this.asControllerDelay       = asdConfig.getControllerDelay();
-        this.asControllerMaxCommands = asdConfig.getControllerMaxCommands();
-        _log.info("APIServerDaemon config:" 
-                  + LS + "  [Database]" 
-                  + LS + "    db_host: '" + this.apisrv_dbhost + "'"
-                  + LS + "    db_port: '" + this.apisrv_dbport + "'" 
-                  + LS + "    db_user: '" + this.apisrv_dbuser + "'"
-                  + LS + "    db_pass: '" + this.apisrv_dbpass + "'" 
-                  + LS + "    db_name: '" + this.apisrv_dbname + "'"
-                  + LS + "  [Controller config]" 
-                  + LS + "    ControllerDelay      : '" + this.asControllerDelay + "'"
-                  + LS + "    ControllerMaxCommands: '" + this.asControllerMaxCommands + "'" + LS);
+	// Load APIServerDaemon settings
+	this.asControllerDelay = asdConfig.getControllerDelay();
+	this.asControllerMaxCommands = asdConfig.getControllerMaxCommands();
+	_log.info("APIServerDaemon config:" + LS + "  [Database]" + LS + "    db_host: '" + this.apisrv_dbhost + "'"
+		+ LS + "    db_port: '" + this.apisrv_dbport + "'" + LS + "    db_user: '" + this.apisrv_dbuser + "'"
+		+ LS + "    db_pass: '" + this.apisrv_dbpass + "'" + LS + "    db_name: '" + this.apisrv_dbname + "'"
+		+ LS + "  [Controller config]" + LS + "    ControllerDelay      : '" + this.asControllerDelay + "'" + LS
+		+ "    ControllerMaxCommands: '" + this.asControllerMaxCommands + "'" + LS);
     }
 }

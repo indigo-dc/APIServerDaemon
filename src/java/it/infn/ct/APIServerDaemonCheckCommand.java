@@ -45,137 +45,137 @@ public class APIServerDaemonCheckCommand implements Runnable {
     /*
      * Logger
      */
-    private static final Logger    _log = Logger.getLogger(APIServerDaemonCheckCommand.class.getName());
-    public static final String     LS   = System.getProperty("line.separator");
-    public static final String     FS   = System.getProperty("file.separator");
+    private static final Logger _log = Logger.getLogger(APIServerDaemonCheckCommand.class.getName());
+    public static final String LS = System.getProperty("line.separator");
+    public static final String FS = System.getProperty("file.separator");
     private APIServerDaemonCommand asdCommand;
 
     /*
      * APIServerDaemon config
      */
     APIServerDaemonConfig asdConfig;
-    String                threadName;
+    String threadName;
 
     /**
      * Supported commands
      */
-    private enum Commands { CLEAN    // This command cleans any task entry
-            , SUBMIT, GETSTATUS      // This command is directly handled by GE API Server
-            , GETOUTPUT              // This command is directly handled by GE API Server
-            , JOBCANCEL }
+    private enum Commands {
+	CLEAN // This command cleans any task entry
+	, SUBMIT, GETSTATUS // This command is directly handled by GE API Server
+	, GETOUTPUT // This command is directly handled by GE API Server
+	, JOBCANCEL
+    }
 
     /**
-     * Constructor that retrieves the command to execute and the
-     * APIServerDaemon database connection URL, necessary to finalize executed
-     * commands
+     * Constructor that retrieves the command to execute and the APIServerDaemon
+     * database connection URL, necessary to finalize executed commands
      *
      * @param asdCommand
      * @param asdConnectionURL
      */
     public APIServerDaemonCheckCommand(APIServerDaemonCommand asdCommand) {
-        this.asdCommand = asdCommand;
-        this.threadName = Thread.currentThread().getName();
+	this.asdCommand = asdCommand;
+	this.threadName = Thread.currentThread().getName();
     }
 
     /**
-     * Clean everything associated to the task
-     * I/O Sandbox and any DB allocation
+     * Clean everything associated to the task I/O Sandbox and any DB allocation
      */
     private void clean() {
 
-        // Remove any API Server task entries including the queue
-        removeTaksEntries();
+	// Remove any API Server task entries including the queue
+	removeTaksEntries();
 
-        // Remove info directory
-        removeInfoDir();
+	// Remove info directory
+	removeInfoDir();
     }
 
     /**
      * Execute a APIServerDaemon 'job cancel' command
      */
     private void jobCancel() {
-        _log.debug("Check job cancel command: " + asdCommand);
+	_log.debug("Check job cancel command: " + asdCommand);
     }
 
     /**
      * Remove actionInfo directory from the file system
      */
     private void removeInfoDir() {
-        String infoDir = asdCommand.getActionInfo();
+	String infoDir = asdCommand.getActionInfo();
 
-        try {
-            Process delInfoDir = Runtime.getRuntime().exec("rm -rf " + infoDir);
+	try {
+	    Process delInfoDir = Runtime.getRuntime().exec("rm -rf " + infoDir);
 
-            delInfoDir.waitFor();
-        } catch (Exception e) {
-            _log.fatal("Error removing infoDIR: '" + infoDir + "'");
-        }
+	    delInfoDir.waitFor();
+	} catch (Exception e) {
+	    _log.fatal("Error removing infoDIR: '" + infoDir + "'");
+	}
     }
 
     /**
      * Remove any task entry from the DB including the queue record
      */
     private void removeTaksEntries() {
-        APIServerDaemonDB asdDB = null;
+	APIServerDaemonDB asdDB = null;
 
-        _log.debug("Removing task: '" + asdCommand.getTaskId() + "'");
+	_log.debug("Removing task: '" + asdCommand.getTaskId() + "'");
 
-        // Now remove task entries in APIServer DB
-        try {
+	// Now remove task entries in APIServer DB
+	try {
 
-            // First take care to remove specific target entries
-            switch (asdCommand.getTarget()) {
-            case "GridEngine" :
+	    // First take care to remove specific target entries
+	    switch (asdCommand.getTarget()) {
+	    case "GridEngine":
 
-                // First prepare the GridEngineInterface passing config
-                GridEngineInterface geInterface = new GridEngineInterface(asdConfig, asdCommand);
+		// First prepare the GridEngineInterface passing config
+		GridEngineInterface geInterface = new GridEngineInterface(asdConfig, asdCommand);
 
-                // Retrieve the right agi_id field exploiting the
-                // fixed jobDescription field inside the ActiveGridInteraction
-                // AGIId may change during submission in casethe job is
-                // resubmitted by the GridEngine
-                int AGIId = geInterface.getAGIId();
+		// Retrieve the right agi_id field exploiting the
+		// fixed jobDescription field inside the ActiveGridInteraction
+		// AGIId may change during submission in casethe job is
+		// resubmitted by the GridEngine
+		int AGIId = geInterface.getAGIId();
 
-                _log.debug("AGIId for command having id:" + asdCommand.getTaskId() + " is: " + AGIId);
-                asdCommand.setTargetId(AGIId);
-                asdCommand.Update();
+		_log.debug("AGIId for command having id:" + asdCommand.getTaskId() + " is: " + AGIId);
+		asdCommand.setTargetId(AGIId);
+		asdCommand.Update();
 
-                // Now verify if target exists
-                if (asdCommand.getTargetId() > 0) {
-                    _log.debug("Removing record for GridEngine: '" + asdCommand.getTaskId() + "' -> AGI: '"
-                               + asdCommand.getTargetId() + "'");
+		// Now verify if target exists
+		if (asdCommand.getTargetId() > 0) {
+		    _log.debug("Removing record for GridEngine: '" + asdCommand.getTaskId() + "' -> AGI: '"
+			    + asdCommand.getTargetId() + "'");
 
-                    // Task should be in RUNNING state
-                    if (asdCommand.getStatus().equals("RUNNING")) {
-                        _log.warn("Removing a GridEngine' RUNNING task, its job execution will be lost");
-                    }
+		    // Task should be in RUNNING state
+		    if (asdCommand.getStatus().equals("RUNNING")) {
+			_log.warn("Removing a GridEngine' RUNNING task, its job execution will be lost");
+		    }
 
-                    geInterface.removeAGIRecord(geInterface.getAGIId());
-                } else {
-                    _log.debug("No GridEngine ActiveGridInteraction record is asssociated to the task: '"
-                               + asdCommand.getTaskId() + "'");
-                }
+		    geInterface.removeAGIRecord(geInterface.getAGIId());
+		} else {
+		    _log.debug("No GridEngine ActiveGridInteraction record is asssociated to the task: '"
+			    + asdCommand.getTaskId() + "'");
+		}
 
-                break;
+		break;
 
-            // Place other targets below ...
-            // case "mytarget":
-            // break;
-            default :
-                _log.warn("Unrecognized target '" + asdCommand.getTarget()
-                          + "' while deleting target specific task entries");
-            }
+	    // Place other targets below ...
+	    // case "mytarget":
+	    // break;
+	    default:
+		_log.warn("Unrecognized target '" + asdCommand.getTarget()
+			+ "' while deleting target specific task entries");
+	    }
 
-            // Now remove APIServer DB task entries
-            asdDB = new APIServerDaemonDB(asdCommand.getASDConnectionURL());
-            asdDB.removeTaksEntries(asdCommand.getTaskId());
-        } catch (Exception e) {
-            _log.fatal("Unable to remove task entries for command:" + LS + asdCommand + LS + e.toString());
-        } finally {
-            if (asdDB != null) {
-                asdDB.close();
-            }
-        }
+	    // Now remove APIServer DB task entries
+	    asdDB = new APIServerDaemonDB(asdCommand.getASDConnectionURL());
+	    asdDB.removeTaksEntries(asdCommand.getTaskId());
+	} catch (Exception e) {
+	    _log.fatal("Unable to remove task entries for command:" + LS + asdCommand + LS + e.toString());
+	} finally {
+	    // if (asdDB != null) {
+	    // asdDB.close();
+	    // }
+	}
     }
 
     /**
@@ -185,69 +185,66 @@ public class APIServerDaemonCheckCommand implements Runnable {
      * CheckCommand are: PROCESSING: The command is being processed PROCESSED:
      * The command has been processed
      *
-     * Action    | PROCESSING | PROCESSED        | Target
-     * ----------+-------------+-----------------+-----------
-     * Submit    | Consistency | Check job status|    (*)
-     * ----------+-------------+-----------------+-----------
-     * GetStatus |      -      |       -         |
-     * ----------+-------------+-----------------+-----------
-     * GetOutput |      -      |       -         |
-     * ----------+-------------+-----------------+-----------
-     * JobCancel | Consistency | Check on GE     |
+     * Action | PROCESSING | PROCESSED | Target
+     * ----------+-------------+-----------------+----------- Submit |
+     * Consistency | Check job status| (*)
+     * ----------+-------------+-----------------+----------- GetStatus | - | -
+     * | ----------+-------------+-----------------+----------- GetOutput | - |
+     * - | ----------+-------------+-----------------+----------- JobCancel |
+     * Consistency | Check on GE |
      * ----------+-------------+-----------------+-----------
      *
-     * (*) GridEngine,JSAGA,pySAGA,EUDAT, ...
-     *     Any target may have different Action/Status values
+     * (*) GridEngine,JSAGA,pySAGA,EUDAT, ... Any target may have different
+     * Action/Status values
      *
      * GetStatus and GetOutput are synchronous operations directly handled by
      * the APIServer engine for this reason these actions are not supported
-     * directly
-     * Consistency check verifies how long the command waits in order to be
-     * processed, if it takes too long the command could be re-queued and/or
-     * tagged as FAILED.
+     * directly Consistency check verifies how long the command waits in order
+     * to be processed, if it takes too long the command could be re-queued
+     * and/or tagged as FAILED.
      *
-     * Check job status verifies the job status inside the specific target
-     * For isntance in the GridEngine' case it will be checked the
-     * ActiveGridInteraction table. This will verify that job has been
-     * cancelled on the GridEngine as well
-     * Same mechanisms can be applied to other interfaces
+     * Check job status verifies the job status inside the specific target For
+     * isntance in the GridEngine' case it will be checked the
+     * ActiveGridInteraction table. This will verify that job has been cancelled
+     * on the GridEngine as well Same mechanisms can be applied to other
+     * interfaces
      *
      */
     @Override
     public void run() {
-        _log.debug("Checking command: " + asdCommand);
+	_log.debug("Checking command: " + asdCommand);
 
-        switch (Commands.valueOf(asdCommand.getAction())) {
-        case CLEAN :
-            clean();
+	switch (Commands.valueOf(asdCommand.getAction())) {
+	case CLEAN:
+	    clean();
 
-            break;
+	    break;
 
-        case SUBMIT :
-            submit();
+	case SUBMIT:
+	    submit();
 
-            break;
+	    break;
 
-        case GETSTATUS :
-            getStatus();
+	case GETSTATUS:
+	    getStatus();
 
-            break;
+	    break;
 
-        case GETOUTPUT :
-            getOutput();
+	case GETOUTPUT:
+	    getOutput();
 
-            break;
+	    break;
 
-        case JOBCANCEL :
-            jobCancel();
+	case JOBCANCEL:
+	    jobCancel();
 
-            break;
+	    break;
 
-        default :
-            _log.warn("Unsupported command: '" + asdCommand.getAction() + "'");
+	default:
+	    _log.warn("Unsupported command: '" + asdCommand.getAction() + "'");
 
-            break;
-        }
+	    break;
+	}
     }
 
     /*
@@ -258,219 +255,223 @@ public class APIServerDaemonCheckCommand implements Runnable {
      * Check a APIServerDaemon 'submit' command
      */
     private void submit() {
-        _log.debug("Checking submitted command: " + asdCommand);
+	_log.debug("Checking submitted command: " + asdCommand);
 
-        // Add a check for long lasting PROCESSING commands
-        switch (asdCommand.getStatus()) {
+	// Add a check for long lasting PROCESSING commands
+	switch (asdCommand.getStatus()) {
 
-        // PROCESSING - The command have been taken from the task
-        // queue and provided to its target executor
-        case "PROCESSING" :
+	// PROCESSING - The command have been taken from the task
+	// queue and provided to its target executor
+	case "PROCESSING":
 
-            // Verify how long the task remains in PROCESSING state
-            // if longer than MaxWait, retry the command if the number
-            // of retries did not reached yet the MaxRetries value
-            // otherwise trash the task request (marked as FAILED)
-            // Provide a different behavior depending on the Target
-            if (asdCommand.getTarget().equals("GridEngine")) {
-                taskConsistencyCheck("PROCESSING");
-            } else if (asdCommand.getTarget().equals("SimpleTosca")) {
+	    // Verify how long the task remains in PROCESSING state
+	    // if longer than MaxWait, retry the command if the number
+	    // of retries did not reached yet the MaxRetries value
+	    // otherwise trash the task request (marked as FAILED)
+	    // Provide a different behavior depending on the Target
+	    if (asdCommand.getTarget().equals("GridEngine")) {
+		taskConsistencyCheck("PROCESSING");
+	    } else if (asdCommand.getTarget().equals("SimpleTosca")) {
 
-                // Disable at the moment consistency check
-                taskConsistencyCheck("PROCESSING");
-            } else if (asdCommand.getTarget().equals("ToscaIDC")) {
+		// Disable at the moment consistency check
+		taskConsistencyCheck("PROCESSING");
+	    } else if (asdCommand.getTarget().equals("ToscaIDC")) {
 
-                // Disable at the moment consistency check
-                taskConsistencyCheck("PROCESSING");
-            }    /*  
-                  *  else if(asdCommand.getTarget().equals(<other targets>)) {
-                  * // Get/Use targetId to check task submission
-                  * // If targetId does not appear after a long while check consistency
-                  * // and eventually retry task submission.
-                  * }
-                  */
-            else {
-                _log.warn("Unsupported target: '" + asdCommand.getTarget() + "'");
-            }
+		// Disable at the moment consistency check
+		taskConsistencyCheck("PROCESSING");
+	    } /*
+	       * else if(asdCommand.getTarget().equals(<other targets>)) { //
+	       * Get/Use targetId to check task submission // If targetId does
+	       * not appear after a long while check consistency // and
+	       * eventually retry task submission. }
+	       */
+	    else {
+		_log.warn("Unsupported target: '" + asdCommand.getTarget() + "'");
+	    }
 
-            break;
+	    break;
 
-        // The task target executor processed requested task
-        case "PROCESSED" :
+	// The task target executor processed requested task
+	case "PROCESSED":
 
-            // Verify that TargetId exists, if yes check the status
-            // otherwise check task consistency
-            // Provide a different behavior depending on the Target
-            if (asdCommand.getTarget().equals("GridEngine")) {
+	    // Verify that TargetId exists, if yes check the status
+	    // otherwise check task consistency
+	    // Provide a different behavior depending on the Target
+	    if (asdCommand.getTarget().equals("GridEngine")) {
 
-                // Status is PROCESSED; the job has been submited
-                // First prepare the GridEngineInterface passing config
-                GridEngineInterface geInterface = new GridEngineInterface(asdConfig, asdCommand);
+		// Status is PROCESSED; the job has been submited
+		// First prepare the GridEngineInterface passing config
+		GridEngineInterface geInterface = new GridEngineInterface(asdConfig, asdCommand);
 
-                // Retrieve the right agi_id field exploiting the
-                // fixed jobDescription field inside the ActiveGridInteraction
-                // AGIId may change during submission in casethe job is
-                // resubmitted by the GridEngine
-                int AGIId = geInterface.getAGIId();
+		// Retrieve the right agi_id field exploiting the
+		// fixed jobDescription field inside the ActiveGridInteraction
+		// AGIId may change during submission in casethe job is
+		// resubmitted by the GridEngine
+		int AGIId = geInterface.getAGIId();
 
-                _log.debug("AGIId for command having id:" + asdCommand.getTaskId() + " is: " + AGIId);
-                asdCommand.setTargetId(AGIId);
-                asdCommand.Update();
+		_log.debug("AGIId for command having id:" + asdCommand.getTaskId() + " is: " + AGIId);
+		asdCommand.setTargetId(AGIId);
+		asdCommand.Update();
 
-                // Update target_status taking its value from the GridEngine'
-                // ActiveGridInteraction table, then if target_status is DONE
-                // flag also the command state to DONE allowing APIServer'
-                // GetOutput call to work
-                if (asdCommand.getTargetId() != 0) {
-                    String geJobStatus = geInterface.jobStatus();
+		// Update target_status taking its value from the GridEngine'
+		// ActiveGridInteraction table, then if target_status is DONE
+		// flag also the command state to DONE allowing APIServer'
+		// GetOutput call to work
+		if (asdCommand.getTargetId() != 0) {
+		    String geJobStatus = geInterface.jobStatus();
 
-                    _log.debug("Status of job " + asdCommand.getTaskId() + " is '" + geJobStatus + "'");
-                    asdCommand.setTargetStatus(geJobStatus);
+		    _log.debug("Status of job " + asdCommand.getTaskId() + " is '" + geJobStatus + "'");
+		    asdCommand.setTargetStatus(geJobStatus);
 
-                    if ((asdCommand.getTargetStatus() != null) && (asdCommand.getTargetStatus().length() > 0)) {
-                        switch (asdCommand.getTargetStatus()) {
-                        case "DONE" :
-                            asdCommand.setStatus("DONE");
+		    if ((asdCommand.getTargetStatus() != null) && (asdCommand.getTargetStatus().length() > 0)) {
+			switch (asdCommand.getTargetStatus()) {
+			case "DONE":
+			    asdCommand.setStatus("DONE");
 
-                            // DONE command means that jobOutput is ready
-                            String outputDir = geInterface.prepareJobOutput();
+			    // DONE command means that jobOutput is ready
+			    String outputDir = geInterface.prepareJobOutput();
 
-                            updateOutputPaths(outputDir);
+			    updateOutputPaths(outputDir);
 
-                            break;
+			    break;
 
-                        case "RUNNING" :
+			case "RUNNING":
 
-                            // as_queue status field must remain 'PROCESSED'
-                            // asdCommand.setStatus("RUNNING");
-                            break;
+			    // as_queue status field must remain 'PROCESSED'
+			    // asdCommand.setStatus("RUNNING");
+			    break;
 
-                        default :
-                            _log.warn("Unhandled status: '" + geJobStatus + "'");
+			default:
+			    _log.warn("Unhandled status: '" + geJobStatus + "'");
 
-                            break;
-                        }
-                    }
+			    break;
+			}
+		    }
 
-                    asdCommand.Update();
-                } else {
+		    asdCommand.Update();
+		} else {
 
-                    // TargetId is 0 - check consistency ...
-                    taskConsistencyCheck("PROCESSED");
-                }
-            } else if (asdCommand.getTarget().equals("SimpleTosca")) {
+		    // TargetId is 0 - check consistency ...
+		    taskConsistencyCheck("PROCESSED");
+		}
+	    } else if (asdCommand.getTarget().equals("SimpleTosca")) {
 
-                // Determine the status and take care of the output files
-                SimpleToscaInterface stInterface = new SimpleToscaInterface(asdConfig, asdCommand);
-                String               currState   = asdCommand.getStatus();    // Register the current status (PROCESSED)
+		// Determine the status and take care of the output files
+		SimpleToscaInterface stInterface = new SimpleToscaInterface(asdConfig, asdCommand);
+		String currState = asdCommand.getStatus(); // Register the
+							   // current status
+							   // (PROCESSED)
 
-                asdCommand.setStatus("HOLD");    // Avoid during check that futher checks occur
-                asdCommand.Update();
+		asdCommand.setStatus("HOLD"); // Avoid during check that futher
+					      // checks occur
+		asdCommand.Update();
 
-                String status = stInterface.getStatus();
+		String status = stInterface.getStatus();
 
-                if ((status != null) && (status.length() > 0)) {
-                    asdCommand.setTargetStatus(status);
+		if ((status != null) && (status.length() > 0)) {
+		    asdCommand.setTargetStatus(status);
 
-                    switch (status) {
-                    case "DONE" :
-                        currState = status;
-                        updateOutputPaths(SimpleToscaInterface.getOutputDir());
+		    switch (status) {
+		    case "DONE":
+			currState = status;
+			updateOutputPaths(SimpleToscaInterface.getOutputDir());
 
-                        break;
+			break;
 
-                    case "RUNNING" :
+		    case "RUNNING":
 
-                        // as_queue status field must remain 'PROCESSED'
-                        // currState = status;
-                        break;
+			// as_queue status field must remain 'PROCESSED'
+			// currState = status;
+			break;
 
-                    default :
-                        asdCommand.setTargetStatus(status);
-                        _log.warn("Unhandled status: '" + status + "'");
+		    default:
+			asdCommand.setTargetStatus(status);
+			_log.warn("Unhandled status: '" + status + "'");
 
-                        break;
-                    }
-                } else {
-                    _log.warn("No status available yet");
+			break;
+		    }
+		} else {
+		    _log.warn("No status available yet");
 
-                    // No status is available - check consistency ...
-                    taskConsistencyCheck("PROCESSED");
+		    // No status is available - check consistency ...
+		    taskConsistencyCheck("PROCESSED");
 
-                    if (!asdCommand.getStatus().equals("HOLD")) {
-                        currState = asdCommand.getStatus();
-                    }
-                }
+		    if (!asdCommand.getStatus().equals("HOLD")) {
+			currState = asdCommand.getStatus();
+		    }
+		}
 
-                asdCommand.setStatus(currState);    // Setup the current state
-                asdCommand.Update();
-            } else if (asdCommand.getTarget().equals("ToscaIDC")) {
+		asdCommand.setStatus(currState); // Setup the current state
+		asdCommand.Update();
+	    } else if (asdCommand.getTarget().equals("ToscaIDC")) {
 
-                // Determine the status and take care of the output files
-                ToscaIDCInterface tidcInterface = new ToscaIDCInterface(asdConfig, asdCommand);                
-                String                currState = asdCommand.getStatus();    // Register the current status (PROCESSED)
+		// Determine the status and take care of the output files
+		ToscaIDCInterface tidcInterface = new ToscaIDCInterface(asdConfig, asdCommand);
+		String currState = asdCommand.getStatus(); // Register the
+							   // current status
+							   // (PROCESSED)
 
-                asdCommand.setStatus("HOLD");    // Avoid during check that futher checks occur
-                asdCommand.Update();
+		asdCommand.setStatus("HOLD"); // Avoid during check that futher
+					      // checks occur
+		asdCommand.Update();
 
-                String status = tidcInterface.getStatus();
+		String status = tidcInterface.getStatus();
 
-                if ((status != null) && (status.length() > 0)) {
-                    asdCommand.setTargetStatus(status);
+		if ((status != null) && (status.length() > 0)) {
+		    asdCommand.setTargetStatus(status);
 
-                    switch (status) {
-                    case "DONE" :
-                        currState = status;
-                        //updateOutputPaths(ToscaIDCInterface.getOutputDir());                        
+		    switch (status) {
+		    case "DONE":
+			currState = status;
+			// updateOutputPaths(ToscaIDCInterface.getOutputDir());
 
-                        break;
+			break;
 
-                    case "RUNNING" :
+		    case "RUNNING":
 
-                        // as_queue status field must remain 'PROCESSED'
-                        // currState = status;
-                        break;
+			// as_queue status field must remain 'PROCESSED'
+			// currState = status;
+			break;
 
-                    default :
-                        asdCommand.setTargetStatus(status);
-                        _log.warn("Unhandled status: '" + status + "'");
+		    default:
+			asdCommand.setTargetStatus(status);
+			_log.warn("Unhandled status: '" + status + "'");
 
-                        break;
-                    }
-                } else {
-                    _log.warn("No status available yet");
+			break;
+		    }
+		} else {
+		    _log.warn("No status available yet");
 
-                    // No status is available - check consistency ...
-                    taskConsistencyCheck("PROCESSED");
+		    // No status is available - check consistency ...
+		    taskConsistencyCheck("PROCESSED");
 
-                    if (!asdCommand.getStatus().equals("HOLD")) {
-                        currState = asdCommand.getStatus();
-                    }
-                }
+		    if (!asdCommand.getStatus().equals("HOLD")) {
+			currState = asdCommand.getStatus();
+		    }
+		}
 
-                asdCommand.setStatus(currState);    // Setup the current state
-                asdCommand.Update();
-            } /*
-               *  else if(asdCommand.getTarget().equals(<other targets>)) {
-               * // Get/Use targetId to check task submission
-               * // If targetId does not appear after a long while check consistency
-               * // and eventually retry task submission.
-               * }
-               */
-            else {
-                _log.warn("Unsupported target: '" + asdCommand.getTarget() + "'");
-            }
+		asdCommand.setStatus(currState); // Setup the current state
+		asdCommand.Update();
+	    } /*
+	       * else if(asdCommand.getTarget().equals(<other targets>)) { //
+	       * Get/Use targetId to check task submission // If targetId does
+	       * not appear after a long while check consistency // and
+	       * eventually retry task submission. }
+	       */
+	    else {
+		_log.warn("Unsupported target: '" + asdCommand.getTarget() + "'");
+	    }
 
-            break;
+	    break;
 
-        default :
-            _log.error("Ignoring unsupported status: '" + asdCommand.getStatus() + "' for task: "
-                       + asdCommand.getTaskId());
-        }    // switch on STATUS
+	default:
+	    _log.error("Ignoring unsupported status: '" + asdCommand.getStatus() + "' for task: "
+		    + asdCommand.getTaskId());
+	} // switch on STATUS
 
-        // Updating check_ts field a round-robing strategy will be
-        // applied while extracting command from the queue by controller
-        asdCommand.checkUpdate();
+	// Updating check_ts field a round-robing strategy will be
+	// applied while extracting command from the queue by controller
+	asdCommand.checkUpdate();
     }
 
     /**
@@ -478,59 +479,60 @@ public class APIServerDaemonCheckCommand implements Runnable {
      */
     private void taskConsistencyCheck(String mode) {
 
-        // This check consistency of the command execution
-        // if it takes too long the command should be
-        // resubmitted or flagged as FAILED reaching a given
-        // threshold
-        // Tasks will be retryed if creation and last change is
-        // greater than max_wait and retries have not reached yet
-        // the max_retry count
-        // Trashed requests will be flagged as FAILED
-        _log.debug("Consistency of '" + mode + "' task - id: " + asdCommand.getTaskId() + " lifetime: "
-                   + asdCommand.getLifetime() + "/" + asdConfig.getTaskMaxWait() + " - retry: " + asdCommand.getRetry()
-                   + "/" + asdConfig.getTaskMaxRetries());
+	// This check consistency of the command execution
+	// if it takes too long the command should be
+	// resubmitted or flagged as FAILED reaching a given
+	// threshold
+	// Tasks will be retryed if creation and last change is
+	// greater than max_wait and retries have not reached yet
+	// the max_retry count
+	// Trashed requests will be flagged as FAILED
+	_log.debug("Consistency of '" + mode + "' task - id: " + asdCommand.getTaskId() + " lifetime: "
+		+ asdCommand.getLifetime() + "/" + asdConfig.getTaskMaxWait() + " - retry: " + asdCommand.getRetry()
+		+ "/" + asdConfig.getTaskMaxRetries());
 
-        if ((asdCommand.getRetry() < asdConfig.getTaskMaxRetries())
-                && (asdCommand.getLifetime() > asdConfig.getTaskMaxWait())) {
-            _log.debug("Retrying PROCESSED task having id: " + asdCommand.getTaskId());
-            asdCommand.retry();
-        } else if (asdCommand.getRetry() >= asdConfig.getTaskMaxRetries()) {
-            _log.debug("Trashing PROCESSED task having id: " + asdCommand.getTaskId());
-            asdCommand.trash();
-        } else {
-            _log.debug("Ignoring at the moment '" + mode + "' task having id: " + asdCommand.getTaskId());
-        }
+	if ((asdCommand.getRetry() < asdConfig.getTaskMaxRetries())
+		&& (asdCommand.getLifetime() > asdConfig.getTaskMaxWait())) {
+	    _log.debug("Retrying PROCESSED task having id: " + asdCommand.getTaskId());
+	    asdCommand.retry();
+	} else if (asdCommand.getRetry() >= asdConfig.getTaskMaxRetries()) {
+	    _log.debug("Trashing PROCESSED task having id: " + asdCommand.getTaskId());
+	    asdCommand.trash();
+	} else {
+	    _log.debug("Ignoring at the moment '" + mode + "' task having id: " + asdCommand.getTaskId());
+	}
     }
 
     /**
      * Update task' output file paths
      */
     void updateOutputPaths(String outputDir) {
-        APIServerDaemonDB asdDB = null;
+	APIServerDaemonDB asdDB = null;
 
-        try {
-            asdDB = new APIServerDaemonDB(asdCommand.getASDConnectionURL());
-            asdDB.updateOutputPaths(asdCommand, outputDir);
-        } catch (Exception e) {
+	try {
+	    asdDB = new APIServerDaemonDB(asdCommand.getASDConnectionURL());
+	    asdDB.updateOutputPaths(asdCommand, outputDir);
+	} catch (Exception e) {
 
-            // _log.severe("Unable release command:"+LS+asdCommand
-            _log.fatal("Unable release command:" + LS + asdCommand + LS + e.toString());
-        } finally {
-            if (asdDB != null) {
-                asdDB.close();
-            }
-        }
+	    // _log.severe("Unable release command:"+LS+asdCommand
+	    _log.fatal("Unable release command:" + LS + asdCommand + LS + e.toString());
+	} finally {
+	    // if (asdDB != null) {
+	    // asdDB.close();
+	    // }
+	}
     }
 
     /**
      * Load APIServerDaemon configuration settings
      *
-     * @param asdConfig APIServerDaemon configuration object
+     * @param asdConfig
+     *            APIServerDaemon configuration object
      */
     public void setConfig(APIServerDaemonConfig asdConfig) {
 
-        // Save all configs
-        this.asdConfig = asdConfig;
+	// Save all configs
+	this.asdConfig = asdConfig;
     }
 
     /**
@@ -538,7 +540,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
      * commands should never come here
      */
     private void getOutput() {
-        _log.debug("Check get output command: " + asdCommand);
+	_log.debug("Check get output command: " + asdCommand);
     }
 
     /**
@@ -546,6 +548,6 @@ public class APIServerDaemonCheckCommand implements Runnable {
      * commands should never come here
      */
     private void getStatus() {
-        _log.debug("Checkinig get status command: " + asdCommand);
+	_log.debug("Checkinig get status command: " + asdCommand);
     }
 }
