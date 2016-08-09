@@ -411,7 +411,7 @@ public class ToscaIDCInterface {
 	    }
 	}
 	if (tosca_parameters.length() > 0) {
-	    toscaParameters = "\"parameters\": \"" + tosca_parameters + "\", ";
+	    toscaParameters = "\"parameters\": " + tosca_parameters + ", ";
 	}
 	postData.append("{ " + toscaParameters + "\"template\": \"");
 	String tosca_template_content = "";
@@ -499,7 +499,7 @@ public class ToscaIDCInterface {
      * @param toscaUUID
      * @return
      */
-    protected String getToscaDeployment(String toscaUUID) {
+    protected String getToscaDeployment(String toscaUUID, String toscaToken) {
 	StringBuilder deployment = new StringBuilder();
 	HttpURLConnection conn;
 	URL deploymentEndpoint = null;
@@ -509,6 +509,7 @@ public class ToscaIDCInterface {
 	    _log.debug("deploymentEndpoint: '" + deploymentEndpoint + "'");
 	    conn = (HttpURLConnection) deploymentEndpoint.openConnection();
 	    conn.setRequestMethod("GET");
+            conn.setRequestProperty("Authorization", toscaToken);
 	    conn.setRequestProperty("Content-Type", "application/json");
 	    conn.setRequestProperty("charset", "utf-8");
 	    _log.debug("Orchestrator status code: " + conn.getResponseCode());
@@ -546,7 +547,9 @@ public class ToscaIDCInterface {
 	_log.debug("tosca endpoint: '" + toscaEndPoint + "'");
 	String toscaUUID = tii.getToscaId(toscaCommand);
 	_log.debug("tosca UUID: '" + toscaUUID + "'");
-	String toscaDeploymentInfo = getToscaDeployment(toscaUUID);
+        String toscaToken = tii.getToken(toscaCommand);
+	_log.debug("tosca Token: '" + toscaToken + "'");
+	String toscaDeploymentInfo = getToscaDeployment(toscaUUID,toscaToken);
 	_log.debug("tosca deployment info: '" + toscaDeploymentInfo + "'");
 	try {
 	    status = getDocumentValue(toscaDeploymentInfo, "status");
