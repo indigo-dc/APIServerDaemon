@@ -431,7 +431,7 @@ public class ToscaIDCInterface {
 	try {
 	    conn = (HttpURLConnection) toscaEndPoint.openConnection();
 	    conn.setRequestMethod("POST");
-	    conn.setRequestProperty("Authorization", toscaToken);
+	    conn.setRequestProperty("Authorization", "Bearer " + toscaToken);
 	    conn.setRequestProperty("Content-Type", "application/json");
 	    conn.setRequestProperty("charset", "utf-8");
 	    conn.setDoOutput(true);
@@ -509,7 +509,7 @@ public class ToscaIDCInterface {
 	    _log.debug("deploymentEndpoint: '" + deploymentEndpoint + "'");
 	    conn = (HttpURLConnection) deploymentEndpoint.openConnection();
 	    conn.setRequestMethod("GET");
-            conn.setRequestProperty("Authorization", toscaToken);
+            conn.setRequestProperty("Authorization", "Bearer " + toscaToken);
 	    conn.setRequestProperty("Content-Type", "application/json");
 	    conn.setRequestProperty("charset", "utf-8");
 	    _log.debug("Orchestrator status code: " + conn.getResponseCode());
@@ -599,6 +599,9 @@ public class ToscaIDCInterface {
 	    URL deploymentEndpoint = new URL(toscaEndPoint.toString() + "/" + toscaUUID);
 	    conn = (HttpURLConnection) deploymentEndpoint.openConnection();
 	    conn.setRequestMethod("DELETE");
+            conn.setRequestProperty("Authorization", "Bearer " + toscaToken);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("charset", "utf-8");
 	    _log.debug("Orchestrator status code: " + conn.getResponseCode());
 	    _log.debug("Orchestrator status message: " + conn.getResponseMessage());
 	    if (conn.getResponseCode() == 204) {
