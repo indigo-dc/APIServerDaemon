@@ -637,6 +637,29 @@ public class APIServerDaemonDB {
 	    statement.execute(sql);
 
 	    //
+            // Table runtime_data 
+            //
+            // Lock runtime_data table first
+            sql = "lock tables runtime_data write;";
+
+            // statement=connect.createStatement();
+            statement.execute(sql);
+
+            // Delete entries in ge_queue
+            sql = "delete from runtime_data where task_id = ?;";
+            preparedStatement = connect.prepareStatement(sql);
+            preparedStatement.setInt(1, task_id);
+            preparedStatement.execute();
+            preparedStatement.close();
+            preparedStatement = null;
+
+            // Unlock runtime_data table
+            sql = "unlock tables;";
+
+            // statement=connect.createStatement();
+            statement.execute(sql);
+
+            //
 	    // Table as_queue
 	    //
 	    // Lock ge_queue table first
