@@ -299,7 +299,7 @@ public class APIServerDaemonDB {
 	    // Propagate command status in task table
 	    sql = "update task set status = ?" + LS + "               ,last_change = now()" + LS + "where id=?";
 
-	    String newStatus = ((command.getTargetStatus() == null) ? "WAITING" : command.getTargetStatus());
+	    String newStatus = ((command.getTargetStatus() == null) ? "PROCESSING" : command.getTargetStatus());
 
 	    _log.debug("New task table status for task_id: '" + command.getTaskId() + "' is: '" + newStatus + "'");
 	    preparedStatement = connect.prepareStatement(sql);

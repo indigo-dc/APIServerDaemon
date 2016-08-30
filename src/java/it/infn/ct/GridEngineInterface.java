@@ -511,6 +511,7 @@ public class GridEngineInterface {
 	    gedIPAddress = "" + (short) (ipAddr[0] & 0xff) + ":" + (short) (ipAddr[1] & 0xff) + ":"
 		    + (short) (ipAddr[2] & 0xff) + ":" + (short) (ipAddr[3] & 0xff);
 	} catch (Exception e) {
+            gedIPAddress = "";
 	    _log.fatal("Unable to get the portal IP address");
 	}
     }
