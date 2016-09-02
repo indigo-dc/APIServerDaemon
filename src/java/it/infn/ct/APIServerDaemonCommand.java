@@ -24,109 +24,176 @@ package it.infn.ct;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-
 import java.util.Date;
-
 import org.apache.log4j.Logger;
 
 /**
  * Class containing APIServerDaemon commands as registered in APIServer table
- * asd_queue
- * 
+ * asd_queue.
+ *
  * @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
  */
 public class APIServerDaemonCommand {
 
     /**
-     * Logger
+     * Logger object.
      */
-    private static final Logger _log = Logger.getLogger(APIServerDaemonCommand.class.getName());
+    private static final Logger LOG =
+            Logger.getLogger(APIServerDaemonCommand.class.getName());
+
+    /**
+     * Line separator constant.
+     */
     private static final String LS = System.getProperty("line.separator");
 
     /*
      * APIServer command fields
      */
-    private int task_id;
-    private String action;
-    private String target;
-    private int target_id;
-    private String status;
-    private String target_status;
-    private int retry;
-    private Date creation;
-    private Date last_change;
-    private Date check_ts;
-    private String action_info;
-    private boolean modified_flag;
+
+    /**
+     * Queue command task table identifier.
+     */
+    private int cmdTaskId;
+    /**
+     * Queue command action name: 'SUBMIT, CLEAN, ...'.
+     */
+    private String cmdAction;
+    /**
+     * The name of the involved target executor.
+     */
+    private String cmdTarget;
+    /**
+     * The target execution table record identifier.
+     */
+    private int cmdTargetId;
+    /**
+     * The status of the queue command: 'QUEUED, PROCESSING, PROCESSED, ...'.
+     */
+    private String cmdStatus;
+    /**
+     * The status of the queue command in the targeted infrastructure.
+     */
+    private String cmdTargetStatus;
+    /**
+     * Queue command retry count.
+     */
+    private int cmdRetry;
+    /**
+     * Queue command creation timestamp.
+     */
+    private Date cmdCreation;
+    /**
+     * Queue command lasst change timestamp.
+     */
+    private Date cmdLastChange;
+    /**
+     * Queue command last check timestamp.
+     * @see APIServerDaemonCheckCommand
+     */
+    private Date cmdCheck;
+    /**
+     * Queue command directory path with task information.
+     */
+    private String cmdInfo;
+    /**
+     * Command record modify flag.
+     */
+    private boolean modifyFlag;
+    /**
+     * APIServer database connection URL.
+     */
     private String asdConnectionURL;
 
     /**
-     * Empty constructor, initialize with dummy/null values
+     * Empty constructor, initialize with dummy/null values.
      */
     public APIServerDaemonCommand() {
-	task_id = -1;
-	target_id = -1;
-	action = null;
-	target = null;
-	status = null;
-	target_status = null;
-	retry = -1;
-	creation = null;
-	last_change = null;
-	check_ts = null;
-	action_info = null;
-	modified_flag = false;
+    cmdTaskId = -1;
+    cmdTargetId = -1;
+    cmdAction = null;
+    cmdTarget = null;
+    cmdStatus = null;
+    cmdTargetStatus = null;
+    cmdRetry = -1;
+    cmdCreation = null;
+    cmdLastChange = null;
+    cmdCheck = null;
+    cmdInfo = null;
+    modifyFlag = false;
     }
 
     /**
-     * Constructor taking all GridEngineDaemon command values
+     * Constructor taking all GridEngineDaemon command values.
+     * @param taskId - Task identifier in tasks table
+     * @param targetId - Id of the cmdTarget executor record index
+     * @param targetName - Name of the targeted executor interface
+     * @param commandAction - Action of the command: SUBMIT, CLEAN, ...
+     * @param asdConnURL - APIServer database connection URL
+     * @param commandStatus - Status of the command: QUEUED, PROCESSING, ...
+     * @param targetStatus - Status hold by cmdTarget executor interface
+     * @param retryCount - Number of command execution attempts
+     * @param commandCreation - Creation timestamp of queue command record
+     * @param commandChange - Last change timestamp of queue command record
+     * @param commandCheck - Last check timestamp of the queue command record
+     * @param commandInfo - Firectory path name collecting task information
+     *
      */
-    public APIServerDaemonCommand(String asdConnectionURL, int task_id, int target_id, String target, String action,
-	    String status, String target_status, int retry, Date creation, Date last_change, Date check_ts,
-	    String action_info) {
-	this();
-	this.task_id = task_id;
-	this.target_id = target_id;
-	this.target = target;
-	this.action = action;
-	this.status = status;
-	this.target_status = target_status;
-	this.retry = retry;
-	this.creation = creation;
-	this.last_change = last_change;
-	this.check_ts = check_ts;
-	this.action_info = action_info;
-	this.modified_flag = false;
-	this.asdConnectionURL = asdConnectionURL;
+    public APIServerDaemonCommand(final String asdConnURL,
+                                  int taskId,
+                                  int targetId,
+                                  String targetName,
+                                  String commandAction,
+                                  String commandStatus,
+                                  String targetStatus,
+                                  int retryCount,
+                                  Date commandCreation,
+                                  Date commandChange,
+                                  Date commandCheck,
+                                  String commandInfo) {
+    this();
+    cmdTaskId = taskId;
+    cmdTargetId = targetId;
+    cmdTarget = targetName;
+    cmdAction = commandAction;
+    cmdStatus = commandStatus;
+    cmdTargetStatus = targetStatus;
+    cmdRetry = retryCount;
+    cmdCreation = commandCreation;
+    cmdLastChange = commandChange;
+    cmdCheck = commandCheck;
+    cmdInfo = commandInfo;
+    modifyFlag = false;
+    asdConnectionURL = asdConnURL;
     }
 
     /**
      * Update the command values on the given DB
      */
     public void Update() {
-	APIServerDaemonDB asdDB = null;
+        APIServerDaemonDB asdDB = null;
 
-	if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
-	    _log.error("Command with no connection URL defined" + LS + toString());
+        if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
+            LOG.error("Command with no connection URL defined" + LS + toString());
 
-	    return;
-	}
+            return;
+        }
 
-	if (isModified()) {
-	    try {
-		_log.debug("Opening connection for update command");
-		asdDB = new APIServerDaemonDB(asdConnectionURL);
-		asdDB.updateCommand(this);
-		validate();
-	    } catch (Exception e) {
-		_log.fatal("Unable to update command:" + LS + this.toString() + LS + e.toString());
-	    } finally {
-		// if (asdDB != null) {
-		// asdDB.close();
-		// }
-		// _log.debug("Closing connection for update command");
-	    }
-	}
+        if (isModified()) {
+            try {
+            LOG.debug("Opening connection for update command");
+            asdDB = new APIServerDaemonDB(asdConnectionURL);
+            asdDB.updateCommand(this);
+            validate();
+            } catch (Exception e) {
+            LOG.fatal("Unable to update command:" + LS
+                    + this.toString() + LS + e.toString());
+            } finally {
+            // if (asdDB != null) {
+            // asdDB.close();
+            // }
+            // LOG.debug("Closing connection for update command");
+            }
+        }
     }
 
     /**
@@ -134,464 +201,479 @@ public class APIServerDaemonCommand {
      * validation flag
      */
     public void checkUpdate() {
-	APIServerDaemonDB asdDB = null;
+        APIServerDaemonDB asdDB = null;
 
-	if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
-	    _log.error("Command with no connection URL defined" + LS + toString());
+        if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
+            LOG.error("Command with no connection URL defined" + LS + toString());
 
-	    return;
-	}
+            return;
+        }
 
-	try {
-	    _log.debug("Opening connection for checkupdate command");
-	    asdDB = new APIServerDaemonDB(asdConnectionURL);
-	    asdDB.checkUpdateCommand(this);
-	} catch (Exception e) {
-	    _log.fatal("Unable to update check timestamp for command:" + LS + this.toString() + LS + e.toString());
-	} finally {
-	    // if (asdDB != null) {
-	    // asdDB.close();
-	    // }
-	    // _log.debug("Closing connection for chekupdate command");
-	}
+        try {
+            LOG.debug("Opening connection for checkupdate command");
+            asdDB = new APIServerDaemonDB(asdConnectionURL);
+            asdDB.checkUpdateCommand(this);
+        } catch (Exception e) {
+            LOG.fatal("Unable to update check timestamp for command:" + LS
+                    + this.toString()
+                    + LS + e.toString());
+        } finally {
+            // if (asdDB != null) {
+            // asdDB.close();
+            // }
+            // LOG.debug("Closing connection for chekupdate command");
+        }
     }
 
     /**
      * Invalidate modified flag
      */
     public void invalidate() {
-	this.modified_flag = true;
+        this.modifyFlag = true;
     }
 
     /**
-     * Retry the command setting values: status = QUEUED creation = now()
-     * last_change = now() increase current retry
+     * Retry the command setting values: cmdStatus = QUEUED cmdCreation = now()
+ cmdLastChange = now() increase current cmdRetry
      */
     void retry() {
-	setStatus("QUEUED");
+        setStatus("QUEUED");
 
-	APIServerDaemonDB asdDB = null;
+        APIServerDaemonDB asdDB = null;
 
-	if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
-	    _log.error("Command with no connection URL defined" + LS + toString());
+        if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
+            LOG.error("Command with no connection URL defined" + LS + toString());
 
-	    return;
-	}
+            return;
+        }
 
-	try {
-	    _log.debug("Opening connection for retry command");
-	    asdDB = new APIServerDaemonDB(asdConnectionURL);
-	    asdDB.retryTask(this);
-	} catch (Exception e) {
-	    _log.fatal("Unable retry task related to given command:" + LS + this.toString());
-	} finally {
-	    // if (asdDB != null) {
-	    // asdDB.close();
-	    // }
-	    // _log.debug("Closing connection for update command");
-	}
+        try {
+            LOG.debug("Opening connection for retry command");
+            asdDB = new APIServerDaemonDB(asdConnectionURL);
+            asdDB.retryTask(this);
+        } catch (Exception e) {
+            LOG.fatal("Unable retry task related to given command:" + LS
+                    + this.toString());
+        } 
     }
 
     /**
-     * Serialize as string the APIServerDaemon command values
+     * Serialize in a JSON string format the APIServerDaemon command values.
      */
     @Override
     public String toString() {
-	DateFormat dFmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    DateFormat dFmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-	return "{" + LS + "[DB Values]" + LS + "  \"task_id\"      : \"" + task_id + "\"" + LS
-		+ "  \"target\"       : \"" + target + "\"" + LS + "  \"target_id\"    : \"" + target_id + "\"" + LS
-		+ "  \"action\"       : \"" + action + "\"" + LS + "  \"status\"       : \"" + status + "\"" + LS
-		+ "  \"target_status\": \"" + target_status + "\"" + LS + "  \"retry\"        : \"" + retry + "\"" + LS
-		+ "  \"creation\"     : \"" + dFmt.format(creation) + "\"" + LS + "  \"last_change\"  : \""
-		+ dFmt.format(last_change) + "\"" + LS + "  \"check_ts\"     : \"" + dFmt.format(check_ts) + "\"" + LS
-		+ "  \"action_info\"  : \"" + action_info + "\"" + LS + "[Obj Values]" + LS + "  \"modified_flag\": \""
-		+ modified_flag + "\"" + LS + "}";
+    return "{" + LS
+         + "[DB Values]" + LS
+         + "  \"task_id\"      : \"" + cmdTaskId + "\"" + LS
+         + "  \"target\"       : \"" + cmdTarget + "\"" + LS
+         + "  \"target_id\"    : \"" + cmdTargetId + "\"" + LS
+         + "  \"action\"       : \"" + cmdAction + "\"" + LS
+         + "  \"status\"       : \"" + cmdStatus + "\"" + LS
+         + "  \"target_status\": \"" + cmdTargetStatus + "\"" +LS
+         + "  \"retry\"        : \"" + cmdRetry + "\"" + LS
+         + "  \"creation\"     : \"" + dFmt.format(cmdCreation) + "\"" + LS
+         + "  \"last_change\"  : \""
+         + dFmt.format(cmdLastChange) + "\"" + LS
+         + "  \"check_ts\"     : \"" + dFmt.format(cmdCheck) + "\"" + LS
+         + "  \"action_info\"  : \"" + cmdInfo + "\"" + LS
+         + "[Obj Values]" + LS + "  \"modified_flag\": \""
+         + modifyFlag + "\"" + LS
+         + "}";
     }
 
     /**
-     * Trash the command setting values: status = FAILED - polling loops will
-     * never take it last_change = now()
+     * Trash the command setting values: cmdStatus = FAILED so that the 
+ polling loops will never take it.
      */
     void trash() {
-	setStatus("FAILED");
+        setStatus("FAILED");
 
-	APIServerDaemonDB asdDB = null;
+        APIServerDaemonDB asdDB = null;
 
-	if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
-	    _log.error("Command with no connection URL defined" + LS + toString());
+        if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
+            LOG.error("Command with no connection URL defined" + LS
+                    + toString());
 
-	    return;
-	}
+            return;
+        }
 
-	try {
-	    _log.debug("Opening connection for trash command");
-	    asdDB = new APIServerDaemonDB(asdConnectionURL);
-	    asdDB.trashTask(this);
-	} catch (Exception e) {
-	    _log.fatal("Unable trash task related to given command:" + LS + this.toString());
-	} finally {
-	    // if (asdDB != null) {
-	    // asdDB.close();
-	    //
-	    // _log.debug("Closing connection for trash command");
-	}
+        try {
+            LOG.debug("Opening connection for trash command");
+            asdDB = new APIServerDaemonDB(asdConnectionURL);
+            asdDB.trashTask(this);
+        } catch (Exception e) {
+            LOG.fatal("Unable trash task related to given command:" + LS
+                    + this.toString());
+        }
     }
 
     /**
-     * Reset modified flag
+     * Reset modified flag.
      */
     public void validate() {
-	this.modified_flag = false;
+        modifyFlag = false;
     }
 
     /**
-     * Get the APIServerDaemon connectionURL string
+     * Get the APIServerDaemon connectionURL string.
      * 
      * @return asdConnectionURL
      */
     public String getASDConnectionURL() {
-	return asdConnectionURL;
+        return asdConnectionURL;
     }
 
     /**
-     * Set the APIServerDaemon connectionURL string
+     * Set the APIServerDaemon connectionURL string.
      * 
      * @return asdConnectionURL
      */
-    public void setASDConnectionURL(String asdConnectionURL) {
-	this.asdConnectionURL = asdConnectionURL;
+    public void setASDConnectionURL(String asdConnURL) {
+        asdConnectionURL = asdConnURL;
     }
 
     /**
-     * Get APIServerCommand 'action' field value
+     * Get APIServerCommand 'cmdAction' field value.
      * 
-     * @return action
+     * @return cmdAction
      */
     public String getAction() {
-	return this.action;
+        return cmdAction;
     }
 
     /**
-     * Set APIServerCommand 'action' field value
+     * Set APIServerCommand 'cmdAction' field value.
      * 
-     * @param action
+     * @param commandAction
      */
-    public void setAction(String action) {
-	if (action == null) {
-	    return;
-	}
+    public void setAction(String commandAction) {
+        if (cmdAction == null) {
+            return;
+        }
 
-	if ((this.action == null) || !this.action.equals(action)) {
-	    modified_flag = true;
-	    this.action = action;
-	}
+        if ((cmdAction == null) || !this.cmdAction.equals(commandAction)) {
+            modifyFlag = true;
+            cmdAction = commandAction;
+        }
     }
 
     /**
-     * Get APIServerCommand 'action_info' field value
+     * Get APIServerCommand 'cmdInfo' field value.
      * 
-     * @return action_info
+     * @return cmdInfo
      */
     public String getActionInfo() {
-	return this.action_info;
+        return cmdInfo;
     }
 
     /**
-     * Set APIServerCommand 'action_info' field value
+     * Set APIServerCommand 'cmdInfo' field value.
      * 
-     * @param action_info
+     * @param commandInfo
      */
-    public void setActionInfo(String action_info) {
-	if (action_info == null) {
-	    return;
-	}
+    public void setActionInfo(String commandInfo) {
+        if (commandInfo == null) {
+            return;
+        }
 
-	if ((this.action_info == null) || !this.action_info.equals(action_info)) {
-	    modified_flag = true;
-	    this.action_info = action_info;
-	}
+        if ((cmdInfo == null)
+          || !cmdInfo.equals(commandInfo)) {
+            modifyFlag = true;
+            cmdInfo = commandInfo;
+        }
     }
 
     /**
-     * Get APIServerCommand 'check_ts' field value
+     * Get APIServerCommand 'cmdCheck' field value.
      * 
-     * @return check_ts
+     * @return cmdCheck
      */
     public Date getCheckTS() {
-	return this.check_ts;
+        return cmdCheck;
     }
 
     /**
-     * Get APIServerCommand 'creation' field value
+     * Get APIServerCommand 'cmdCreation' field value.
      * 
-     * @return creation
+     * @return cmdCreation
      */
     public Date getCreation() {
-	return this.creation;
+        return cmdCreation;
     }
 
     /**
-     * Set APIServerCommand 'creation' field value
+     * Set APIServerCommand 'cmdCreation' field value.
      * 
-     * @param creation
+     * @param commandCreation
      */
-    public void setCreation(Date creation) {
-	if (creation == null) {
-	    return;
-	}
+    public void setCreation(Date commandCreation) {
+        if (commandCreation == null) {
+            return;
+        }
 
-	if ((this.creation == null) || !this.creation.equals(creation)) {
-	    modified_flag = true;
-	    this.creation = creation;
-	}
+        if ((cmdCreation == null)
+          || !cmdCreation.equals(commandCreation)) {
+            modifyFlag = true;
+            cmdCreation = commandCreation;
+        }
     }
 
     /**
-     * Get APIServerCommand 'last_change' field value
+     * Get APIServerCommand 'cmdLastChange' field value.
      * 
-     * @return last_change
+     * @return cmdLastChange
      */
     public Date getLastChange() {
-	return this.last_change;
+        return cmdLastChange;
     }
 
     /**
-     * Set APIServerCommand 'last_change' field value
+     * Set APIServerCommand 'cmdLastChange' field value.
      * 
-     * @param last_change
+     * @param commandChange
      */
-    public void setLastChange(Date last_change) {
-	if (last_change == null) {
-	    return;
-	}
+    public void setLastChange(Date commandChange) {
+        if (commandChange == null) {
+            return;
+        }
 
-	if ((this.last_change == null) || !this.last_change.equals(last_change)) {
-	    modified_flag = true;
-	    this.last_change = last_change;
-	}
+        if ((cmdLastChange == null)
+          || !cmdLastChange.equals(commandChange)) {
+            modifyFlag = true;
+            cmdLastChange = commandChange;
+        }
     }
 
     /**
-     * Return time difference in milliseconds between current and creation
-     * timestamps
+     * Return time difference in milliseconds between current and cmdCreation
+ timestamps
      *
-     * @return Number of milliseconds between current and creation timestamps
+     * @return Number of milliseconds between current and cmdCreation timestamps
      */
     public long getLifetime() {
-	DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-	Date currentTimeStamp = new Date();
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date currentTimeStamp = new Date();
 
-	_log.debug("Current TS: " + df.format(currentTimeStamp) + " - creation: " + df.format(creation) + " [Millis: "
-		+ (currentTimeStamp.getTime() - creation.getTime()) + "]");
+        LOG.debug("Current TS: " + df.format(currentTimeStamp) +
+                " - creation: " + df.format(cmdCreation) + " [Millis: "
+            + (currentTimeStamp.getTime() - cmdCreation.getTime()) + "]");
 
-	return currentTimeStamp.getTime() - creation.getTime();
+        return currentTimeStamp.getTime() - cmdCreation.getTime();
     }
 
     /**
-     * Return true if any field has been modified by any of 'set' methods
+     * Return true if any field has been modified by any of 'set' methods.
      */
     public boolean isModified() {
-	return this.modified_flag;
+        return modifyFlag;
     }
 
     /**
-     * Get APIServerCommand 'retry' field value
+     * Get APIServerCommand 'cmdRetry' field value.
      * 
-     * @return target_status
+     * @return cmdTargetStatus
      */
     public int getRetry() {
-	return this.retry;
+        return cmdRetry;
     }
 
     /**
-     * Set APIServerCommand 'retry' field value
+     * Set APIServerCommand 'cmdRetry' field value.
      * 
-     * @param retry
+     * @param retryCount
      */
-    public void setRetry(int retry) {
-	if (this.retry != retry) {
-	    modified_flag = true;
-	    this.retry = retry;
-	}
+    public void setRetry(int retryCount) {
+        if (cmdRetry != retryCount) {
+            modifyFlag = true;
+            cmdRetry = retryCount;
+        }
     }
 
     /**
      * Save a keyName,keyValue,keyDesc triple in runtime_data table This
      * function is used by adaptors to store resource related information
-     * relative to the current task
+     * relative to the current task.
      * 
-     * @param rtdKey
-     *            Key name
-     * @param rtdValue
-     *            Key value
-     * @param rtdDesc
-     *            Key description
+     * @param rtdKey - Key name
+     * @param rtdValue - Key value
+     * @param rtdDesc - Key description
+     * @param rtdProto - Key data retrieval prototype
+     * @param rtdType - Key data retrieval type
      */
-    void setRunTimeData(String rtdKey, String rtdValue, String rtdDesc, String rtdProto, String rtdType) {
-	APIServerDaemonDB asdDB = null;
+    void setRunTimeData(String rtdKey,
+                        String rtdValue,
+                        String rtdDesc,
+                        String rtdProto,
+                        String rtdType) {
+        APIServerDaemonDB asdDB = null;
 
-	if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
-	    _log.error("Command with no connection URL defined" + LS + toString());
+        if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
+            LOG.error("Command with no connection URL defined" + LS
+                    + toString());
 
-	    return;
-	}
+            return;
+        }
 
-	try {
-	    _log.debug("Opening connection for set command' runtime data");
-	    asdDB = new APIServerDaemonDB(asdConnectionURL);
-	    asdDB.setRunTimeData(rtdKey, rtdValue, rtdDesc, rtdProto, rtdType, this);
-	    _log.debug("Set run time data (key=" + rtdKey + ", value=" + rtdValue + ") to the given command:" + LS
-		    + toString());
-	} catch (Exception e) {
-	    _log.fatal("Unable set run time data (key=" + rtdKey + ", value=" + rtdValue + ") to the given command:"
-		    + LS + toString());
-	} finally {
-	    // if (asdDB != null) {
-	    // asdDB.close();
-	    // }
-	    // _log.debug("Closing connection for set command' runtime data");
-	}
+        try {
+            LOG.debug("Opening connection for set command' runtime data");
+            asdDB = new APIServerDaemonDB(asdConnectionURL);
+            asdDB.setRunTimeData(rtdKey,
+                                 rtdValue,
+                                 rtdDesc,
+                                 rtdProto,
+                                 rtdType,
+                                 this);
+            LOG.debug("Set run time data (key=" + rtdKey
+                    + ", value=" + rtdValue + ") to the given command:" + LS
+                + toString());
+        } catch (Exception e) {
+            LOG.fatal("Unable set run time data (key=" + rtdKey
+                    + ", value=" + rtdValue + ") to the given command:" + LS
+                    + toString());
+        } finally {
+            // if (asdDB != null) {
+            // asdDB.close();
+            // }
+            // LOG.debug("Closing connection for set command' runtime data");
+        }
     }
 
     /**
      * Retrieve keyValue from a given keyName in runtime_data table This
      * function is used by adaptors to store resource related information
-     * relative to the current task
+     * relative to the current task.
      * 
-     * @param rtdKey
-     *            Key name
-     * @param rtdValue
-     *            Key value
-     * @param rtdDesc
-     *            Key description
+     * @param rtdKey - Key name
      */
     public String getRunTimeData(String rtdKey) {
-	String rtdValue = "";
-	APIServerDaemonDB asdDB = null;
+        String rtdValue = "";
+        APIServerDaemonDB asdDB = null;
 
-	if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
-	    _log.error("Command with no connection URL defined" + LS + toString());
+        if ((asdConnectionURL == null) || (asdConnectionURL.length() == 0)) {
+            LOG.error("Command with no connection URL defined" + LS
+                    + toString());
 
-	    return rtdValue;
-	}
+            return rtdValue;
+        }
 
-	try {
-	    _log.debug("Opening connection for get command' runtime data");
-	    asdDB = new APIServerDaemonDB(asdConnectionURL);
-	    rtdValue = asdDB.getRunTimeData(rtdKey, this);
-	    _log.debug("Run time data for key = '" + rtdKey + "' has value = '" + rtdValue
-		    + "') from the given command:" + LS + toString());
-	} catch (Exception e) {
-	    _log.fatal("Unable get run time data (key = '" + rtdKey + "', value = '" + rtdValue
-		    + "') from the given command:" + LS + toString());
-	} finally {
-	    // if (asdDB != null) {
-	    // asdDB.close();
-	    // }
-	    // _log.debug("Closing connection for set command' runtime data");
-	}
-
-	return rtdValue;
+        try {
+            LOG.debug("Opening connection for get command' runtime data");
+            asdDB = new APIServerDaemonDB(asdConnectionURL);
+            rtdValue = asdDB.getRunTimeData(rtdKey, this);
+            LOG.debug("Run time data for key = '" + rtdKey
+                    + "' has value = '" + rtdValue
+                    + "') from the given command:" + LS
+                    + toString());
+        } catch (Exception e) {
+            LOG.fatal("Unable get run time data (key = '" + rtdKey
+                    + "', value = '" + rtdValue
+                    + "') from the given command:" + LS
+                    + toString());
+        }
+        return rtdValue;
     }
 
     /**
-     * Get APIServerCommand 'status' field value
+     * Get APIServerCommand 'cmdStatus' field value.
      * 
-     * @return status
+     * @return cmdStatus
      */
     public String getStatus() {
-	return this.status;
+        return cmdStatus;
     }
 
     /**
-     * Set APIServerCommand 'status' field value
+     * Set APIServerCommand 'cmdStatus' field value.
      * 
-     * @param status
+     * @param commandStatus
      */
-    public void setStatus(String status) {
-	if (status == null) {
-	    return;
-	}
+    public void setStatus(String commandStatus) {
+        if (commandStatus == null) {
+            return;
+        }
 
-	if ((this.status == null) || !this.status.equals(status)) {
-	    modified_flag = true;
-	    this.status = status;
-	}
+        if ((cmdStatus == null) || !cmdStatus.equals(commandStatus)) {
+            modifyFlag = true;
+            cmdStatus = commandStatus;
+        }
     }
 
     /**
-     * Get APIServerCommand 'target' field value
+     * Get APIServerCommand 'cmdTarget' field value.
      * 
-     * @return target
+     * @return cmdTarget
      */
     public String getTarget() {
-	return this.target;
+        return cmdTarget;
     }
 
     /**
-     * Get APIServerCommand 'target_id' field value
+     * Get APIServerCommand 'cmdTargetId' field value.
      * 
-     * @return target_id (For instance GridEngine' Active Grid Interaction id)
+     * @return cmdTargetId (For instance GridEngine' Active Grid Interaction id)
      * @see GridEngine' ActiveGridInteraction table
      */
     public int getTargetId() {
-	return this.target_id;
+        return cmdTargetId;
     }
 
     /**
-     * Set APIServerCommand 'target_id' field value
+     * Set APIServerCommand 'cmdTargetId' field value.
      * 
      * @param target_id
      */
-    public void setTargetId(int target_id) {
-	if (this.target_id != target_id) {
-	    modified_flag = true;
-	    this.target_id = target_id;
-	}
+    public void setTargetId(int targetId) {
+        if (cmdTargetId != targetId) {
+            modifyFlag = true;
+            cmdTargetId = targetId;
+        }
     }
 
     /**
-     * Get APIServerCommand 'target_status' field value
+     * Get APIServerCommand 'cmdTargetStatus' field value.
      * 
-     * @return target_status
+     * @return cmdTargetStatus
      */
     public String getTargetStatus() {
-	return this.target_status;
+        return cmdTargetStatus;
     }
 
     /**
-     * Set APIServerCommand 'target_status' field value
+     * Set APIServerCommand 'cmdTargetStatus' field value.
      * 
-     * @param target_status
+     * @param targetStatus
      */
-    public void setTargetStatus(String target_status) {
-	if (target_status == null) {
-	    return;
-	}
+    public void setTargetStatus(String targetStatus) {
+        if (targetStatus == null) {
+            return;
+        }
 
-	if ((this.target_status == null) || !this.target_status.equals(target_status)) {
-	    modified_flag = true;
-	    this.target_status = target_status;
-	}
+        if ((cmdTargetStatus == null)
+          || !cmdTargetStatus.equals(targetStatus)) {
+            modifyFlag = true;
+            cmdTargetStatus = targetStatus;
+        }
     }
 
     /**
-     * Get APIServerCommand 'task_id' field value
+     * Get APIServerCommand 'cmdTaskId' field value.
      * 
-     * @return task_id
+     * @return cmdTaskId
      */
     public int getTaskId() {
-	return this.task_id;
+        return cmdTaskId;
     }
 
     /**
-     * Set APIServerCommand 'task_id' field value
+     * Set APIServerCommand 'cmdTaskId' field value.
+     * @param taskId
      */
-    public void setTaskId(int task_id) {
-	if (this.task_id != task_id) {
-	    modified_flag = true;
-	    this.task_id = task_id;
-	}
+    public void setTaskId(int taskId) {
+        if (this.cmdTaskId != cmdTaskId) {
+            modifyFlag = true;
+            cmdTaskId = cmdTaskId;
+        }
     }
 }
