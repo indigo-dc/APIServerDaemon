@@ -179,11 +179,11 @@ class APIServerDaemonPolling implements Runnable {
 	this.asdConfig = asdConfig;
 
 	// Set configuration values for this class
-	this.apisrv_dbhost = asdConfig.getApisrv_dbhost();
-	this.apisrv_dbport = asdConfig.getApisrv_dbport();
-	this.apisrv_dbuser = asdConfig.getApisrv_dbuser();
-	this.apisrv_dbpass = asdConfig.getApisrv_dbpass();
-	this.apisrv_dbname = asdConfig.getApisrv_dbname();
+	this.apisrv_dbhost = asdConfig.getApisrvDBHost();
+	this.apisrv_dbport = asdConfig.getApisrvDBPort();
+	this.apisrv_dbuser = asdConfig.getApisrvDBUser();
+	this.apisrv_dbpass = asdConfig.getApisrvDBPass();
+	this.apisrv_dbname = asdConfig.getApisrvDBName();
 
 	// Load GridEngineDaemon settings
 	this.asPollingDelay = asdConfig.getPollingDelay();

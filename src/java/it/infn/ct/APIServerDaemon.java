@@ -136,12 +136,12 @@ public class APIServerDaemon {
         asdConfig = new APIServerDaemonConfig(true);
 
         // Set configuration values for this class
-        this.apisrvDBHost = asdConfig.getApisrv_dbhost();
-        this.apisrvDBPort = asdConfig.getApisrv_dbport();
-        this.apisrvDBUser = asdConfig.getApisrv_dbuser();
-        this.apisrvDBPass = asdConfig.getApisrv_dbpass();
-        this.apisrvDBName = asdConfig.getApisrv_dbname();
-        this.apisrvDBVer = asdConfig.getApisrv_dbver();
+        this.apisrvDBHost = asdConfig.getApisrvDBHost();
+        this.apisrvDBPort = asdConfig.getApisrvDBPort();
+        this.apisrvDBUser = asdConfig.getApisrvDBUser();
+        this.apisrvDBPass = asdConfig.getApisrvDBPass();
+        this.apisrvDBName = asdConfig.getApisrvDBName();
+        this.apisrvDBVer = asdConfig.getASDBVer();
 
         // Load APIServerDaemon settings
         this.asdMaxThreads = asdConfig.getMaxThreads();

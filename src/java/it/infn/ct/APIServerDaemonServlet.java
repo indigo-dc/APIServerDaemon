@@ -147,23 +147,23 @@ public class APIServerDaemonServlet extends HttpServlet {
 								       // ${message}
 
 	// APIServerDaemon DB settings
-	request.setAttribute("apisrv_dbhost", asdConfig.getApisrv_dbhost());
-	request.setAttribute("apisrv_dbport", asdConfig.getApisrv_dbport());
-	request.setAttribute("apisrv_dbname", asdConfig.getApisrv_dbname());
-	request.setAttribute("apisrv_dbuser", asdConfig.getApisrv_dbuser());
-	request.setAttribute("apisrv_dbpass", asdConfig.getApisrv_dbpass());
+	request.setAttribute("apisrv_dbhost", asdConfig.getApisrvDBHost());
+	request.setAttribute("apisrv_dbport", asdConfig.getApisrvDBPort());
+	request.setAttribute("apisrv_dbname", asdConfig.getApisrvDBName());
+	request.setAttribute("apisrv_dbuser", asdConfig.getApisrvDBUser());
+	request.setAttribute("apisrv_dbpass", asdConfig.getApisrvDBPass());
 
 	// APIServerDaemon Threads settings
 	request.setAttribute("asdMaxThreads", asdConfig.getMaxThreads());
 	request.setAttribute("asdCloseTimeout", asdConfig.getCloseTimeout());
 
 	// GridEngine DB Settings
-	request.setAttribute("utdb_jndi", asdConfig.getGridEngine_db_jndi());
-	request.setAttribute("utdb_host", asdConfig.getGridEngine_db_host());
-	request.setAttribute("utdb_port", asdConfig.getGridEngine_db_port());
-	request.setAttribute("utdb_name", asdConfig.getGridEngine_db_name());
-	request.setAttribute("utdb_user", asdConfig.getGridEngine_db_user());
-	request.setAttribute("utdb_pass", asdConfig.getGridEngine_db_pass());
+	request.setAttribute("utdb_jndi", asdConfig.getGridEngineDBjndi());
+	request.setAttribute("utdb_host", asdConfig.getGridEngineDBhost());
+	request.setAttribute("utdb_port", asdConfig.getGridEngineDBPort());
+	request.setAttribute("utdb_name", asdConfig.getGridEngineDBName());
+	request.setAttribute("utdb_user", asdConfig.getGridEngineDBuser());
+	request.setAttribute("utdb_pass", asdConfig.getGridEngineDBPass());
 
 	// Render the HTML
 	request.getRequestDispatcher("config.jsp").forward(request, response);

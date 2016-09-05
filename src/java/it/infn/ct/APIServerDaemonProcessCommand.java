@@ -86,7 +86,7 @@ class APIServerDaemonProcessCommand implements Runnable {
 	    GridEngineInterface geInterface = new GridEngineInterface(asdCommand);
 
 	    asdCommand.setStatus("PROCESSED");
-	    asdCommand.Update();
+	    asdCommand.update();
 	} /*
 	   * else if(asdCommand.getTarget().equals(<other targets>)) { }
 	   */
@@ -106,7 +106,7 @@ class APIServerDaemonProcessCommand implements Runnable {
 
 	    geInterface.jobCancel();
 	    asdCommand.setStatus("PROCESSED");
-	    asdCommand.Update();
+	    asdCommand.update();
 	} /*
 	   * else if(asdCommand.getTarget().equals(<other targets>)) { }
 	   */
@@ -174,7 +174,7 @@ class APIServerDaemonProcessCommand implements Runnable {
 
 	    // AGIId is taken from checkCommand loop
 	    asdCommand.setStatus("PROCESSED");
-	    asdCommand.Update();
+	    asdCommand.update();
 	    _log.debug("Submitted command (GridEngine): " + asdCommand.toString());
 
 	    break;
@@ -185,7 +185,7 @@ class APIServerDaemonProcessCommand implements Runnable {
 
 	    asdCommand.setTargetId(simple_tosca_id);
 	    asdCommand.setStatus("PROCESSED");
-	    asdCommand.Update();
+	    asdCommand.update();
 	    _log.debug("Submitted command (SimpleTosca): " + asdCommand.toString());
 
 	    break;
@@ -196,7 +196,7 @@ class APIServerDaemonProcessCommand implements Runnable {
 
 	    asdCommand.setTargetId(toscaIDC_id);
 	    asdCommand.setStatus("PROCESSED");
-	    asdCommand.Update();
+	    asdCommand.update();
 	    _log.debug("Submitted command (ToscaIDC): " + asdCommand.toString());
 
 	    break;
@@ -234,7 +234,7 @@ class APIServerDaemonProcessCommand implements Runnable {
 
 	    asdCommand.setTargetStatus(geInterface.jobOutput());
 	    asdCommand.setStatus("PROCESSED");
-	    asdCommand.Update();
+	    asdCommand.update();
 	} /*
 	   * else if(asdCommand.getTarget().equals(<other targets>)) { }
 	   */
@@ -255,7 +255,7 @@ class APIServerDaemonProcessCommand implements Runnable {
 
 	    asdCommand.setTargetStatus(geInterface.jobStatus());
 	    asdCommand.setStatus("PROCESSED");
-	    asdCommand.Update();
+	    asdCommand.update();
 	} /*
 	   * else if(asdCommand.getTarget().equals(<other targets>)) { }
 	   */

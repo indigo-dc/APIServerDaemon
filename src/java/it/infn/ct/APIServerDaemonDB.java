@@ -258,8 +258,8 @@ public class APIServerDaemonDB {
     }
 
     /**
-     * Update values of a given command except for: date fields and action_info;
-     * creation date will be ignored, while last_change will be set to now()
+     * update values of a given command except for: date fields and action_info;
+ creation date will be ignored, while last_change will be set to now()
      * 
      * @param APIServerCommand
      *            object
@@ -282,7 +282,7 @@ public class APIServerDaemonDB {
 	    statement = connect.createStatement();
 	    statement.execute(sql);
 
-	    // Update command values into as_queue table
+	    // update command values into as_queue table
 	    sql = "update as_queue set target_id = ?" + LS + "                   ,status = ?" + LS
 		    + "                   ,target_status = ?" + LS + "                   ,last_change = now()" + LS
 		    + "where task_id=?" + LS + "  and action=?";
@@ -508,8 +508,8 @@ public class APIServerDaemonDB {
     }
 
     /**
-     * Update values of a given command except for: date fields and action_info;
-     * creation date will be ignored, while last_change will be set to now()
+     * update values of a given command except for: date fields and action_info;
+ creation date will be ignored, while last_change will be set to now()
      * 
      * @param APIServerCommand
      *            object
@@ -532,7 +532,7 @@ public class APIServerDaemonDB {
 	    statement = connect.createStatement();
 	    statement.execute(sql);
 
-	    // Update command values into as_queue table
+	    // update command values into as_queue table
 	    sql = "update as_queue set check_ts = now()" + LS + "where task_id=?;";
 	    preparedStatement = connect.prepareStatement(sql);
 	    preparedStatement.setInt(1, command.getTaskId());
@@ -791,7 +791,7 @@ public class APIServerDaemonDB {
     }
 
     /**
-     * Update output paths of a given command
+     * update output paths of a given command
      */
     void updateOutputPaths(APIServerDaemonCommand command, String outputDir) {
 	if (!connect()) {

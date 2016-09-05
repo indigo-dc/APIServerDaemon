@@ -492,7 +492,7 @@ public class SimpleToscaInterface {
 
 		if (toscaTargetId > 0) {
 
-		    // Update tosca_id if successful
+		    // update tosca_id if successful
 		    if ((tosca_id != null) && (tosca_id.length() > 0)) {
 			stiDB.updateToscaId(toscaTargetId, tosca_id);
 
@@ -527,7 +527,7 @@ public class SimpleToscaInterface {
 		// if (stiDB != null) {
 		// stiDB.close();
 		// }
-		toscaCommand.Update();
+		toscaCommand.update();
 	    }
 	} catch (SecurityException se) {
 	    _log.error("Unable to create job output folder in: '" + toscaCommand.getActionInfo() + "' directory");
@@ -546,7 +546,7 @@ public class SimpleToscaInterface {
      */
     public void setConfig(APIServerDaemonConfig asdConfig) {
 	this.asdConfig = asdConfig;
-	this.APIServerConnURL = asdConfig.getApisrv_URL();
+	this.APIServerConnURL = asdConfig.getApisrvURL();
     }
 
     /**

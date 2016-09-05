@@ -235,7 +235,7 @@ public class ToscaIDCInterfaceDB {
     }
 
     /**
-     * Update the toscaId value into an existing tosca_idc record
+     * update the toscaId value into an existing tosca_idc record
      * 
      * @param ToscaIDC
      *            id record index in tosca_idc table
@@ -272,7 +272,7 @@ public class ToscaIDCInterfaceDB {
     }
 
     /**
-     * Update the tosca status value into an existing tosca_idc record
+     * update the tosca status value into an existing tosca_idc record
      * 
      * @param ToscaIDCId
      *            record index in tosca_idc table

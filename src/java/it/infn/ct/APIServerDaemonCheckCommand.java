@@ -172,7 +172,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                             + asdCommand.getTaskId()
                             + " is: " + agiId);
                     asdCommand.setTargetId(agiId);
-                    asdCommand.Update();
+                    asdCommand.update();
 
                     // Now verify if target exists
                     if (asdCommand.getTargetId() > 0) {
@@ -369,7 +369,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
     }
 
     /**
-     * Update task' output file paths.
+     * update task' output file paths.
      * @param outputDir - The path associated to the given command
      */
     final void updateOutputPaths(final String outputDir) {
@@ -454,8 +454,8 @@ public class APIServerDaemonCheckCommand implements Runnable {
                 + asdCommand.getTaskId()
                 + " is: " + agiId);
         asdCommand.setTargetId(agiId);
-        asdCommand.Update();
-        // Update target_status taking its value from the GridEngine'
+        asdCommand.update();
+        // update target_status taking its value from the GridEngine'
         // ActiveGridInteraction table, then if target_status is DONE
         // flag also the command state to DONE allowing APIServer'
         // GetOutput call to work
@@ -482,7 +482,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                         break;
                     }
                 }
-                asdCommand.Update();
+                asdCommand.update();
             } else {
                 // TargetId is 0 - check consistency ...
                 taskConsistencyCheck("PROCESSED");
@@ -496,7 +496,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                                    // (PROCESSED)
             asdCommand.setStatus("HOLD"); // Avoid during check that futher
                                           // checks occur
-            asdCommand.Update();
+            asdCommand.update();
             String status = stInterface.getStatus();
             if ((status != null) && (status.length() > 0)) {
                 asdCommand.setTargetStatus(status);
@@ -522,7 +522,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                 }
             }
             asdCommand.setStatus(currState); // Setup the current state
-            asdCommand.Update();
+            asdCommand.update();
         } else if (asdCommand.getTarget().equals("ToscaIDC")) {
             // Determine the status and take care of the output files
             ToscaIDCInterface tidcInterface =
@@ -532,7 +532,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                                    // (PROCESSED)
             asdCommand.setStatus("HOLD"); // Avoid during check that futher
                               // checks occur
-            asdCommand.Update();
+            asdCommand.update();
             String status = tidcInterface.getStatus();
             if ((status != null) && (status.length() > 0)) {
                 asdCommand.setTargetStatus(status);
@@ -558,7 +558,7 @@ public class APIServerDaemonCheckCommand implements Runnable {
                 }
             }
             asdCommand.setStatus(currState); // Setup the current state
-            asdCommand.Update();
+            asdCommand.update();
         } else {
             LOG.warn("Unsupported target: '" + asdCommand.getTarget() + "'");
         }

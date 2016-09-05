@@ -115,7 +115,7 @@ public class ToscaIDCInterface {
      */
     public void setConfig(APIServerDaemonConfig asdConfig) {
 	this.asdConfig = asdConfig;
-	this.APIServerConnURL = asdConfig.getApisrv_URL();
+	this.APIServerConnURL = asdConfig.getApisrvURL();
     }
 
     /**
@@ -338,7 +338,7 @@ public class ToscaIDCInterface {
 
 		if (toscaTargetId > 0) {
 
-		    // Update tosca_id if successful
+		    // update tosca_id if successful
 		    if ((toscaUUID != null) && (toscaUUID.length() > 0)) {
 			tii.updateToscaId(toscaTargetId, toscaUUID);
 		    } else {
@@ -366,7 +366,7 @@ public class ToscaIDCInterface {
 	    } catch (Exception e) {
 		_log.fatal("Unable to register tosca_id: '" + toscaUUID + "'");
 	    } finally {
-		toscaCommand.Update();
+		toscaCommand.update();
 	    }
 	} catch (SecurityException se) {
 	    _log.error("Unable to create job output folder in: '" + toscaCommand.getActionInfo() + "' directory");
@@ -581,7 +581,7 @@ public class ToscaIDCInterface {
 	    // status = "UNKNOWN";
 	    _log.error("Unhespected ToscaIDC status: '" + status + "'");
 	_log.debug("Status of deployment having id: '" + toscaUUID + "' is: '" + status + "'");
-	// Update target status
+	// update target status
 	tii.updateToscaStatus(toscaCommand.getTargetId(), status);
 	_log.debug("Leaving IDC getStatus");
 	return status;

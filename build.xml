@@ -43,7 +43,7 @@
     </fileset>
   </path>
 
-  <target name="all" depends="check, clean, resolve, check, compile,dist"
+  <target name="all" depends="clean, resolve, check, compile,dist"
           description="Clean work dirs, then compile and create a WAR"/>
 
   <target name="clean"
@@ -61,9 +61,10 @@
       <taskdef resource="com/puppycrawl/tools/checkstyle/ant/checkstyle-ant-task.properties">
           <classpath refid="compile.classpath"/>
       </taskdef>
-          <checkstyle config="${basedir}/sun_checks.xml" failOnViolation="true">
+          <checkstyle config="${basedir}/sun_checks.xml"
+                      failOnViolation="true">
               <fileset dir="${basedir}/src/java/it/infn/ct" includes="**/*.java"/>
-              <formatter type="xml" tofile="checkstyle_report.xml"/>
+              <formatter type="xml" tofile="checkstyle-report.xml"/>
           </checkstyle>
   </target>
 

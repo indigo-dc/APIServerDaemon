@@ -488,12 +488,12 @@ public class GridEngineInterface {
 	this.gedConfig = gedConfig;
 
 	// Extract class specific configutation
-	this.utdb_jndi = gedConfig.getGridEngine_db_jndi();
-	this.utdb_host = gedConfig.getGridEngine_db_host();
-	this.utdb_port = gedConfig.getGridEngine_db_port();
-	this.utdb_user = gedConfig.getGridEngine_db_user();
-	this.utdb_pass = gedConfig.getGridEngine_db_pass();
-	this.utdb_name = gedConfig.getGridEngine_db_name();
+	this.utdb_jndi = gedConfig.getGridEngineDBjndi();
+	this.utdb_host = gedConfig.getGridEngineDBhost();
+	this.utdb_port = gedConfig.getGridEngineDBPort();
+	this.utdb_user = gedConfig.getGridEngineDBuser();
+	this.utdb_pass = gedConfig.getGridEngineDBPass();
+	this.utdb_name = gedConfig.getGridEngineDBName();
 	_log.debug("GridEngineInterface config:" + LS + "  [UsersTrackingDB]" + LS + "    db_jndi: '" + this.utdb_jndi
 		+ "'" + LS + "    db_host: '" + this.utdb_host + "'" + LS + "    db_port: '" + this.utdb_port + "'" + LS
 		+ "    db_user: '" + this.utdb_user + "'" + LS + "    db_pass: '" + this.utdb_pass + "'" + LS

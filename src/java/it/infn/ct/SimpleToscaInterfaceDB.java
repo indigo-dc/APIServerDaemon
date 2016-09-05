@@ -237,7 +237,7 @@ public class SimpleToscaInterfaceDB {
     }
 
     /**
-     * Update the toscaId value into an existing simple_tosca record
+     * update the toscaId value into an existing simple_tosca record
      * 
      * @param simpleToscaId
      *            record index in simple_tosca table
@@ -274,7 +274,7 @@ public class SimpleToscaInterfaceDB {
     }
 
     /**
-     * Update the tosca status value into an existing simple_tosca record
+     * update the tosca status value into an existing simple_tosca record
      * 
      * @param simpleToscaId
      *            record index in simple_tosca table
