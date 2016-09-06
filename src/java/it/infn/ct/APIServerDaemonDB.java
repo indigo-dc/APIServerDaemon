@@ -78,7 +78,7 @@ public class APIServerDaemonDB {
      * Logger object.
      */
     private static final Logger LOG =
-            Logger.getLogger(APIServerDaemonController.class.getName());
+            Logger.getLogger(APIServerDaemonDB.class.getName());
     /**
      * Line separator constant.
      */
