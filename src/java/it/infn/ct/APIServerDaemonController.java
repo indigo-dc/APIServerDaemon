@@ -210,23 +210,23 @@ public class APIServerDaemonController extends Observable implements Runnable {
     /**
      * Load APIServerDaemon configuration settings.
      *
-     * @param asdConfig APIServerDaemon configuration object
+     * @param config APIServerDaemon configuration object
      */
-    public final void setConfig(final APIServerDaemonConfig asdConfig) {
+    public final void setConfig(final APIServerDaemonConfig config) {
 
         // Save configs
-        this.asdConfig = asdConfig;
+        this.asdConfig = config;
 
         // Set configuration values for this class
-        this.apisrvDBHost = asdConfig.getApisrvDBHost();
-        this.apisrvDBPort = asdConfig.getApisrvDBPort();
-        this.apisrvDBUser = asdConfig.getApisrvDBUser();
-        this.apisrvDBPass = asdConfig.getApisrvDBPass();
-        this.apisrvDBName = asdConfig.getApisrvDBName();
+        this.apisrvDBHost = config.getApisrvDBHost();
+        this.apisrvDBPort = config.getApisrvDBPort();
+        this.apisrvDBUser = config.getApisrvDBUser();
+        this.apisrvDBPass = config.getApisrvDBPass();
+        this.apisrvDBName = config.getApisrvDBName();
 
         // Load APIServerDaemon settings
-        this.asControllerDelay = asdConfig.getControllerDelay();
-        this.asControllerMaxCommands = asdConfig.getControllerMaxCommands();
+        this.asControllerDelay = config.getControllerDelay();
+        this.asControllerMaxCommands = config.getControllerMaxCommands();
         LOG.info("APIServerDaemon config:" + LS
                 + "  [Database]" + LS
                 + "    db_host: '" + this.apisrvDBHost + "'" + LS
