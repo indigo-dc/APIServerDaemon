@@ -110,7 +110,9 @@
         <!-- Checks for Size Violations.                    -->
         <!-- See http://checkstyle.sf.net/config_sizes.html -->
         <module name="LineLength"/>
+        <!-- Avoid MethodLength 
         <module name="MethodLength"/>
+        -->
         <module name="ParameterNumber">
              <!-- Default number of parameters is 7; updated to 12 -->
             <property name="max" value="12"/>
