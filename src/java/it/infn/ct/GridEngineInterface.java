@@ -673,7 +673,7 @@ public class GridEngineInterface {
 
                 LOG.info("Adaptor is '" + adaptor + "'");
 
-                InfrastructureInfo infrastructures[] =
+                InfrastructureInfo[] infrastructures =
                         new InfrastructureInfo[1];
 
                 // eTokenServer variables for GSI based infrastructures
@@ -699,7 +699,7 @@ public class GridEngineInterface {
                         // Credential values
                         String username = geCredentials.getString("username");
                         String password = geCredentials.getString("password");
-                        String sshEndPoint[] = {resourceManagers};
+                        String[] sshEndPoint = {resourceManagers};
 
                         infrastructures[0] = new InfrastructureInfo(
                                 resourceManagers,
@@ -844,7 +844,7 @@ public class GridEngineInterface {
                             ? "sshport=" + sshport + "&" : "";
 
                     // Generate the rOCCI endpoint
-                    String rOCCIResourcesList[] = {
+                    String[] rOCCIResourcesList = {
                         resourceManagers + "/?" + prefixOpt
                             + "action=create&"
                             + "resource=compute&" + mixinResTpl
@@ -937,7 +937,7 @@ public class GridEngineInterface {
                         LOG.warn("NO CE list specified");
                     }
 
-                    String jdlRequirements[] = null;
+                    String[] jdlRequirements = null;
 
                     try {
                         jdlRequirements = geInfrastructure.getString(
@@ -965,7 +965,7 @@ public class GridEngineInterface {
                     // In wms case resourceManager could contain more than
                     // one wms:// entrypoint specified by a comma separated
                     // string
-                    String wmsList[] = resourceManagers.split(",");
+                    String[] wmsList = resourceManagers.split(",");
 
                     LOG.info("Creating Infrastrcuture object");
                     infrastructures[0] = new InfrastructureInfo(

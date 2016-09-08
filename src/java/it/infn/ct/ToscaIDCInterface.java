@@ -393,7 +393,7 @@ public class ToscaIDCInterface {
 
             LOG.debug("IOFiles: '" + ioFiles + "'");
 
-            String files[] = ioFiles.split(",");
+            String[] files = ioFiles.split(",");
 
             for (int i = 0; i < files.length; i++) {
                 LOG.debug("IO Files[" + i + "]: '" + files[i] + "'");
@@ -477,7 +477,7 @@ public class ToscaIDCInterface {
         String toscParametersValues = "";
         String toscaParametersJson = "";
         String tUUID = "";
-        String toscaParams[] = toscaParameters.split("&");
+        String[] toscaParams = toscaParameters.split("&");
         String tParams = "";
         for (int i = 0; i < toscaParams.length; i++) {
             String[] paramArgs = toscaParams[i].split("=");
@@ -587,7 +587,7 @@ public class ToscaIDCInterface {
             throws ParseException {
         JSONParser parser = new JSONParser();
         JSONObject jsonObject = (JSONObject) parser.parse(json);
-        String keyelement[] = key.split("\\.");
+        String[] keyelement = key.split("\\.");
         for (int i = 0; i < (keyelement.length - 1); i++) {
             jsonObject = (JSONObject) jsonObject.get(keyelement[i]);
         }

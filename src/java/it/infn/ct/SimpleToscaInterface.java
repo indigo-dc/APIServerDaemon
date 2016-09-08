@@ -469,7 +469,7 @@ public class SimpleToscaInterface {
                         + fileEntry.getString("name");
             }
             LOG.debug("IOFiles: '" + ioFiles + "'");
-            String files[] = ioFiles.split(",");
+            String[] files = ioFiles.split(",");
             for (int i = 0; i < files.length; i++) {
                 LOG.debug("IO Files[" + i + "]: '" + files[i] + "'");
             }

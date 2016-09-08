@@ -135,9 +135,9 @@ public class APIServerServletListener implements ServletContextListener {
         // jdbc/gehibernatepool connection pools
         String currentPool = "not yet defined!";
         String poolPrefix = "java:/comp/env/";
-        String pools[] = {"jdbc/fgApiServerPool",
-                           "jdbc/UserTrackingPool",
-                           "jdbc/gehibernatepool"};
+        String[] pools = {"jdbc/fgApiServerPool",
+                          "jdbc/UserTrackingPool",
+                          "jdbc/gehibernatepool"};
         Connection[] connPools = new Connection[pools.length];
 
         for (int i = 0; i < pools.length; i++) {
