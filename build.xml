@@ -52,7 +52,7 @@
     <delete dir="${dist.home}"/>
   </target>
 
-  <target name="check"
+  <target name="check" depends="resolve"
           description="Codestyle check with checkstyle">
       <!-- <taskdef resource="checkstyle-ant-task.properties" classpath="${app.baselibs}/checkstyle-7.1.jar"/>  -->
       <!--

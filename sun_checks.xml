@@ -110,12 +110,9 @@
         <!-- Checks for Size Violations.                    -->
         <!-- See http://checkstyle.sf.net/config_sizes.html -->
         <module name="LineLength"/>
-        <!-- Avoid MethodLength 
         <module name="MethodLength"/>
-        -->
         <module name="ParameterNumber">
-             <!-- Default number of parameters is 7; updated to 12 -->
-            <property name="max" value="12"/>
+            <property name="max" value="7"/>
         </module>
 
         <!-- Checks for whitespace                               -->
@@ -146,9 +143,7 @@
 
         <!-- Checks for common coding problems               -->
         <!-- See http://checkstyle.sf.net/config_coding.html -->
-        <!-- Avoid AvoidInlineConditionals
         <module name="AvoidInlineConditionals"/>
-        -->
         <module name="EmptyStatement"/>
         <module name="EqualsHashCode"/>
         <module name="HiddenField"/>
@@ -175,5 +170,9 @@
         <module name="UpperEll"/>
 
     </module>
+
+<module name="SuppressionFilter">
+    <property name="file" value="checkstyle-suppressions.xml"/>
+</module>
 
 </module>
