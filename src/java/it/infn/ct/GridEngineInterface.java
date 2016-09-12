@@ -22,456 +22,505 @@ limitations under the License.
 ****************************************************************************/
 package it.infn.ct;
 
+import it.infn.ct.GridEngine.Job.InfrastructureInfo;
+import it.infn.ct.GridEngine.Job.JSagaJobSubmission;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
 import java.net.InetAddress;
 import java.net.URL;
-
 import java.nio.charset.Charset;
-
 import java.util.Properties;
 import java.util.Random;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
-
-import org.json.*;
-
-//Importing GridEngine Job libraries
-import it.infn.ct.GridEngine.Job.*;
 import it.infn.ct.GridEngine.Job.MultiInfrastructureJobSubmission;
-import it.infn.ct.GridEngine.JobResubmission.GEJobDescription;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
- * This class interfaces any call to the GridEngine library
- * 
+ * This class interfaces any call to the GridEngine library.
+ *
  * @author <a href="mailto:riccardo.bruno@ct.infn.it">Riccardo Bruno</a>(INFN)
  */
 public class GridEngineInterface {
 
-    /*
-     * Logger
+    /**
+     * Logger object.
      */
-    private static final Logger _log = Logger.getLogger(GridEngineInterface.class.getName());
+    private static final Logger LOG =
+            Logger.getLogger(GridEngineInterface.class.getName());
+    /**
+     * Line separator constant.
+     */
     public static final String LS = System.getProperty("line.separator");
-
+    /**
+     * FridEngine ApplicationId associated to the APIServer executions.
+     */
+    public static final int GRIDENGINE_APISRVAPPID = 10000;
+    /**
+     * 0xFF bitmask.
+     */
+    public static final short FF_BITMASK = 0xff;
     /*
      * GridEngine UsersTracking DB
      */
-    private String utdb_jndi;
-    private String utdb_host;
-    private String utdb_port;
-    private String utdb_user;
-    private String utdb_pass;
-    private String utdb_name;
-
-    /*
-     * GridEngineDaemon config
+    /**
+     * UsersTrackingDB JNDI resource name.
      */
-    APIServerDaemonConfig gedConfig;
-
-    /*
-     * GridEngineDaemon IP address
+    private String utdbJNDI;
+    /**
+     * UsersTrackingDB host name.
      */
-    String gedIPAddress;
-    APIServerDaemonCommand gedCommand;
+    private String utdbHost;
+    /**
+     * UsersTrackingDB host port number.
+     */
+    private String utdbPort;
+    /**
+     * UsersTrackingDB host user name.
+     */
+    private String utdbUser;
+    /**
+     * UsersTrackingDB host password.
+     */
+    private String utdbPass;
+    /**
+     * UsersTrackingDB host database name.
+     */
+    private String utdbName;
 
     /**
-     * Empty constructor for GridEngineInterface
+     * GridEngineDaemon configuration class.
+     */
+    private APIServerDaemonConfig gedConfig;
+
+    /**
+     * GridEngineDaemon IP address.
+     */
+    private String gedIPAddress;
+    /**
+     * The queue command.
+     */
+    private APIServerDaemonCommand gedCommand;
+
+    /**
+     * Empty constructor for GridEngineInterface.
      */
     public GridEngineInterface() {
-	_log.debug("Initializing GridEngineInterface");
+        LOG.debug("Initializing GridEngineInterface");
 
-	// Retrieve host IP address, used by JobSubmission
-	getIP();
+        // Retrieve host IP address, used by JobSubmission
+        getIP();
 
-	// Prepare environment variable for GridEngineLogConfig.xml
-	setupGELogConfig();
+        // Prepare environment variable for GridEngineLogConfig.xml
+        setupGELogConfig();
     }
 
     /**
-     * Constructor for GridEngineInterface taking as input a given command
+     * Constructor for GridEngineInterface taking as input a given command.
+     * @param command - The queue comand
      */
-    public GridEngineInterface(APIServerDaemonCommand gedCommand) {
-	this();
-	_log.debug("GridEngineInterface command:" + LS + gedCommand);
-	this.gedCommand = gedCommand;
+    public GridEngineInterface(final APIServerDaemonCommand command) {
+        this();
+        LOG.debug("GridEngineInterface command:" + LS + command);
+        this.gedCommand = command;
     }
 
     /**
      * Constructor for GridEngineInterface taking as input the
-     * APIServerDaemonConfig and a given command
+     * APIServerDaemonConfig and a given command.
+     * @param config - APIServerDaemon configuration class
+     * @param command - Queue command
      */
-    public GridEngineInterface(APIServerDaemonConfig gedConfig, APIServerDaemonCommand gedCommand) {
-	this();
-	_log.debug("GridEngineInterface command:" + LS + gedCommand);
-	setConfig(gedConfig);
-	this.gedCommand = gedCommand;
+    public GridEngineInterface(final APIServerDaemonConfig config,
+                               final APIServerDaemonCommand command) {
+        this();
+        LOG.debug("GridEngineInterface command:" + LS + command);
+        setConfig(config);
+        this.gedCommand = command;
     }
 
     /**
-     * submit the job identified by the gedCommand values
+     * submit the job identified by the gedCommand values.
      */
-    public void jobCancel() {
-	_log.debug("Cancelling job");
+    public final void jobCancel() {
+        LOG.debug("Cancelling job");
 
-	return;
+        return;
     }
 
     /**
-     * submit the job identified by the gedCommand values
+     * submit the job identified by the gedCommand values.
+     * @return path to output (not implemented)
      */
-    public String jobOutput() {
-	_log.debug("Getting job output");
+    public final String jobOutput() {
+        LOG.debug("Getting job output");
 
-	return "NOTIMPLEMENTED";
+        return "NOTIMPLEMENTED";
     }
 
     /**
-     * submit the job identified by the gedCommand values
+     * submit the job identified by the gedCommand values.
+     * @return Job status
      */
-    public String jobStatus() {
-	String jobStatus = null;
-	GridEngineInterfaceDB geiDB = null;
+    public final String jobStatus() {
+        String jobStatus = null;
+        GridEngineInterfaceDB geiDB = null;
 
-	_log.debug("Getting job status");
+        LOG.debug("Getting job status");
 
-	// It is more convenient to directly query the ActiveGridInteraction
-	// since GridEngine JobCheck threads are in charge to update this
-	try {
-	    geiDB = new GridEngineInterfaceDB(utdb_host, utdb_port, utdb_user, utdb_pass, utdb_name);
-	    jobStatus = geiDB.getJobStatus(gedCommand.getTargetId());
-	} catch (Exception e) {
-	    _log.fatal("Unable get command status:" + LS + gedCommand + LS + e.toString());
-	} finally {
-	    // if (geiDB != null) {
-	    // geiDB.close();
-	    // }
-	}
+        // It is more convenient to directly query the ActiveGridInteraction
+        // since GridEngine JobCheck threads are in charge to update this
+        try {
+            geiDB = new GridEngineInterfaceDB(utdbHost,
+                                              utdbPort,
+                                              utdbUser,
+                                              utdbPass,
+                                              utdbName);
+            jobStatus = geiDB.getJobStatus(gedCommand.getTargetId());
+        } catch (Exception e) {
+            LOG.fatal("Unable get command status:" + LS
+                    + gedCommand + LS
+                    + e.toString());
+        }
 
-	return jobStatus;
+        return jobStatus;
     }
 
     /**
      * Return a JSON object containing information stored in file:
      * <action_info>/<task_id>.json file, which contains the job description
-     * built by the APIServer translated for the GridEngine
+     * built by the APIServer translated for the GridEngine.
+     * @return JSON object with the GridEngine job descripton
+     * @throws IOException Exception in case of IO failures
      */
     private JSONObject mkGEJobDesc() throws IOException {
-	JSONObject jsonJobDesc = null;
+        JSONObject jsonJobDesc = null;
 
-	_log.debug("Entering mkGEJobDesc");
+        LOG.debug("Entering mkGEJobDesc");
 
-	String jobDescFileName = gedCommand.getActionInfo() + "/" + gedCommand.getTaskId() + ".json";
+        String jobDescFileName = gedCommand.getActionInfo()
+                + "/" + gedCommand.getTaskId() + ".json";
 
-	_log.debug("JSON filename: " + jobDescFileName);
+        LOG.debug("JSON filename: " + jobDescFileName);
 
-	try {
-	    InputStream is = new FileInputStream(jobDescFileName);
-	    String jsonTxt = IOUtils.toString(is);
+        try {
+            InputStream is = new FileInputStream(jobDescFileName);
+            String jsonTxt = IOUtils.toString(is);
 
-	    jsonJobDesc = (JSONObject) new JSONObject(jsonTxt);
-	    _log.debug("Loaded APIServer JobDesc:\n" + LS + jsonJobDesc);
-	} catch (Exception e) {
-	    _log.warn("Caught exception: " + e.toString());
-	}
+            jsonJobDesc = (JSONObject) new JSONObject(jsonTxt);
+            LOG.debug("Loaded APIServer JobDesc:\n" + LS + jsonJobDesc);
+        } catch (Exception e) {
+            LOG.warn("Caught exception: " + e.toString());
+        }
 
-	// Now create the <task_id>.info file targeted for the GridEngine
-	JSONObject GridEngineTaskDescription = new JSONObject();
+        // Now create the <task_id>.info file targeted for the GridEngine
+        JSONObject geTaskDescription = new JSONObject();
 
-	GridEngineTaskDescription.put("commonName", String.format("%s", jsonJobDesc.getString("user")));
-	GridEngineTaskDescription.put("application", 10000); // Take this value
-							     // from properties
-							     // file or any
-							     // other
-							     // configuration
-							     // source
-	GridEngineTaskDescription.put("identifier",
-		String.format("%s@%s", jsonJobDesc.getString("id"), jsonJobDesc.getString("iosandbox")));
-	GridEngineTaskDescription.put("input_files", jsonJobDesc.getJSONArray("input_files"));
-	GridEngineTaskDescription.put("output_files", jsonJobDesc.getJSONArray("output_files"));
+        geTaskDescription.put("commonName",
+                String.format("%s", jsonJobDesc.getString("user")));
+        geTaskDescription.put("application",
+                GRIDENGINE_APISRVAPPID); // Take this value from properties
+                                         // or any other configuration source
+        geTaskDescription.put("identifier",
+                String.format("%s@%s", jsonJobDesc.getString("id"),
+                        jsonJobDesc.getString("iosandbox")));
+        geTaskDescription.put("input_files",
+                jsonJobDesc.getJSONArray("input_files"));
+        geTaskDescription.put("output_files",
+                jsonJobDesc.getJSONArray("output_files"));
 
-	// Prepare the JobDescription
-	JSONObject GridEgnineJobDescription = new JSONObject();
+        // Prepare the JobDescription
+        JSONObject geJobDescription = new JSONObject();
 
-	// Get app Info and Parameters
-	JSONObject appInfo = new JSONObject();
+        // Get app Info and Parameters
+        JSONObject appInfo = new JSONObject();
+        appInfo = jsonJobDesc.getJSONObject("application");
+        JSONArray appParams = new JSONArray();
+        appParams = appInfo.getJSONArray("parameters");
 
-	appInfo = jsonJobDesc.getJSONObject("application");
+        // Process application parameters
+        String jobArgs = "";
+        String paramName;
+        String paramValue;
 
-	JSONArray appParams = new JSONArray();
+        for (int i = 0; i < appParams.length(); i++) {
+            JSONObject appParameter = appParams.getJSONObject(i);
 
-	appParams = appInfo.getJSONArray("parameters");
+            // Get parameter name and value
+            paramName = appParameter.getString("param_name");
+            paramValue = appParameter.getString("param_value");
 
-	// Process application parameters
-	String job_args = "";
-	String param_name;
-	String param_value;
+            // Map task values to GE job description values
+            if (paramName.equals("jobdesc_executable")) {
+                geJobDescription.put("executable", paramValue);
+            } else if (paramName.equals("jobdesc_arguments")) {
 
-	for (int i = 0; i < appParams.length(); i++) {
-	    JSONObject appParameter = appParams.getJSONObject(i);
+                // Further arguments will be added later
+                jobArgs = paramValue + " ";
+            } else if (paramName.equals("jobdesc_output")) {
+                geJobDescription.put("output", paramValue);
+            } else if (paramName.equals("jobdesc_error")) {
+                geJobDescription.put("error", paramValue);
+            } else if (paramName.equals("target_executor")) {
+                LOG.debug("target_executor : '" + paramValue + "'");
+            } else {
+                LOG.warn("Reached end of if-elif chain for "
+                        + "application param name: '"
+                        + paramName + "' with value: '"
+                        + paramValue + "'");
+            }
+        }
 
-	    // Get parameter name and value
-	    param_name = appParameter.getString("param_name");
-	    param_value = appParameter.getString("param_value");
+        // Now add further arguments if specified in task
+        JSONArray jobArguments = jsonJobDesc.getJSONArray("arguments");
 
-	    // Map task values to GE job description values
-	    if (param_name.equals("jobdesc_executable")) {
-		GridEgnineJobDescription.put("executable", param_value);
-	    } else if (param_name.equals("jobdesc_arguments")) {
+        for (int j = 0; j < jobArguments.length(); j++) {
+            jobArgs += String.format("%s ", jobArguments.getString(j));
+        }
 
-		// Further arguments will be added later
-		job_args = param_value + " ";
-	    } else if (param_name.equals("jobdesc_output")) {
-		GridEgnineJobDescription.put("output", param_value);
-	    } else if (param_name.equals("jobdesc_error")) {
-		GridEgnineJobDescription.put("error", param_value);
-	    } else if (param_name.equals("target_executor")) {
-		_log.debug("target_executor : '" + param_value + "'");
-	    } else {
-		_log.warn("Reached end of if-elif chain for application param name: '" + param_name + "' with value: '"
-			+ param_value + "'");
-	    }
-	}
+        geJobDescription.put("arguments", jobArgs.trim());
 
-	// Now add further arguments if specified in task
-	JSONArray jobArguments = jsonJobDesc.getJSONArray("arguments");
+        // Get application specific settings
+        geTaskDescription.put("jobDescription", geJobDescription);
 
-	for (int j = 0; j < jobArguments.length(); j++) {
-	    job_args += String.format("%s ", jobArguments.getString(j));
-	}
+        // Select one of the possible infrastructures among the one enabled
+        // A random strategy is currently implemented; this could be changed
+        // later
+        JSONArray jobInfrastructures = appInfo.getJSONArray("infrastructures");
+        JSONArray enabledInfras = new JSONArray();
 
-	GridEgnineJobDescription.put("arguments", job_args.trim());
+        for (int v = 0, w = 0; w < jobInfrastructures.length(); w++) {
+            JSONObject infra = jobInfrastructures.getJSONObject(w);
 
-	// Get application specific settings
-	GridEngineTaskDescription.put("jobDescription", GridEgnineJobDescription);
+            if (infra.getString("status").equals("enabled")) {
+                enabledInfras.put(v++, infra);
+            }
+        }
 
-	// Select one of the possible infrastructures among the one enabled
-	// A random strategy is currently implemented; this could be changed
-	// later
-	JSONArray jobInfrastructures = appInfo.getJSONArray("infrastructures");
-	JSONArray enabledInfras = new JSONArray();
+        int selInfraIdx = 0;
+        Random rndGen = new Random();
 
-	for (int v = 0, w = 0; w < jobInfrastructures.length(); w++) {
-	    JSONObject infra = jobInfrastructures.getJSONObject(w);
+        if (enabledInfras.length() > 1) {
+            selInfraIdx = rndGen.nextInt(enabledInfras.length());
+        }
 
-	    if (infra.getString("status").equals("enabled")) {
-		enabledInfras.put(v++, infra);
-	    }
-	}
+        JSONObject selInfra = new JSONObject();
 
-	int selInfraIdx = 0;
-	Random rndGen = new Random();
+        selInfra = enabledInfras.getJSONObject(selInfraIdx);
+        LOG.debug("Selected infra:" + LS + selInfra.toString());
 
-	if (enabledInfras.length() > 1) {
-	    selInfraIdx = rndGen.nextInt(enabledInfras.length());
-	}
+        // Process infrastructure: name, credentials and parameters
+        JSONObject geInfrastructure = new JSONObject();
 
-	JSONObject selInfra = new JSONObject();
+        geInfrastructure.put("name", selInfra.getString("name"));
 
-	selInfra = enabledInfras.getJSONObject(selInfraIdx);
-	_log.debug("Selected infra:" + LS + selInfra.toString(4));
+        JSONObject geCredentials = new JSONObject();
+        JSONArray infraParams = selInfra.getJSONArray("parameters");
 
-	// Process infrastructure: name, credentials and parameters
-	JSONObject GridEngineInfrastructure = new JSONObject();
+        for (int h = 0; h < infraParams.length(); h++) {
+            JSONObject infraParameter = infraParams.getJSONObject(h);
 
-	GridEngineInfrastructure.put("name", selInfra.getString("name"));
+            paramName = infraParameter.getString("name");
+            paramValue = infraParameter.getString("value");
+            LOG.info(h + ": " + paramName + " - " + paramValue);
 
-	JSONObject GridEngineCredentials = new JSONObject();
-	JSONArray infraParams = selInfra.getJSONArray("parameters");
+            // Job settings
+            if (paramName.equals("jobservice")) {
+                geInfrastructure.put("resourceManagers", paramValue);
+            } else if (paramName.equals("ce_list")) {
+                geInfrastructure.put("ce_list", paramValue);
+            } else if (paramName.equals("os_tpl")) {
+                geInfrastructure.put("os_tpl", paramValue);
+            } else if (paramName.equals("resource_tpl")) {
+                geInfrastructure.put("resource_tpl", paramValue);
+            } else if (paramName.equals("secured")) {
+                geInfrastructure.put("secured", paramValue);
+            } else if (paramName.equals("protocol")) {
+                geInfrastructure.put("protocol", paramValue);
+            } else if (paramName.equals("attributes_title")) {
+                geInfrastructure.put("attributes_title", paramValue);
+            } else if (paramName.equals("bdii")) {
+                geInfrastructure.put("bdii", paramValue);
+            } else if (paramName.equals("swtags")) {
+                geInfrastructure.put("swtags", paramValue);
+            } else if (paramName.equals("jdlRequirements")) {
+                geInfrastructure.put("jdlRequirements", paramValue);
+            } else if (paramName.equals("user_data")) {
+                geInfrastructure.put("user_data", paramValue);
+            } else if (paramName.equals("prefix")) {
+                geInfrastructure.put("prefix", paramValue);
+            } else if (paramName.equals("link")) {
+                geInfrastructure.put("link", paramValue);
+            } else if (paramName.equals("waitms")) {
+                geInfrastructure.put("waitms", paramValue);
+            } else if (paramName.equals("waitsshms")) {
+                geInfrastructure.put("waitsshms", paramValue);
+            } else if (paramName.equals("sshport")) {
+                geInfrastructure.put("sshport", paramValue);
 
-	for (int h = 0; h < infraParams.length(); h++) {
-	    JSONObject infraParameter = infraParams.getJSONObject(h);
+                // Credential settings
+            } else if (paramName.equals("username")) {
+                geCredentials.put("username", paramValue);
+            } else if (paramName.equals("password")) {
+                geCredentials.put("password", paramValue);
+            } else if (paramName.equals("eToken_host")) {
+                geCredentials.put("eToken_host", paramValue);
+            } else if (paramName.equals("eToken_port")) {
+                geCredentials.put("eToken_port", paramValue);
+            } else if (paramName.equals("eToken_id")) {
+                geCredentials.put("eToken_id", paramValue);
+            } else if (paramName.equals("voms")) {
+                geCredentials.put("voms", paramValue);
+            } else if (paramName.equals("voms_role")) {
+                geCredentials.put("voms_role", paramValue);
+            } else if (paramName.equals("rfc_proxy")) {
+                geCredentials.put("rfc_proxy", paramValue);
+            } else if (paramName.equals("disable-voms-proxy")) {
+                geCredentials.put("disable-voms-proxy", paramValue);
+            } else if (paramName.equals("proxy-renewal")) {
+                geCredentials.put("proxy-renewal", paramValue);
+            } else {
+                LOG.warn("Reached end of if-elif chain for infra_param name: '"
+                        + paramName + "' with value: '"
+                        + paramValue + "'");
+            }
+        }
 
-	    param_name = infraParameter.getString("name");
-	    param_value = infraParameter.getString("value");
-	    _log.info(h + ": " + param_name + " - " + param_value);
+        geTaskDescription.put("infrastructure", geInfrastructure);
+        geTaskDescription.put("credentials", geCredentials);
 
-	    // Job settings
-	    if (param_name.equals("jobservice")) {
-		GridEngineInfrastructure.put("resourceManagers", param_value);
-	    } else if (param_name.equals("ce_list")) {
-		GridEngineInfrastructure.put("ce_list", param_value);
-	    } else if (param_name.equals("os_tpl")) {
-		GridEngineInfrastructure.put("os_tpl", param_value);
-	    } else if (param_name.equals("resource_tpl")) {
-		GridEngineInfrastructure.put("resource_tpl", param_value);
-	    } else if (param_name.equals("secured")) {
-		GridEngineInfrastructure.put("secured", param_value);
-	    } else if (param_name.equals("protocol")) {
-		GridEngineInfrastructure.put("protocol", param_value);
-	    } else if (param_name.equals("attributes_title")) {
-		GridEngineInfrastructure.put("attributes_title", param_value);
-	    } else if (param_name.equals("bdii")) {
-		GridEngineInfrastructure.put("bdii", param_value);
-	    } else if (param_name.equals("swtags")) {
-		GridEngineInfrastructure.put("swtags", param_value);
-	    } else if (param_name.equals("jdlRequirements")) {
-		GridEngineInfrastructure.put("jdlRequirements", param_value);
-	    } else if (param_name.equals("user_data")) {
-		GridEngineInfrastructure.put("user_data", param_value);
-	    } else if (param_name.equals("prefix")) {
-		GridEngineInfrastructure.put("prefix", param_value);
-	    } else if (param_name.equals("link")) {
-		GridEngineInfrastructure.put("link", param_value);
-	    } else if (param_name.equals("waitms")) {
-		GridEngineInfrastructure.put("waitms", param_value);
-	    } else if (param_name.equals("waitsshms")) {
-		GridEngineInfrastructure.put("waitsshms", param_value);
-	    } else if (param_name.equals("sshport")) {
-		GridEngineInfrastructure.put("sshport", param_value);
+        // Now write the JSON translated for the GridEngine
+        String jsonTask = geTaskDescription.toString();
+        String jsonFileName = gedCommand.getActionInfo()
+                + "/" + gedCommand.getTaskId() + ".ge_info";
 
-		// Credential settings
-	    } else if (param_name.equals("username")) {
-		GridEngineCredentials.put("username", param_value);
-	    } else if (param_name.equals("password")) {
-		GridEngineCredentials.put("password", param_value);
-	    } else if (param_name.equals("eToken_host")) {
-		GridEngineCredentials.put("eToken_host", param_value);
-	    } else if (param_name.equals("eToken_port")) {
-		GridEngineCredentials.put("eToken_port", param_value);
-	    } else if (param_name.equals("eToken_id")) {
-		GridEngineCredentials.put("eToken_id", param_value);
-	    } else if (param_name.equals("voms")) {
-		GridEngineCredentials.put("voms", param_value);
-	    } else if (param_name.equals("voms_role")) {
-		GridEngineCredentials.put("voms_role", param_value);
-	    } else if (param_name.equals("rfc_proxy")) {
-		GridEngineCredentials.put("rfc_proxy", param_value);
-	    } else if (param_name.equals("disable-voms-proxy")) {
-		GridEngineCredentials.put("disable-voms-proxy", param_value);
-	    } else if (param_name.equals("proxy-renewal")) {
-		GridEngineCredentials.put("proxy-renewal", param_value);
-	    } else {
-		_log.warn("Reached end of if-elif chain for infra_param name: '" + param_name + "' with value: '"
-			+ param_value + "'");
-	    }
-	}
+        try {
+            OutputStream os = new FileOutputStream(jsonFileName);
 
-	GridEngineTaskDescription.put("infrastructure", GridEngineInfrastructure);
-	GridEngineTaskDescription.put("credentials", GridEngineCredentials);
+            os.write(jsonTask.getBytes(
+                    Charset.forName("UTF-8"))); // UTF-8 from properties
+            LOG.debug("GridEngine JobDescription written in file '"
+                    + jsonFileName + "':\n" + LS + jsonTask);
+        } catch (Exception e) {
+            LOG.warn("Caught exception: " + e.toString());
+        }
 
-	// Now write the JSON translated for the GridEngine
-	String JSONTask = GridEngineTaskDescription.toString();
-	String JSONFileName = gedCommand.getActionInfo() + "/" + gedCommand.getTaskId() + ".ge_info";
-
-	try {
-	    OutputStream os = new FileOutputStream(JSONFileName);
-
-	    os.write(JSONTask.getBytes(Charset.forName("UTF-8"))); // UTF-8 from
-								   // properties
-	    _log.debug("GridEngine JobDescription written in file '" + JSONFileName + "':\n" + LS + JSONTask);
-	} catch (Exception e) {
-	    _log.warn("Caught exception: " + e.toString());
-	}
-
-	return GridEngineTaskDescription;
+        return geTaskDescription;
     }
 
     /**
-     * Prepare the I/O Sandbox
+     * Prepare the I/O Sandbox.
+     * @param mijs - MultiInfrastructureJobSubmission class
+     * @param inputFiles - JSONObject containing input files
+     * @param outputFiles - JSONObject containing output files
      */
-    private void prepareIOSandbox(MultiInfrastructureJobSubmission mijs, JSONArray input_files,
-	    JSONArray output_files) {
+    private  void prepareIOSandbox(
+             final MultiInfrastructureJobSubmission mijs,
+             final JSONArray inputFiles,
+             final JSONArray outputFiles) {
 
-	// InputSandbox
-	String inputSandbox = "";
+        // InputSandbox
+        String inputSandbox = "";
 
-	for (int i = 0; i < input_files.length(); i++) {
-	    JSONObject input_entry = input_files.getJSONObject(i);
+        for (int i = 0; i < inputFiles.length(); i++) {
+            JSONObject inputEntry = inputFiles.getJSONObject(i);
 
-	    if (input_entry.getString("name").length() > 0) {
-		String comma = (i == 0) ? "" : ",";
+            if (inputEntry.getString("name").length() > 0) {
+                String comma = (i == 0) ? "" : ",";
 
-		inputSandbox += comma + gedCommand.getActionInfo() + "/" + input_entry.getString("name");
-	    }
-	}
+                inputSandbox += comma + gedCommand.getActionInfo()
+                        + "/" + inputEntry.getString("name");
+            }
+        }
 
-	mijs.setInputFiles(inputSandbox);
-	_log.debug("inputSandbox: '" + inputSandbox + "'");
+        mijs.setInputFiles(inputSandbox);
+        LOG.debug("inputSandbox: '" + inputSandbox + "'");
 
-	// OutputSandbox
-	String outputSandbox = "";
+        // OutputSandbox
+        String outputSandbox = "";
 
-	for (int i = 0; i < output_files.length(); i++) {
-	    JSONObject output_entry = output_files.getJSONObject(i);
+        for (int i = 0; i < outputFiles.length(); i++) {
+            JSONObject outputEntry = outputFiles.getJSONObject(i);
 
-	    if (output_entry.getString("name").length() > 0) {
-		String comma = (i == 0) ? "" : ",";
+            if (outputEntry.getString("name").length() > 0) {
+                String comma = (i == 0) ? "" : ",";
 
-		outputSandbox += comma + output_entry.getString("name");
-	    }
-	}
+                outputSandbox += comma + outputEntry.getString("name");
+            }
+        }
 
-	mijs.setOutputFiles(outputSandbox);
-	_log.debug("outputSandbox: '" + outputSandbox + "'");
+        mijs.setOutputFiles(outputSandbox);
+        LOG.debug("outputSandbox: '" + outputSandbox + "'");
     }
 
     /**
      * Prepares JobDescription specified in JSONObject item to setup the given
-     * MultiInfrastructureJobSubmission object
-     * 
-     * @param MultiInfrastructureJobSubmission
-     *            object instance
-     * @param JSON
-     *            Object describing the job description
+     * MultiInfrastructureJobSubmission object.
+     *
+     * @param  mijs - MultiInfrastructureJobSubmission object instance
+     * @param geJobDescription - Object describing the job description
      * @see MultiInfrastructureJobSubmission
      */
-    private void prepareJobDescription(MultiInfrastructureJobSubmission mijs, JSONObject geJobDescription) {
+    private void prepareJobDescription(
+            final MultiInfrastructureJobSubmission mijs,
+            final JSONObject geJobDescription) {
 
-	// Job description
-	mijs.setExecutable(geJobDescription.getString("executable"));
-	mijs.setJobOutput(geJobDescription.getString("output"));
-	mijs.setArguments(geJobDescription.getString("arguments"));
-	mijs.setJobError(geJobDescription.getString("error"));
-	mijs.setOutputPath(gedCommand.getActionInfo());
+        // Job description
+        mijs.setExecutable(geJobDescription.getString("executable"));
+        mijs.setJobOutput(geJobDescription.getString("output"));
+        mijs.setArguments(geJobDescription.getString("arguments"));
+        mijs.setJobError(geJobDescription.getString("error"));
+        mijs.setOutputPath(gedCommand.getActionInfo());
     }
 
     /**
      * Retrieve the APIServerDaemon PATH to the GridEngineLogConfig.xml file and
      * setup the GridEngineLogConfig.path environment variable accordingly This
-     * variable will be taken by GridEngine while building up its log
+     * variable will be taken by GridEngine while building up its log.
      */
     private void setupGELogConfig() {
-	URL GELogConfig = this.getClass().getResource("GridEngineLogConfig.xml");
-	String GELogConfigEnvVar = GELogConfig.getPath();
+        URL geLogConfig = this.getClass().
+                getResource("GridEngineLogConfig.xml");
+        String geLogConfigEnvVar = geLogConfig.getPath();
 
-	_log.debug("GridEngineLogConfig.xml at '" + GELogConfigEnvVar + "'");
+        LOG.debug("GridEngineLogConfig.xml at '" + geLogConfigEnvVar + "'");
 
-	Properties props = System.getProperties();
+        Properties props = System.getProperties();
 
-	props.setProperty("GridEngineLogConfig.path", GELogConfigEnvVar);
-	System.setProperties(props);
+        props.setProperty("GridEngineLogConfig.path", geLogConfigEnvVar);
+        System.setProperties(props);
     }
 
     /**
      * Retrieve the id field of the ActiveGridInteraction table starting from
-     * the jobDesc table
-     * 
-     * @param task_id
+     * the jobDesc table.
+     *
+     * @return UsersTrackingDB ActiveGridInteraction record id
      */
-    public int getAGIId() {
-	int agi_id = 0;
-	GridEngineInterfaceDB geiDB = null;
+    public final int getAGIId() {
+        int agiId = 0;
+        GridEngineInterfaceDB geiDB = null;
 
-	_log.debug("Getting ActiveGridInteraciton' id field for task: " + gedCommand.getTaskId());
+        LOG.debug("Getting ActiveGridInteraciton' id field for task: "
+                + gedCommand.getTaskId());
 
-	try {
-	    geiDB = new GridEngineInterfaceDB(utdb_host, utdb_port, utdb_user, utdb_pass, utdb_name);
-	    agi_id = geiDB.getAGIId(gedCommand);
-	} catch (Exception e) {
-	    _log.fatal("Unable get id:" + LS + gedCommand + LS + e.toString());
-	} finally {
-	    // if (geiDB != null) {
-	    // geiDB.close();
-	    // }
-	}
+        try {
+            geiDB = new GridEngineInterfaceDB(utdbHost,
+                                              utdbPort,
+                                              utdbUser,
+                                              utdbPass,
+                                              utdbName);
+            agiId = geiDB.getAGIId(gedCommand);
+        } catch (Exception e) {
+            LOG.fatal("Unable get id:" + LS + gedCommand + LS + e.toString());
+        }
 
-	return agi_id;
+        return agiId;
     }
 
     /*
@@ -479,485 +528,577 @@ public class GridEngineInterface {
      */
 
     /**
-     * Load GridEngineDaemon configuration settings
-     * 
-     * @param gedConfig
-     *            GridEngineDaemon configuration object
+     * Load GridEngineDaemon configuration settings.
+     *
+     * @param config - GridEngineDaemon configuration object
      */
-    public void setConfig(APIServerDaemonConfig gedConfig) {
-	this.gedConfig = gedConfig;
+    public final void setConfig(final APIServerDaemonConfig config) {
+        this.gedConfig = config;
 
-	// Extract class specific configutation
-	this.utdb_jndi = gedConfig.getGridEngine_db_jndi();
-	this.utdb_host = gedConfig.getGridEngine_db_host();
-	this.utdb_port = gedConfig.getGridEngine_db_port();
-	this.utdb_user = gedConfig.getGridEngine_db_user();
-	this.utdb_pass = gedConfig.getGridEngine_db_pass();
-	this.utdb_name = gedConfig.getGridEngine_db_name();
-	_log.debug("GridEngineInterface config:" + LS + "  [UsersTrackingDB]" + LS + "    db_jndi: '" + this.utdb_jndi
-		+ "'" + LS + "    db_host: '" + this.utdb_host + "'" + LS + "    db_port: '" + this.utdb_port + "'" + LS
-		+ "    db_user: '" + this.utdb_user + "'" + LS + "    db_pass: '" + this.utdb_pass + "'" + LS
-		+ "    db_name: '" + this.utdb_name + "'" + LS);
+        // Extract class specific configutation
+        this.utdbJNDI = config.getGridEngineDBjndi();
+        this.utdbHost = config.getGridEngineDBhost();
+        this.utdbPort = config.getGridEngineDBPort();
+        this.utdbUser = config.getGridEngineDBuser();
+        this.utdbPass = config.getGridEngineDBPass();
+        this.utdbName = config.getGridEngineDBName();
+        LOG.debug("GridEngineInterface config:" + LS
+                + "  [UsersTrackingDB]" + LS
+                + "    db_jndi: '" + this.utdbJNDI + "'" + LS
+                + "    db_host: '" + this.utdbHost + "'" + LS
+                + "    db_port: '" + this.utdbPort + "'" + LS
+                + "    db_user: '" + this.utdbUser + "'" + LS
+                + "    db_pass: '" + this.utdbPass + "'" + LS
+                + "    db_name: '" + this.utdbName + "'" + LS);
     }
 
     /**
-     * Setup machine IP address, needed by job submission
+     * Setup machine IP address, needed by job submission.
      */
     private void getIP() {
-	try {
-	    InetAddress addr = InetAddress.getLocalHost();
-	    byte[] ipAddr = addr.getAddress();
-
-	    gedIPAddress = "" + (short) (ipAddr[0] & 0xff) + ":" + (short) (ipAddr[1] & 0xff) + ":"
-		    + (short) (ipAddr[2] & 0xff) + ":" + (short) (ipAddr[3] & 0xff);
-	} catch (Exception e) {
-	    _log.fatal("Unable to get the portal IP address");
-	}
+        try {
+            InetAddress addr = InetAddress.getLocalHost();
+            byte[] ipAddr = addr.getAddress();
+            int i = 0;
+            gedIPAddress = "" + (short) (ipAddr[i++] & FF_BITMASK)
+                        + ":" + (short) (ipAddr[i++] & FF_BITMASK)
+                        + ":" + (short) (ipAddr[i++] & FF_BITMASK)
+                        + ":" + (short) (ipAddr[i++] & FF_BITMASK);
+        } catch (Exception e) {
+            gedIPAddress = "";
+            LOG.fatal("Unable to get the portal IP address");
+        }
     }
 
     /**
      * Retrieve the id field of the ActiveGridInteraction table starting from
-     * the jobDesc table
-     * 
-     * @param task_id
+     * the jobDesc table.
+     * @return Job description
+     *
      */
-    public String getJobDescription() {
-	String jobDesc = "";
-	GridEngineInterfaceDB geiDB = null;
+    public final String getJobDescription() {
+        String jobDesc = "";
+        GridEngineInterfaceDB geiDB = null;
 
-	_log.debug("Getting jobDescription for AGI_id: " + gedCommand.getTargetId());
+        LOG.debug("Getting jobDescription for AGI_id: "
+                + gedCommand.getTargetId());
 
-	try {
-	    geiDB = new GridEngineInterfaceDB(utdb_host, utdb_port, utdb_user, utdb_pass, utdb_name);
-	    jobDesc = geiDB.getJobDescription(gedCommand.getTargetId());
-	} catch (Exception e) {
-	    _log.fatal("Unable get job description for command:" + LS + gedCommand + LS + e.toString());
-	} finally {
-	    // if (geiDB != null) {
-	    // geiDB.close();
-	    // }
-	}
+        try {
+            geiDB = new GridEngineInterfaceDB(utdbHost,
+                                              utdbPort,
+                                              utdbUser,
+                                              utdbPass,
+                                              utdbName);
+            jobDesc = geiDB.getJobDescription(gedCommand.getTargetId());
+        } catch (Exception e) {
+            LOG.fatal("Unable get job description for command:" + LS
+                    + gedCommand + LS
+                    + e.toString());
+        }
 
-	return jobDesc;
+        return jobDesc;
     }
 
     /**
-     * submit the job identified by the gedCommand values
-     * 
-     * @return
+     * submit the job identified by the gedCommand values.
+     *
+     * @return 0 - Ideally it should report the job id (not implemented in GE)
      */
-    public int jobSubmit() {
-	int agi_id = 0;
-
-	_log.debug("Submitting job");
-
-	// MultiInfrastructureJobSubmission object
-	MultiInfrastructureJobSubmission mijs = null;
-
-	if ((utdb_jndi != null) && !utdb_jndi.isEmpty()) {
-	    mijs = new MultiInfrastructureJobSubmission();
-	} else {
-	    mijs = new MultiInfrastructureJobSubmission("jdbc:mysql://" + utdb_host + ":" + utdb_port + "/" + utdb_name,
-		    utdb_user, utdb_pass);
-	}
-
-	if (mijs == null) {
-	    _log.error("mijs is NULL, sorry!");
-	} else {
-	    try {
-		_log.debug("Loading GridEngine job JSON desc");
-
-		// Load <task_id>.json file in memory
-		JSONObject geJobDesc = mkGEJobDesc();
-
-		// application
-		int geAppId = geJobDesc.getInt("application");
-
-		// commonName (user executing task)
-		String geCommonName = geJobDesc.getString("commonName");
-
-		// infrastructure
-		JSONObject geInfrastructure = geJobDesc.getJSONObject("infrastructure");
-
-		// jobDescription
-		JSONObject geJobDescription = geJobDesc.getJSONObject("jobDescription");
-
-		// credentials
-		JSONObject geCredentials = geJobDesc.getJSONObject("credentials");
-
-		// identifier
-		String jobIdentifier = geJobDesc.getString("identifier");
-
-		// input_files
-		JSONArray input_files = geJobDesc.getJSONArray("input_files");
-
-		// output_files
-		JSONArray output_files = geJobDesc.getJSONArray("output_files");
-
-		// Loaded essential JSON components; now go through
-		// each adaptor specific setting:
-		// resourceManagers
-		String resourceManagers = geInfrastructure.getString("resourceManagers");
-		String adaptor = resourceManagers.split(":")[0];
-
-		_log.info("Adaptor is '" + adaptor + "'");
-
-		InfrastructureInfo infrastructures[] = new InfrastructureInfo[1];
-
-		/*
-		 * Each adaptor has its own specific settings Different adaptors
-		 * may have in common some settings such as I/O Sandboxing, job
-		 * description etc
-		 */
-		switch (adaptor) {
-
-		// SSH Adaptor
-		case "ssh": {
-		    try {
-			_log.info("Entering SSH adaptor ...");
-
-			// Credential values
-			String username = geCredentials.getString("username");
-			String password = geCredentials.getString("password");
-			String sshEndPoint[] = { resourceManagers };
-
-			infrastructures[0] = new InfrastructureInfo(resourceManagers, "ssh", username, password,
-				sshEndPoint);
-			mijs.addInfrastructure(infrastructures[0]);
-
-			// Job description
-			prepareJobDescription(mijs, geJobDescription);
-
-			// IO Files
-			prepareIOSandbox(mijs, input_files, output_files);
-
-			// Submit asynchronously
-			agi_id = 0;
-			mijs.submitJobAsync(geCommonName, gedIPAddress, geAppId, jobIdentifier);
-			_log.debug("AGI_id: " + agi_id);
-		    } catch (Exception e) {
-			_log.fatal("Caught exception:" + LS + e.toString());
-		    }
-		}
-
-		    break;
-
-		// rOCCI Adaptor
-		case "rocci": {
-		    _log.info("Entering rOCCI adaptor ...");
-
-		    // Infrastructure values
-		    String protocol = "";
-		    String secured = "";
-		    String prefix = "";
-		    String user_data = "";
-		    String link = "";
-		    String waitms = "";
-		    String waitsshms = "";
-		    String sshport = "";
-		    String os_tpl = geInfrastructure.getString("os_tpl");
-		    String resource_tpl = geInfrastructure.getString("resource_tpl");
-		    String attributes_title = geInfrastructure.getString("attributes_title");
-
-		    // Infrastructure parameters that couldn't be specified
-		    try {
-			protocol = geInfrastructure.getString("protocol");
-		    } catch (JSONException e) {
-			_log.warn("Non mandatory value exception: " + e.toString());
-		    }
-
-		    try {
-			secured = geInfrastructure.getString("secured");
-		    } catch (JSONException e) {
-			_log.warn("Non mandatory value exception: " + e.toString());
-		    }
-
-		    try {
-			user_data = geInfrastructure.getString("user_data");
-		    } catch (JSONException e) {
-			_log.warn("Non mandatory value exception: " + e.toString());
-		    }
-
-		    try {
-			prefix = geInfrastructure.getString("prefix");
-		    } catch (JSONException e) {
-			_log.warn("Non mandatory value exception: " + e.toString());
-		    }
-
-		    try {
-			link = geInfrastructure.getString("link");
-		    } catch (JSONException e) {
-			_log.warn("Non mandatory value exception: " + e.toString());
-		    }
-
-		    try {
-			waitms = geInfrastructure.getString("waitms");
-		    } catch (JSONException e) {
-			_log.warn("Non mandatory value exception: " + e.toString());
-		    }
-
-		    try {
-			waitsshms = geInfrastructure.getString("waitsshms");
-		    } catch (JSONException e) {
-			_log.warn("Non mandatory value exception: " + e.toString());
-		    }
-
-		    try {
-			sshport = geInfrastructure.getString("sshport");
-		    } catch (JSONException e) {
-			_log.warn("Non mandatory value exception: " + e.toString());
-		    }
-
-		    // Credential values
-		    String eToken_host = geCredentials.getString("eToken_host");
-		    String eToken_port = geCredentials.getString("eToken_port");
-		    String eToken_id = geCredentials.getString("eToken_id");
-		    String voms = geCredentials.getString("voms");
-		    String voms_role = geCredentials.getString("voms_role");
-		    String rfc_proxy = geCredentials.getString("rfc_proxy");
-
-		    // Building option statements
-		    String prefix_opt = (prefix.length() > 0) ? "prefix=" + prefix + "&" : "";
-		    String mixin_res_tpl = "mixin_resource_tpl=" + resource_tpl + "&";
-		    String mixin_os_tpl = "mixin_os_tpl=" + os_tpl + "&";
-		    String attribute_title = "attributes_title=" + attributes_title + "&";
-		    String protocol_opt = (protocol.length() > 0) ? "prptocol=" + protocol + "&" : "";
-		    String secured_flag = (secured.length() > 0) ? "secured=" + secured + "&" : "";
-		    String user_data_opt = (user_data.length() > 0) ? "user_data=" + user_data + "&" : "";
-		    String link_opt = (link.length() > 0) ? "link=" + link + "&" : "";
-		    String waitms_opt = (waitms.length() > 0) ? "waitms=" + waitms + "&" : "";
-		    String waitsshms_opt = (waitsshms.length() > 0) ? "waitsshms=" + waitms + "&" : "";
-		    String sshport_opt = (sshport.length() > 0) ? "sshport=" + sshport + "&" : "";
-
-		    // Generate the rOCCI endpoint
-		    String rOCCIResourcesList[] = { resourceManagers + "/?" + prefix_opt + "action=create&"
-			    + "resource=compute&" + mixin_res_tpl + mixin_os_tpl + attribute_title + protocol_opt
-			    + secured_flag + user_data_opt + link_opt + waitms_opt + waitsshms_opt + sshport_opt
-			    + "auth=x509" };
-
-		    _log.info("rOCCI endpoint: '" + rOCCIResourcesList[0] + "'");
-
-		    // Prepare the infrastructure
-		    infrastructures[0] = new InfrastructureInfo(resourceManagers // Infrastruture
-										 // name
-			    , "rocci" // Adaptor
-			    , "" //
-			    , rOCCIResourcesList // Resources list
-			    , eToken_host // eTokenServer host
-			    , eToken_port // eTokenServer port
-			    , eToken_id // eToken id (md5sum)
-			    , voms // VO
-			    , voms_role // VO.group.role
-			    , rfc_proxy.equalsIgnoreCase("true") // ProxyRFC
-		    );
-		    mijs.addInfrastructure(infrastructures[0]);
-
-		    // Setup JobDescription
-		    prepareJobDescription(mijs, geJobDescription);
-
-		    // I/O Sandbox
-		    // In rOCCI output and error files have to be removed
-		    // from output_files array replacing the file name
-		    // with an empty string
-		    for (int i = 0; i < output_files.length(); i++) {
-			JSONObject output_entry = output_files.getJSONObject(i);
-
-			if (output_entry.getString("name").equals(geJobDescription.getString("output"))
-				|| output_entry.getString("name").equals(geJobDescription.getString("error"))) {
-			    _log.debug("Skipping unnecessary file: '" + output_entry.getString("name") + "'");
-			    output_files.getJSONObject(i).put("name", "");
-			}
-		    }
-
-		    prepareIOSandbox(mijs, input_files, output_files);
-
-		    // Submit asynchronously
-		    agi_id = 0;
-		    mijs.submitJobAsync(geCommonName, gedIPAddress, geAppId, jobIdentifier);
-		    _log.debug("AGI_id: " + agi_id);
-		}
-
-		    break;
-
-		// wms adaptor (EMI/gLite)
-		case "wms": {
-		    _log.info("Entering wms adaptor ...");
-
-		    // Infrastructure values
-		    String infra_name = geInfrastructure.getString("name");
-
-		    _log.info("infrastructure name: '" + infra_name + "'");
-
-		    String bdii = geInfrastructure.getString("bdii");
-
-		    _log.info("bdii: '" + bdii + "'");
-
-		    // ce_list, jdlRequirements and swtags are not mandatory
-		    // catch JSONException exception if these values are
-		    // missing
-		    String ce_list[] = null;
-
-		    try {
-			ce_list = geInfrastructure.getString("ce_list").split(",");
-
-			if ((ce_list != null) && (ce_list.length > 0)) {
-			    _log.info("ce_list:");
-
-			    for (int i = 0; i < ce_list.length; i++) {
-				_log.info("CE[" + i + "]: '" + ce_list[i] + "'");
-			    }
-			}
-		    } catch (JSONException e) {
-			_log.warn("NO CE list specified");
-		    }
-
-		    String jdlRequirements[] = null;
-
-		    try {
-			jdlRequirements = geInfrastructure.getString("jdlRequirements").split(";");
-		    } catch (JSONException e) {
-			_log.warn("jdlRequirements not specified");
-		    }
-
-		    String swtags = null;
-
-		    try {
-			swtags = geInfrastructure.getString("swtags");
-		    } catch (JSONException e) {
-			_log.warn("swtags not specified");
-		    }
-
-		    // Credentials values
-		    String eToken_host = geCredentials.getString("eToken_host");
-		    String eToken_port = geCredentials.getString("eToken_port");
-		    String eToken_id = geCredentials.getString("eToken_id");
-		    String voms = geCredentials.getString("voms");
-		    String voms_role = geCredentials.getString("voms_role");
-		    String rfc_proxy = geCredentials.getString("rfc_proxy");
-
-		    // In wms case resourceManager could contain more than
-		    // one wms:// entrypoint specified by a comma separated
-		    // string
-		    String wmsList[] = resourceManagers.split(",");
-
-		    _log.info("Creating Infrastrcuture object");
-		    infrastructures[0] = new InfrastructureInfo(infra_name // Infra.
-									   // name
-			    , "wms" // Adaptor
-			    , wmsList // List of wmses
-			    , eToken_host // eTokenServer host
-			    , eToken_port // eTokenServer port
-			    , eToken_id // eToken id (md5sum)
-			    , voms // VO
-			    , voms_role // VO.group.role
-			    , (null != swtags) ? swtags : "" // Software Tags
-		    );
-
-		    // Select one of the available CEs if specified
-		    // in the ce_list. The selection will be done
-		    // randomly
-		    if ((ce_list != null) && (ce_list.length > 0)) {
-			Random rndGen = new Random();
-			int selCEindex = rndGen.nextInt(ce_list.length);
-
-			mijs.setJobQueue(ce_list[selCEindex]);
-			_log.info("Selected CE from the list: '" + ce_list[selCEindex] + "'");
-		    } else {
-			_log.info("No CE list specified, wms will choose");
-		    }
-
-		    // Specify infrastructure
-		    mijs.addInfrastructure(infrastructures[0]);
-
-		    // Setup JobDescription
-		    prepareJobDescription(mijs, geJobDescription);
-
-		    // I/O Sandbox
-		    // In wms output and error files have to be removed
-		    // from output_files array replacing the file name
-		    // with an empty string
-		    for (int i = 0; i < output_files.length(); i++) {
-			JSONObject output_entry = output_files.getJSONObject(i);
-
-			if (output_entry.getString("name").equals(geJobDescription.getString("output"))
-				|| output_entry.getString("name").equals(geJobDescription.getString("error"))) {
-			    _log.debug("Skipping unnecessary file: '" + output_entry.getString("name") + "'");
-			    output_files.getJSONObject(i).put("name", "");
-			}
-		    }
-
-		    prepareIOSandbox(mijs, input_files, output_files);
-
-		    // JDL requirements
-		    if ((jdlRequirements != null) && (jdlRequirements.length > 0)) {
-			mijs.setJDLRequirements(jdlRequirements);
-		    }
-
-		    // Submit asynchronously
-		    agi_id = 0;
-		    mijs.submitJobAsync(geCommonName, gedIPAddress, geAppId, jobIdentifier);
-		    _log.debug("AGI_id: " + agi_id);
-		}
-
-		    break;
-
-		default:
-		    _log.fatal("Unrecognized or unsupported adaptor found!");
-		}
-	    } catch (IOException e) {
-		_log.fatal("Unable to load APIServer JSON job description\n" + LS + e.toString());
-	    } catch (Exception e) {
-		_log.fatal("Unable to submit job: " + LS + e.toString());
-	    }
-	}
-
-	return agi_id;
+    public final int jobSubmit() {
+        int agiId = 0;
+
+        LOG.debug("Submitting job");
+
+        // MultiInfrastructureJobSubmission object
+        MultiInfrastructureJobSubmission mijs = null;
+
+        if ((utdbJNDI != null) && !utdbJNDI.isEmpty()) {
+            mijs = new MultiInfrastructureJobSubmission();
+        } else {
+            mijs = new MultiInfrastructureJobSubmission(
+                    "jdbc:mysql://" + utdbHost
+                  + ":" + utdbPort
+                  + "/" + utdbName,
+                  utdbUser,
+                  utdbPass);
+        }
+
+        if (mijs == null) {
+            LOG.error("mijs is NULL, sorry!");
+        } else {
+            try {
+                LOG.debug("Loading GridEngine job JSON desc");
+
+                // Load <task_id>.json file in memory
+                JSONObject geJobDesc = mkGEJobDesc();
+
+                // application
+                int geAppId =
+                        geJobDesc.getInt("application");
+
+                // commonName (user executing task)
+                String geCommonName =
+                        geJobDesc.getString("commonName");
+
+                // infrastructure
+                JSONObject geInfrastructure =
+                        geJobDesc.getJSONObject("infrastructure");
+
+                // jobDescription
+                JSONObject geJobDescription =
+                        geJobDesc.getJSONObject("jobDescription");
+
+                // credentials
+                JSONObject geCredentials =
+                        geJobDesc.getJSONObject("credentials");
+
+                // identifier
+                String jobIdentifier =
+                        geJobDesc.getString("identifier");
+
+                // inputFiles
+                JSONArray inputFiles =
+                        geJobDesc.getJSONArray("input_files");
+
+                // outputFiles
+                JSONArray outputFiles =
+                        geJobDesc.getJSONArray("output_files");
+
+                // Loaded essential JSON components; now go through
+                // each adaptor specific setting:
+                // resourceManagers
+                String resourceManagers =
+                        geInfrastructure.getString("resourceManagers");
+                String adaptor = resourceManagers.split(":")[0];
+
+                LOG.info("Adaptor is '" + adaptor + "'");
+
+                InfrastructureInfo[] infrastructures =
+                        new InfrastructureInfo[1];
+
+                // eTokenServer variables for GSI based infrastructures
+                String eTokenHost;
+                String eTokenPort;
+                String eTokenId;
+                String voms;
+                String vomsRole;
+                String rfcProxy;
+
+                /*
+                 * Each adaptor has its own specific settings Different adaptors
+                 * may have in common some settings such as I/O Sandboxing, job
+                 * description etc
+                 */
+                switch (adaptor) {
+
+                // SSH Adaptor
+                case "ssh":
+                    try {
+                        LOG.info("Entering SSH adaptor ...");
+
+                        // Credential values
+                        String username = geCredentials.getString("username");
+                        String password = geCredentials.getString("password");
+                        String[] sshEndPoint = {resourceManagers};
+
+                        infrastructures[0] = new InfrastructureInfo(
+                                resourceManagers,
+                                "ssh",
+                                username,
+                                password,
+                                sshEndPoint);
+                        mijs.addInfrastructure(infrastructures[0]);
+
+                        // Job description
+                        prepareJobDescription(mijs, geJobDescription);
+
+                        // IO Files
+                        prepareIOSandbox(mijs, inputFiles, outputFiles);
+
+                        // Submit asynchronously
+                        agiId = 0;
+                        mijs.submitJobAsync(geCommonName,
+                                            gedIPAddress,
+                                            geAppId,
+                                            jobIdentifier);
+                        LOG.debug("AGI_id: " + agiId);
+                    } catch (Exception e) {
+                        LOG.fatal("Caught exception:" + LS + e.toString());
+                    }
+                    break;
+
+                // rOCCI Adaptor
+                case "rocci":
+                    LOG.info("Entering rOCCI adaptor ...");
+
+                    // Infrastructure values
+                    String protocol = "";
+                    String secured = "";
+                    String prefix = "";
+                    String userData = "";
+                    String link = "";
+                    String waitms = "";
+                    String waitsshms = "";
+                    String sshport = "";
+                    String osTpl =
+                            geInfrastructure.getString("os_tpl");
+                    String resourceTpl =
+                            geInfrastructure.getString("resource_tpl");
+                    String attributesTitle =
+                            geInfrastructure.getString("attributes_title");
+                    // Infrastructure parameters that couldn't be specified
+                    try {
+                        protocol = geInfrastructure.getString("protocol");
+                    } catch (JSONException e) {
+                        LOG.warn("Non mandatory value exception: "
+                                + e.toString());
+                    }
+
+                    try {
+                        secured = geInfrastructure.getString("secured");
+                    } catch (JSONException e) {
+                        LOG.warn("Non mandatory value exception: "
+                                + e.toString());
+                    }
+
+                    try {
+                        userData = geInfrastructure.getString("user_data");
+                    } catch (JSONException e) {
+                        LOG.warn("Non mandatory value exception: "
+                                + e.toString());
+                    }
+
+                    try {
+                        prefix = geInfrastructure.getString("prefix");
+                    } catch (JSONException e) {
+                        LOG.warn("Non mandatory value exception: "
+                                + e.toString());
+                    }
+
+                    try {
+                        link = geInfrastructure.getString("link");
+                    } catch (JSONException e) {
+                        LOG.warn("Non mandatory value exception: "
+                                + e.toString());
+                    }
+
+                    try {
+                        waitms = geInfrastructure.getString("waitms");
+                    } catch (JSONException e) {
+                        LOG.warn("Non mandatory value exception: "
+                                + e.toString());
+                    }
+
+                    try {
+                        waitsshms = geInfrastructure.getString("waitsshms");
+                    } catch (JSONException e) {
+                        LOG.warn("Non mandatory value exception: "
+                                + e.toString());
+                    }
+
+                    try {
+                        sshport = geInfrastructure.getString("sshport");
+                    } catch (JSONException e) {
+                        LOG.warn("Non mandatory value exception: "
+                                + e.toString());
+                    }
+
+                    // Credential values
+                    eTokenHost = geCredentials.getString("eToken_host");
+                    eTokenPort = geCredentials.getString("eToken_port");
+                    eTokenId = geCredentials.getString("eToken_id");
+                    voms = geCredentials.getString("voms");
+                    vomsRole = geCredentials.getString("voms_role");
+                    rfcProxy = geCredentials.getString("rfc_proxy");
+
+                    // Building option statements
+                    String prefixOpt =
+                            (prefix.length() > 0)
+                            ? "prefix=" + prefix + "&" : "";
+                    String mixinResTpl =
+                            "mixin_resource_tpl=" + resourceTpl + "&";
+                    String mixinOsTpl =
+                            "mixin_os_tpl=" + osTpl + "&";
+                    String attributeTitle =
+                            "attributes_title=" + attributesTitle + "&";
+                    String protocolOpt =
+                            (protocol.length() > 0)
+                            ? "prptocol=" + protocol + "&" : "";
+                    String securedFlag =
+                            (secured.length() > 0)
+                            ? "secured=" + secured + "&" : "";
+                    String userDataOpt =
+                            (userData.length() > 0)
+                            ? "user_data=" + userData + "&" : "";
+                    String linkOpt =
+                            (link.length() > 0)
+                            ? "link=" + link + "&" : "";
+                    String waitmsOpt =
+                            (waitms.length() > 0)
+                            ? "waitms=" + waitms + "&" : "";
+                    String waitsshmsOpt =
+                            (waitsshms.length() > 0)
+                            ? "waitsshms=" + waitms + "&" : "";
+                    String sshportOpt =
+                            (sshport.length() > 0)
+                            ? "sshport=" + sshport + "&" : "";
+
+                    // Generate the rOCCI endpoint
+                    String[] rOCCIResourcesList = {
+                        resourceManagers + "/?" + prefixOpt
+                            + "action=create&"
+                            + "resource=compute&" + mixinResTpl
+                            + mixinOsTpl + attributeTitle + protocolOpt
+                            + securedFlag + userDataOpt + linkOpt
+                            + waitmsOpt + waitsshmsOpt + sshportOpt
+                            + "auth=x509" };
+
+                    LOG.info("rOCCI endpoint: '"
+                            + rOCCIResourcesList[0] + "'");
+
+                    // Prepare the infrastructure
+                    infrastructures[0] = new InfrastructureInfo(
+                              resourceManagers, // Infrastruture
+                            "rocci", // Adaptor
+                            "", //
+                            rOCCIResourcesList, // Resources list
+                            eTokenHost, // eTokenServer host
+                            eTokenPort, // eTokenServer port
+                            eTokenId, // eToken id (md5sum)
+                            voms, // VO
+                            vomsRole, // VO.group.role
+                            rfcProxy.equalsIgnoreCase("true") // ProxyRFC
+                    );
+                    mijs.addInfrastructure(infrastructures[0]);
+
+                    // Setup JobDescription
+                    prepareJobDescription(mijs, geJobDescription);
+
+                    // I/O Sandbox
+                    // In rOCCI output and error files have to be removed
+                    // from outputFiles array replacing the file name
+                    // with an empty string
+                    for (int i = 0; i < outputFiles.length(); i++) {
+                        JSONObject outputEntry =
+                                outputFiles.getJSONObject(i);
+
+                        if (outputEntry.getString("name").equals(
+                                geJobDescription.getString("output"))
+                         || outputEntry.getString("name").equals(
+                                geJobDescription.getString("error"))) {
+                            LOG.debug("Skipping unnecessary file: '"
+                                    + outputEntry.getString("name") + "'");
+                            outputFiles.getJSONObject(i).put("name", "");
+                        }
+                    }
+
+                    prepareIOSandbox(mijs, inputFiles, outputFiles);
+
+                    // Submit asynchronously
+                    agiId = 0;
+                    mijs.submitJobAsync(geCommonName,
+                                        gedIPAddress,
+                                        geAppId,
+                                        jobIdentifier);
+                    LOG.debug("AGI_id: " + agiId);
+                    break;
+
+                // wms adaptor (EMI/gLite)
+                case "wms":
+                    LOG.info("Entering wms adaptor ...");
+
+                    // Infrastructure values
+                    String infraName = geInfrastructure.getString("name");
+
+                    LOG.info("infrastructure name: '" + infraName + "'");
+
+                    String bdii = geInfrastructure.getString("bdii");
+
+                    LOG.info("bdii: '" + bdii + "'");
+
+                    // ceList, jdlRequirements and swtags are not mandatory
+                    // catch JSONException exception if these values are
+                    // missing
+                    String[] ceList = null;
+
+                    try {
+                        ceList = geInfrastructure.getString(
+                                "ce_list").split(",");
+
+                        if ((ceList != null) && (ceList.length > 0)) {
+                            LOG.info("ce_list:");
+
+                            for (int i = 0; i < ceList.length; i++) {
+                                LOG.info("CE[" + i + "]: '"
+                                        + ceList[i] + "'");
+                            }
+                        }
+                    } catch (JSONException e) {
+                        LOG.warn("NO CE list specified");
+                    }
+
+                    String[] jdlRequirements = null;
+
+                    try {
+                        jdlRequirements = geInfrastructure.getString(
+                                "jdlRequirements").split(";");
+                    } catch (JSONException e) {
+                        LOG.warn("jdlRequirements not specified");
+                    }
+
+                    String swtags = null;
+
+                    try {
+                        swtags = geInfrastructure.getString("swtags");
+                    } catch (JSONException e) {
+                        LOG.warn("swtags not specified");
+                    }
+
+                    // Credentials values
+                    eTokenHost = geCredentials.getString("eToken_host");
+                    eTokenPort = geCredentials.getString("eToken_port");
+                    eTokenId = geCredentials.getString("eToken_id");
+                    voms = geCredentials.getString("voms");
+                    vomsRole = geCredentials.getString("voms_role");
+                    rfcProxy = geCredentials.getString("rfc_proxy");
+
+                    // In wms case resourceManager could contain more than
+                    // one wms:// entrypoint specified by a comma separated
+                    // string
+                    String[] wmsList = resourceManagers.split(",");
+
+                    LOG.info("Creating Infrastrcuture object");
+                    infrastructures[0] = new InfrastructureInfo(
+                             infraName, // Infrastructure name
+                            "wms", // Adaptor
+                            wmsList, // List of wmses
+                            eTokenHost, // eTokenServer host
+                            eTokenPort, // eTokenServer port
+                            eTokenId, // eToken id (md5sum)
+                            voms, // VO
+                            vomsRole, // VO.group.role
+                            (null != swtags) ? swtags : "" // Software Tags
+                    );
+
+                    // Select one of the available CEs if specified
+                    // in the ceList. The selection will be done
+                    // randomly
+                    if ((ceList != null) && (ceList.length > 0)) {
+                        Random rndGen = new Random();
+                        int selCEindex = rndGen.nextInt(ceList.length);
+
+                        mijs.setJobQueue(ceList[selCEindex]);
+                        LOG.info("Selected CE from the list: '"
+                                + ceList[selCEindex] + "'");
+                    } else {
+                        LOG.info("No CE list specified, wms will choose");
+                    }
+
+                    // Specify infrastructure
+                    mijs.addInfrastructure(infrastructures[0]);
+
+                    // Setup JobDescription
+                    prepareJobDescription(mijs, geJobDescription);
+
+                    // I/O Sandbox
+                    // In wms output and error files have to be removed
+                    // from outputFiles array replacing the file name
+                    // with an empty string
+                    for (int i = 0; i < outputFiles.length(); i++) {
+                        JSONObject outputEntry =
+                                outputFiles.getJSONObject(i);
+
+                        if (outputEntry.getString("name").equals(
+                                geJobDescription.getString("output"))
+                         || outputEntry.getString("name").equals(
+                                 geJobDescription.getString("error"))) {
+                            LOG.debug("Skipping unnecessary file: '"
+                                    + outputEntry.getString("name") + "'");
+                            outputFiles.getJSONObject(i).put("name", "");
+                        }
+                    }
+
+                    prepareIOSandbox(mijs, inputFiles, outputFiles);
+
+                    // JDL requirements
+                    if ((jdlRequirements != null)
+                     && (jdlRequirements.length > 0)) {
+                        mijs.setJDLRequirements(jdlRequirements);
+                    }
+
+                    // Submit asynchronously
+                    agiId = 0;
+                    mijs.submitJobAsync(geCommonName,
+                                        gedIPAddress,
+                                        geAppId,
+                                        jobIdentifier);
+                    LOG.debug("AGI_id: " + agiId);
+                    break;
+
+                default:
+                    LOG.fatal("Unrecognized or unsupported adaptor found!");
+                }
+            } catch (IOException e) {
+                LOG.fatal("Unable to load APIServer JSON job description\n"
+                        + LS + e.toString());
+            } catch (Exception e) {
+                LOG.fatal("Unable to submit job: " + LS + e.toString());
+            }
+        }
+
+        return agiId;
     }
 
     /**
-     * Prepares the jobOuput for the APIServer
-     * 
+     * Prepares the jobOuput for the APIServer.
+     *
      * @return Directory containing output files
      */
-    public String prepareJobOutput() {
-	String jobDescription = getJobDescription();
-	String tgzFileName = gedCommand.getActionInfo() + "/jobOutput/" + JSagaJobSubmission
-		.removeNotAllowedCharacter(jobDescription + "_" + gedCommand.getTargetId() + ".tgz");
+    public final String prepareJobOutput() {
+        String jobDescription = getJobDescription();
+        String tgzFileName = gedCommand.getActionInfo() + "/jobOutput/"
+                + JSagaJobSubmission.removeNotAllowedCharacter(
+                        jobDescription + "_"
+                      + gedCommand.getTargetId() + ".tgz");
 
-	_log.debug("tgzFileName: '" + tgzFileName + "'");
+        LOG.debug("tgzFileName: '" + tgzFileName + "'");
 
-	try {
-	    Process unpackTar = Runtime.getRuntime()
-		    .exec("tar xzvf " + tgzFileName + " -C " + gedCommand.getActionInfo());
+        try {
+            Process unpackTar = Runtime.getRuntime()
+                    .exec("tar xzvf " + tgzFileName
+                            + " -C " + gedCommand.getActionInfo());
 
-	    unpackTar.waitFor();
-	} catch (Exception e) {
-	    _log.fatal("Error extracting archive: " + tgzFileName);
-	}
+            unpackTar.waitFor();
+        } catch (Exception e) {
+            LOG.fatal("Error extracting archive: " + tgzFileName);
+        }
 
-	return JSagaJobSubmission.removeNotAllowedCharacter(jobDescription + "_" + gedCommand.getTargetId());
+        return JSagaJobSubmission.removeNotAllowedCharacter(
+                jobDescription + "_" + gedCommand.getTargetId());
     }
 
     /**
-     * removeAGIRecord(int agi_id)
-     *
+     * removeAGIRecord(int agiId).
      * This method removes the specified ActiveGridInteraction record form the
-     * GridEngine' UsersTracking database
+      * GridEngine' UsersTracking database.
+      * @param agiId - GridEngine ActiveGridInteractions record identifier
      */
-    public void removeAGIRecord(int agi_id) {
-	GridEngineInterfaceDB geiDB = null;
+    public final void removeAGIRecord(final int agiId) {
+        GridEngineInterfaceDB geiDB = null;
 
-	_log.debug("Removing record from ActiveGridInteraction with id: '" + agi_id + "'");
+        LOG.debug("Removing record from ActiveGridInteraction with id: '"
+                + agiId + "'");
 
-	try {
-	    geiDB = new GridEngineInterfaceDB(utdb_host, utdb_port, utdb_user, utdb_pass, utdb_name);
-	    geiDB.removeAGIRecord(agi_id);
-	} catch (Exception e) {
-	    _log.fatal("Unable delete ActiveGridInteraction entry for id " + agi_id + "command" + LS + e.toString());
-	} finally {
-	    // if (geiDB != null) {
-	    // geiDB.close();
-	    // }
-	}
+        try {
+            geiDB = new GridEngineInterfaceDB(utdbHost,
+                                              utdbPort,
+                                              utdbUser,
+                                              utdbPass,
+                                              utdbName);
+            geiDB.removeAGIRecord(agiId);
+        } catch (Exception e) {
+            LOG.fatal("Unable delete ActiveGridInteraction entry for id "
+                    + agiId + "command" + LS + e.toString());
+        }
     }
 }
