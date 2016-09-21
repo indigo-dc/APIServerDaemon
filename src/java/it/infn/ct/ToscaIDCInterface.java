@@ -37,6 +37,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.util.Random;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -118,6 +119,14 @@ public class ToscaIDCInterface {
      * TOSCA informative file.
      */
     private String informtativeFile = "";
+    /**
+     * TOSCA output file (it will contain TOSCA outputs json content).
+     */
+    private String toscaOutput = "";
+    /**
+     * TOSCA error file (it will contains TOSCA failure messages).
+     */
+    private String toscaError = "";
     /**
      * TOSCA orchestrator UUID.
      */
@@ -258,11 +267,13 @@ public class ToscaIDCInterface {
 
                 case "jobdesc_output":
                     output = paramValue;
+                    toscaOutput = output;
                     LOG.debug("output: '" + output + "'");
                     break;
 
                 case "jobdesc_error":
                     error = paramValue;
+                    toscaError = error;
                     LOG.debug("error: '" + error + "'");
                     break;
 
@@ -696,6 +707,19 @@ public class ToscaIDCInterface {
             } catch (Exception ex) {
                 LOG.error("Unable to parse deployment info: '"
                         + toscaDeploymentInfo + "' looking for outputs field");
+            }
+            // Now make a informative file copy to output file if specified
+            if (toscaOutput.length() > 0) {
+                try {
+                    Files.copy(Paths.get(informtativeFile),
+                               Paths.get(getOutputDir(), toscaOutput),
+                               REPLACE_EXISTING);
+                } catch (Exception IOException) {
+                    LOG.error("Unable to make copy of file: '"
+                            + informtativeFile + "' "
+                            + "to file: '"
+                            + getOutputDir() + LS + toscaOutput);
+                }
             }
         } else if (status.equals("CREATE_FAILED")) {
             status = "ABORT";

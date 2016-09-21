@@ -379,6 +379,9 @@ public class ToscaIDCInterfaceDB {
 
     /**
      * Get toscaId.
+     * Return the TOSCA UUID related to the given task_id. Since  more
+     * task ids may exists on the tosca_idc table, it will be returned
+     * the one related to the last inserted record.
      *
      * @param toscaCommand - Queue command
      * @return toscaid
@@ -395,8 +398,10 @@ public class ToscaIDCInterfaceDB {
         try {
             String sql;
 
-            sql = "select tosca_id" + LS + "from tosca_idc" + LS
-                    + "where task_id = ?;";
+            sql = "select tosca_id" + LS
+                + "from tosca_idc" + LS
+                + "where task_id = ?" + LS
+                + "order by id desc limit 1;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, toscaCommand.getTaskId());
             resultSet = preparedStatement.executeQuery();
@@ -415,6 +420,9 @@ public class ToscaIDCInterfaceDB {
 
     /**
      * Get toscaEndPoint.
+     * Return the TOSCA URL endpoint related to the given task_id. Since
+     * mode task ids may exists on the tosca_idc table, it will be returned
+     * the one related to the last inserted record.
      *
      * @param toscaCommand - Queue command
      * @return TOSCA identifier
@@ -434,7 +442,8 @@ public class ToscaIDCInterfaceDB {
 
             sql = "select tosca_endpoint" + LS
                 + "from tosca_idc" + LS
-                + "where task_id = ?;";
+                + "where task_id = ?" + LS
+                + "order by id desc limit 1;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, toscaCommand.getTaskId());
             resultSet = preparedStatement.executeQuery();
