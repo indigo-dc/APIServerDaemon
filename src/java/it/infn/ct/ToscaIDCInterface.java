@@ -135,6 +135,35 @@ public class ToscaIDCInterface {
      * ToscaIDC DB interface class.
      */
     private ToscaIDCInterfaceDB tiiDB = null;
+    /**
+     * <task_id>.json 'user' field.
+     */
+    private String user;
+    /**
+     * <task_id>.json 'executable' field.
+     */
+    private String executable = "";
+
+    /**
+     * <task_id>.json 'output' field (name of output file).
+     */
+    private String output = "";
+    /**
+     * <task_id>.json 'error' field (name of error file).
+     */
+    private String error = "";
+    /**
+     *  complete task argument list.
+     */
+    private String[] args = null;
+    /**
+     *  Input and output files.
+     */
+    private String ioFiles = "";
+    /**
+     * Input and output files array.
+     */
+    private String[] files = null;
 
     /**
      * Empty constructor for ToscaIDCInterface.
@@ -192,6 +221,218 @@ public class ToscaIDCInterface {
              + FS + toscaCommand.getTaskId() + "_toscaIDC.json";
     }
 
+/**
+ * Load from <task_id>.json file command parameters.
+ */
+public final void loadJSONTask() {
+    org.json.JSONObject jsonJobDesc = null;
+    try {
+        // Front-end prepares the task_id.json file describing the command
+        String jobDescFileName = toscaCommand.getActionInfo()
+                          + FS + toscaCommand.getTaskId() + ".json";
+        // Processing the JSON file
+        LOG.debug("Reading JSON filename: '" + jobDescFileName + "'");
+
+        InputStream is = new FileInputStream(jobDescFileName);
+        String jsonTxt = IOUtils.toString(is);
+        jsonJobDesc =
+                (org.json.JSONObject) new org.json.JSONObject(jsonTxt);
+        LOG.debug("Loaded APIServer JobDesc:\n" + LS + jsonJobDesc);
+
+        // Username (unused yet but later used for accounting)
+        user = String.format("%s", jsonJobDesc.getString("user"));
+        LOG.debug("User: '" + user + "'");
+
+        // Get app Info and Parameters
+        org.json.JSONObject appInfo = new org.json.JSONObject();
+        appInfo = jsonJobDesc.getJSONObject("application");
+        JSONArray appParams = new JSONArray();
+        appParams = appInfo.getJSONArray("parameters");
+
+        // Application parameters
+        String arguments = "";
+
+        for (int i = 0; i < appParams.length(); i++) {
+            org.json.JSONObject appParameter = appParams.getJSONObject(i);
+
+            // Get parameter name and value
+            String paramName = appParameter.getString("param_name");
+            String paramValue = appParameter.getString("param_value");
+
+            switch (paramName) {
+            case "target_executor":
+                LOG.debug("target_executor: '" + paramValue + "'");
+                break;
+
+            case "jobdesc_executable":
+                executable = paramValue;
+                LOG.debug("executable: '" + executable + "'");
+                break;
+
+            case "jobdesc_output":
+                output = paramValue;
+                toscaOutput = output;
+                LOG.debug("output: '" + output + "'");
+                break;
+            case "jobdesc_error":
+                error = paramValue;
+                toscaError = error;
+                LOG.debug("error: '" + error + "'");
+                break;
+            case "jobdesc_arguments":
+                arguments = paramValue;
+                LOG.debug("arguments: '" + arguments + "'");
+                break;
+            default:
+                LOG.warn("Unsupported application parameter name: '"
+                        + paramName + "' with value: '" + paramValue
+                        + "'");
+            }
+        }
+
+        // Arguments
+        String jobArgs = arguments;
+        JSONArray jobArguments = jsonJobDesc.getJSONArray("arguments");
+        for (int j = 0; j < jobArguments.length(); j++) {
+            jobArgs += ((jobArgs.length() > 0) ? "," : "")
+                    + jobArguments.getString(j);
+        }
+        args = jobArgs.split(",");
+        for (int k = 0; k < args.length; k++) {
+            LOG.debug("args[" + k + "]: '" + args[k] + "'");
+        }
+
+        // Infrastructures
+        // Select one of the possible infrastructures among the enabled
+        // ones a random strategy is currently implemented; this could be
+        // changed later
+        JSONArray jobInfrastructures =
+                appInfo.getJSONArray("infrastructures");
+        JSONArray enabledInfras = new JSONArray();
+
+        for (int v = 0, w = 0; w < jobInfrastructures.length(); w++) {
+            org.json.JSONObject infra =
+                    jobInfrastructures.getJSONObject(w);
+
+            if (infra.getString("status").equals("enabled")) {
+                enabledInfras.put(v++, infra);
+            }
+        }
+
+        int selInfraIdx = 0;
+        Random rndGen = new Random();
+
+        if (enabledInfras.length() > 1) {
+            selInfraIdx = rndGen.nextInt(enabledInfras.length());
+        }
+
+        // Extract selected infrastructure
+        org.json.JSONObject selInfra = new org.json.JSONObject();
+        selInfra = enabledInfras.getJSONObject(selInfraIdx);
+        LOG.debug("Selected infra: '" + LS + selInfra.toString() + "'");
+
+        // Infrastructure parameters
+        JSONArray infraParams = selInfra.getJSONArray("parameters");
+
+        for (int h = 0; h < infraParams.length(); h++) {
+            org.json.JSONObject infraParameter =
+                    infraParams.getJSONObject(h);
+            String paramName = infraParameter.getString("name");
+            String paramValue = infraParameter.getString("value");
+
+            switch (paramName) {
+            case "tosca_endpoint":
+                toscaEndPoint = new URL(paramValue);
+                toscaCommand.setRunTimeData("tosca_endpoint",
+                        toscaEndPoint.toString(),
+                        "TOSCA endpoint", "", "");
+                LOG.debug("tosca_endpoint: '" + toscaEndPoint + "'");
+                break;
+            case "tosca_template":
+                toscaTemplate = toscaCommand.getActionInfo()
+                        + "/" + paramValue;
+                LOG.debug("tosca_template: '" + toscaTemplate + "'");
+                break;
+            case "tosca_parameters":
+                toscaParameters +=
+                        ((toscaParameters.length() > 0) ? "&" : "")
+                        + paramValue;
+                LOG.debug("tosca_parameters: '" + toscaParameters + "'");
+                break;
+            default:
+                LOG.warn("Ignoring infrastructure parameter name: '"
+                        + paramName
+                        + "' with value: '" + paramValue
+                        + "'");
+            }
+        }
+
+        // Prepare JSAGA IO file list
+        JSONArray inputFiles = jsonJobDesc.getJSONArray("input_files");
+
+        for (int i = 0; i < inputFiles.length(); i++) {
+            org.json.JSONObject fileEntry = inputFiles.getJSONObject(i);
+            String fileName = fileEntry.getString("name");
+
+            ioFiles += ((ioFiles.length() > 0) ? "," : "")
+                    + toscaCommand.getActionInfo() + FS
+                    + fileEntry.getString("name") + ">"
+                    + fileEntry.getString("name");
+        }
+
+        JSONArray outputFiles = jsonJobDesc.getJSONArray("output_files");
+
+        for (int j = 0; j < outputFiles.length(); j++) {
+            org.json.JSONObject fileEntry = outputFiles.getJSONObject(j);
+            String fileName = fileEntry.getString("name");
+
+            ioFiles += ((ioFiles.length() > 0) ? "," : "")
+                    + toscaCommand.getActionInfo()
+                    + FS + JO + FS
+                    + fileEntry.getString("name")
+                    + "<" + fileEntry.getString("name");
+        }
+        LOG.debug("IOFiles: '" + ioFiles + "'");
+
+        files = ioFiles.split(",");
+        for (int i = 0; i < files.length; i++) {
+            LOG.debug("IO Files[" + i + "]: '" + files[i] + "'");
+        }
+
+        LOG.debug("JSON filename: '" + jobDescFileName + "' successfully read");
+    } catch (Exception ex) {
+        LOG.error("Caught exception: '" + ex.toString() + "'");
+    }
+}
+
+/**
+ *  Generate the output directory.
+ */
+public final void mkOutputDir() {
+    String outputSandbox = toscaCommand.getActionInfo() + FS + JO;
+
+    // Prepare jobOutput dir for output sandbox
+    try {
+        LOG.debug("Creating job output directory: '"
+                + outputSandbox + "'");
+        File outputSandboxDir = new File(outputSandbox);
+        if (!outputSandboxDir.exists()) {
+            LOG.debug("Creating job output directory");
+            outputSandboxDir.mkdir();
+            LOG.debug("Job output successfully created");
+        } else {
+            // Directory altready exists; clean all its content
+            LOG.debug("Cleaning job output directory");
+            FileUtils.cleanDirectory(outputSandboxDir);
+            LOG.debug("Successfully cleaned job output directory");
+        }
+    } catch (IOException ex) {
+        LOG.error("Unable to create output directory  '"
+                + outputSandbox + "' for task having id: "
+                + toscaCommand.getTaskId());
+    }
+}
+
     /**
      * process JSON object containing information stored in file:
      * <action_info>/<task_id>.json and submit using tosca adaptor.
@@ -200,278 +441,63 @@ public class ToscaIDCInterface {
      */
     public final int submitTosca() {
         int toscaId = 0;
-        org.json.JSONObject jsonJobDesc = null;
 
-        LOG.debug("Entering sumitTosca (ToscaIDC)");
+        // Generate output dir
+        mkOutputDir();
 
-        String jobDescFileName = toscaCommand.getActionInfo()
-                + FS + toscaCommand.getTaskId() + ".json";
-        LOG.debug("JSON filename: '" + jobDescFileName + "'");
+        // Load command parameters from <task_id>.json file
+        loadJSONTask();
+
+        toscaToken = tiiDB.getToken(toscaCommand);
+        LOG.debug("Token for toscaCommand having id: '"
+                + toscaCommand.getTaskId()
+                + "' is: '" + toscaToken + "'");
+
+        // Submit the job
+        toscaUUID = submitOrchestrator();
+        LOG.info("toscaUUID: '" + toscaUUID + "'");
+
+        // Register JobId, if targetId exists it is a submission retry
         try {
-            // Prepare jobOutput dir for output sandbox
-            String outputSandbox = toscaCommand.getActionInfo() + FS + JO;
-            LOG.debug("Creating job output directory: '"
-                    + outputSandbox + "'");
-            File outputSandboxDir = new File(outputSandbox);
-            if (!outputSandboxDir.exists()) {
-                LOG.debug("Creating job output directory");
-                outputSandboxDir.mkdir();
-                LOG.debug("Job output successfully created");
-            } else {
-                // Directory altready exists; clean all its content
-                LOG.debug("Cleaning job output directory");
-                FileUtils.cleanDirectory(outputSandboxDir);
-                LOG.debug("Successfully cleaned job output directory");
-            }
+            String submitStatus = "SUBMITTED";
+            int toscaTargetId = toscaCommand.getTargetId();
 
-            // Now read values from JSON and prepare the submission accordingly
-            InputStream is = new FileInputStream(jobDescFileName);
-            String jsonTxt = IOUtils.toString(is);
+            if (toscaTargetId > 0) {
 
-            jsonJobDesc =
-                    (org.json.JSONObject) new org.json.JSONObject(jsonTxt);
-            LOG.debug("Loaded APIServer JobDesc:\n" + LS + jsonJobDesc);
-
-            // Username (unused yet but later used for accounting)
-            String user = String.format("%s", jsonJobDesc.getString("user"));
-            LOG.debug("User: '" + user + "'");
-
-            // Get app Info and Parameters
-            org.json.JSONObject appInfo = new org.json.JSONObject();
-            appInfo = jsonJobDesc.getJSONObject("application");
-            JSONArray appParams = new JSONArray();
-            appParams = appInfo.getJSONArray("parameters");
-
-            // Application parameters
-            String executable = "";
-            String output = "";
-            String error = "";
-            String arguments = "";
-
-            for (int i = 0; i < appParams.length(); i++) {
-                org.json.JSONObject appParameter = appParams.getJSONObject(i);
-
-                // Get parameter name and value
-                String paramName = appParameter.getString("param_name");
-                String paramValue = appParameter.getString("param_value");
-
-                switch (paramName) {
-                case "target_executor":
-                    LOG.debug("target_executor: '" + paramValue + "'");
-                    break;
-
-                case "jobdesc_executable":
-                    executable = paramValue;
-                    LOG.debug("executable: '" + executable + "'");
-                    break;
-
-                case "jobdesc_output":
-                    output = paramValue;
-                    toscaOutput = output;
-                    LOG.debug("output: '" + output + "'");
-                    break;
-
-                case "jobdesc_error":
-                    error = paramValue;
-                    toscaError = error;
-                    LOG.debug("error: '" + error + "'");
-                    break;
-
-                case "jobdesc_arguments":
-                    arguments = paramValue;
-                    LOG.debug("arguments: '" + arguments + "'");
-                    break;
-
-                default:
-                    LOG.warn("Unsupported application parameter name: '"
-                            + paramName + "' with value: '" + paramValue
-                            + "'");
-                }
-            }
-
-            // Arguments
-            String jobArgs = arguments;
-            JSONArray jobArguments = jsonJobDesc.getJSONArray("arguments");
-
-            for (int j = 0; j < jobArguments.length(); j++) {
-                jobArgs += ((jobArgs.length() > 0) ? "," : "")
-                        + jobArguments.getString(j);
-            }
-
-            String[] args = jobArgs.split(",");
-
-            for (int k = 0; k < args.length; k++) {
-                LOG.debug("args[" + k + "]: '" + args[k] + "'");
-            }
-
-            // Infrastructures
-            // Select one of the possible infrastructures among the enabled
-            // ones a random strategy is currently implemented; this could be
-            // changed later
-            JSONArray jobInfrastructures =
-                    appInfo.getJSONArray("infrastructures");
-            JSONArray enabledInfras = new JSONArray();
-
-            for (int v = 0, w = 0; w < jobInfrastructures.length(); w++) {
-                org.json.JSONObject infra =
-                        jobInfrastructures.getJSONObject(w);
-
-                if (infra.getString("status").equals("enabled")) {
-                    enabledInfras.put(v++, infra);
-                }
-            }
-
-            int selInfraIdx = 0;
-            Random rndGen = new Random();
-
-            if (enabledInfras.length() > 1) {
-                selInfraIdx = rndGen.nextInt(enabledInfras.length());
-            }
-
-            org.json.JSONObject selInfra = new org.json.JSONObject();
-
-            selInfra = enabledInfras.getJSONObject(selInfraIdx);
-            LOG.debug("Selected infra: '" + LS + selInfra.toString() + "'");
-
-            // Infrastructure parameters
-            JSONArray infraParams = selInfra.getJSONArray("parameters");
-
-            for (int h = 0; h < infraParams.length(); h++) {
-                org.json.JSONObject infraParameter =
-                        infraParams.getJSONObject(h);
-                String paramName = infraParameter.getString("name");
-                String paramValue = infraParameter.getString("value");
-
-                switch (paramName) {
-                case "tosca_endpoint":
-                    toscaEndPoint = new URL(paramValue);
-                    toscaCommand.setRunTimeData("tosca_endpoint",
-                            toscaEndPoint.toString(),
-                            "TOSCA endpoint", "", "");
-                    LOG.debug("tosca_endpoint: '" + toscaEndPoint + "'");
-
-                    break;
-
-                case "tosca_template":
-                    toscaTemplate = toscaCommand.getActionInfo()
-                            + "/" + paramValue;
-                    LOG.debug("tosca_template: '" + toscaTemplate + "'");
-
-                    break;
-
-                case "tosca_parameters":
-                    toscaParameters +=
-                            ((toscaParameters.length() > 0) ? "&" : "")
-                            + paramValue;
-                    LOG.debug("tosca_parameters: '" + toscaParameters + "'");
-
-                    break;
-
-                default:
-                    LOG.warn("Ignoring infrastructure parameter name: '"
-                            + paramName
-                            + "' with value: '" + paramValue
-                            + "'");
-                }
-            }
-
-            // Prepare JSAGA IO file list
-            String ioFiles = "";
-            JSONArray inputFiles = jsonJobDesc.getJSONArray("input_files");
-
-            for (int i = 0; i < inputFiles.length(); i++) {
-                org.json.JSONObject fileEntry = inputFiles.getJSONObject(i);
-                String fileName = fileEntry.getString("name");
-
-                ioFiles += ((ioFiles.length() > 0) ? "," : "")
-                        + toscaCommand.getActionInfo() + FS
-                        + fileEntry.getString("name") + ">"
-                        + fileEntry.getString("name");
-            }
-
-            JSONArray outputFiles = jsonJobDesc.getJSONArray("output_files");
-
-            for (int j = 0; j < outputFiles.length(); j++) {
-                org.json.JSONObject fileEntry = outputFiles.getJSONObject(j);
-                String fileName = fileEntry.getString("name");
-
-                ioFiles += ((ioFiles.length() > 0) ? "," : "")
-                        + toscaCommand.getActionInfo()
-                        + FS + JO + FS
-                        + fileEntry.getString("name")
-                        + "<" + fileEntry.getString("name");
-            }
-
-            LOG.debug("IOFiles: '" + ioFiles + "'");
-
-            String[] files = ioFiles.split(",");
-
-            for (int i = 0; i < files.length; i++) {
-                LOG.debug("IO Files[" + i + "]: '" + files[i] + "'");
-            }
-
-            // Add info file name to tParams
-            toscaParameters += ((toscaParameters.length() > 0) ? "&" : "")
-                    + "info=" + toscaCommand.getActionInfo() + FS
-                    + toscaCommand.getTaskId() + "_toscaIDC.json";
-            LOG.debug("TOSCA parameters: '" + toscaParameters + "'");
-
-            toscaToken = tiiDB.getToken(toscaCommand);
-            LOG.debug("Token for toscaCommand having id: '"
-                    + toscaCommand.getTaskId()
-                    + "' is: '" + toscaToken + "'");
-
-            // Finally submit the job
-            toscaUUID = submitOrchestrator();
-            LOG.info("toscaUUID: '" + toscaUUID + "'");
-
-            // Register JobId, if targetId exists it is a submission retry
-            try {
-                String submitStatus = "SUBMITTED";
-                int toscaTargetId = toscaCommand.getTargetId();
-
-                if (toscaTargetId > 0) {
-
-                    // update tosca_id if successful
-                    if ((toscaUUID != null) && (toscaUUID.length() > 0)) {
-                        tiiDB.updateToscaId(toscaTargetId, toscaUUID);
-                    } else {
-                        submitStatus = "ABORTED";
-                    }
-
-                    toscaCommand.setTargetStatus(submitStatus);
-                    tiiDB.updateToscaStatus(toscaTargetId, submitStatus);
-                    LOG.debug("Updated existing entry in simple_tosca "
-                            + "(ToscaIDC) table at id: '" + toscaTargetId + "'"
-                            + "' - status: '" + submitStatus + "'");
+                // update tosca_id if successful
+                if ((toscaUUID != null) && (toscaUUID.length() > 0)) {
+                    tiiDB.updateToscaId(toscaTargetId, toscaUUID);
                 } else {
-                    LOG.debug("Creating a new entry in simple_tosca "
-                            + "table for submission: '" + toscaUUID + "'");
-
-                    if (toscaUUID.length() == 0) {
-                        submitStatus = "ABORTED";
-                    }
-
-                    toscaCommand.setTargetStatus(submitStatus);
-                    toscaId = tiiDB.registerToscaId(toscaCommand,
-                            toscaUUID, toscaEndPoint.toString(),
-                            submitStatus);
-
-                    LOG.debug("Registered in simple_tosca "
-                            + "(ToscaIDC) with id: '"
-                            + toscaId + "' - status: '"
-                            + submitStatus + "'");
+                    submitStatus = "ABORTED";
                 }
-            } catch (Exception e) {
-                LOG.fatal("Unable to register tosca_id: '" + toscaUUID + "'");
-            } finally {
-                toscaCommand.update();
+
+                toscaCommand.setTargetStatus(submitStatus);
+                tiiDB.updateToscaStatus(toscaTargetId, submitStatus);
+                LOG.debug("Updated existing entry in simple_tosca "
+                        + "(ToscaIDC) table at id: '" + toscaTargetId + "'"
+                        + "' - status: '" + submitStatus + "'");
+            } else {
+                LOG.debug("Creating a new entry in simple_tosca "
+                        + "table for submission: '" + toscaUUID + "'");
+
+                if (toscaUUID.length() == 0) {
+                    submitStatus = "ABORTED";
+                }
+
+                toscaCommand.setTargetStatus(submitStatus);
+                toscaId = tiiDB.registerToscaId(toscaCommand,
+                        toscaUUID, toscaEndPoint.toString(),
+                        submitStatus);
+
+                LOG.debug("Registered in simple_tosca "
+                        + "(ToscaIDC) with id: '"
+                        + toscaId + "' - status: '"
+                        + submitStatus + "'");
             }
-        } catch (SecurityException se) {
-            LOG.error("Unable to create job output folder in: '"
-                    + toscaCommand.getActionInfo() + "' directory");
-        } catch (Exception ex) {
-            LOG.error("Caught exception: '" + ex.toString() + "'");
+        } catch (Exception e) {
+            LOG.fatal("Unable to register tosca_id: '" + toscaUUID + "'");
+        } finally {
+            toscaCommand.update();
         }
 
         return toscaId;
@@ -614,6 +640,15 @@ public class ToscaIDCInterface {
     }
 
     /**
+     * This method returns the full path of job output dir
+     * used for this interface.
+     * @return Job output dir
+     */
+    public final String getOutputDirPath() {
+        return toscaCommand.getActionInfo() + FS + getOutputDir();
+    }
+
+    /**
      * Return deployment information of a given tUUID.
      *
      * @param uuid - TOSCA UUID
@@ -663,10 +698,12 @@ public class ToscaIDCInterface {
      */
     public final String getStatus() {
         LOG.debug("Entering IDC getStatus ...");
+
+        // Load command parameters from <task_id>.json file
+        loadJSONTask();
+
         String status = toscaCommand.getTargetStatus();
         try {
-            // toscaEndPoint = new
-            // URL(toscaCommand.getRunTimeData("tosca_endpoint"));
             toscaEndPoint = new URL(tiiDB.toscaEndPoint(toscaCommand));
         } catch (MalformedURLException ex) {
             LOG.error("Unable to get endpoint from command: '"
@@ -709,20 +746,39 @@ public class ToscaIDCInterface {
                         + toscaDeploymentInfo + "' looking for outputs field");
             }
             // Now make a informative file copy to output file if specified
-            if (toscaOutput.length() > 0) {
+            if (output.length() > 0) {
                 try {
                     Files.copy(Paths.get(informtativeFile),
-                               Paths.get(getOutputDir(), toscaOutput),
+                               Paths.get(getOutputDirPath(), output),
                                REPLACE_EXISTING);
                 } catch (Exception IOException) {
                     LOG.error("Unable to make copy of file: '"
                             + informtativeFile + "' "
                             + "to file: '"
-                            + getOutputDir() + LS + toscaOutput);
+                            + getOutputDirPath() + LS + output);
                 }
+            } else {
+                LOG.debug("No output  file specified, the orchestrator "
+                        + "'outputs' field will be not reported");
             }
         } else if (status.equals("CREATE_FAILED")) {
             status = "ABORT";
+            // Now make a informative file copy to output file if specified
+            if (error.length() > 0) {
+                try {
+                    Files.copy(Paths.get(informtativeFile),
+                               Paths.get(getOutputDirPath(), error),
+                               REPLACE_EXISTING);
+                } catch (Exception IOException) {
+                    LOG.error("Unable to make copy of file: '"
+                            + informtativeFile + "' "
+                            + "to file: '"
+                            + getOutputDirPath() + LS + error);
+                }
+            } else {
+                LOG.debug("No error file specified, the orchestrator "
+                        + "report will be not available");
+            }
         } else if (status.equals("CREATE_IN_PROGRESS")) {
             status = "RUNNING";
         } else {
@@ -784,6 +840,7 @@ public class ToscaIDCInterface {
                     new OutputStreamWriter(
                             new FileOutputStream(informtativeFile), "utf-8"));
             writer.write(infoData);
+            writer.close();
             LOG.debug("Saved info file: '" + informtativeFile
                     + "' data: '" + infoData + "'");
         } catch (IOException ex) {
@@ -793,3 +850,4 @@ public class ToscaIDCInterface {
     }
 
 }
+
