@@ -359,7 +359,7 @@ public class APIServerDaemonDB {
                 + "where id=?";
 
             String newStatus = ((command.getTargetStatus() == null)
-                               ? "PROCESSING"
+                               ? "READY"
                                : command.getTargetStatus());
 
             LOG.debug("New task table status for task_id: '"
