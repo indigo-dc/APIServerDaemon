@@ -5,7 +5,9 @@
   <!-- Define the properties used by the build -->
   <property environment="env"/>
   <property name="app.name"       value="APIServerDaemon"/>
+<!-- @@@
   <property name="app.libs"       value="${basedir}/web/WEB-INF/lib"/>
+-->
   <property name="app.baselibs"   value="${basedir}/lib"/>
   <property name="appserver.home" value="${env.CATALINA_HOME}" />
   <property name="work.home"      value="${basedir}/work"/>
@@ -35,15 +37,17 @@
     <fileset dir="${appserver.home}/lib">
       <include name="*.jar"/>
     </fileset>
+<!--
     <fileset dir="${app.libs}">
       <include name="*.jar"/>
     </fileset>
+-->
     <fileset dir="${app.baselibs}">
       <include name="*.jar"/>
     </fileset>
   </path>
 
-  <target name="all" depends="clean, resolve, check, compile,dist"
+  <target name="all" depends="clean, resolve, check, compile, dist"
           description="Clean work dirs, then compile and create a WAR"/>
 
   <target name="clean"
@@ -54,10 +58,6 @@
 
   <target name="check" depends="resolve"
           description="Codestyle check with checkstyle">
-      <!-- <taskdef resource="checkstyle-ant-task.properties" classpath="${app.baselibs}/checkstyle-7.1.jar"/>  -->
-      <!--
-      <taskdef resource="com/puppycrawl/tools/checkstyle/ant/checkstyle-ant-task.properties" 
-               classpath="${app.baselibs}/checkstyle-7.1.jar"/> -->
       <taskdef resource="com/puppycrawl/tools/checkstyle/ant/checkstyle-ant-task.properties">
           <classpath refid="compile.classpath"/>
       </taskdef>
@@ -72,6 +72,10 @@
           description="Create working dirs and copy static files to work dir">
     <mkdir  dir="${dist.home}"/>
     <mkdir  dir="${work.home}/WEB-INF/classes"/>
+    <mkdir  dir="${app.baselibs}"/>
+<!-- @@@
+    <mkdir  dir="${app.libs}"/>
+-->
     <!-- Copy static HTML and JSP files to work dir -->
     <copy todir="${work.home}">
       <fileset dir="${web.home}"/>

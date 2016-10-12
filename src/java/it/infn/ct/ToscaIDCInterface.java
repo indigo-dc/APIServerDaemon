@@ -38,14 +38,14 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import java.text.ParseException;
 import java.util.Random;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 
 /**
  * APIServerDaemon interface for TOSCA.
@@ -537,8 +537,8 @@ public final void mkOutputDir() {
                             + toscaParametersJson + "' is not readable");
                     LOG.error(ex);
                 } catch (ParseException ex) {
-                    LOG.error("Parameters json file '"
-                            + toscaParametersJson + "' is not parseable");
+                    LOG.error("Error parsing : '"
+                            + Paths.get(toscaParametersJson) + "'");
                     LOG.error(ex);
                 }
                 LOG.debug("Parameters json file '"
@@ -622,8 +622,8 @@ public final void mkOutputDir() {
     protected final String getDocumentValue(final String json,
                                             final  String key)
             throws ParseException {
-        JSONParser parser = new JSONParser();
-        JSONObject jsonObject = (JSONObject) parser.parse(json);
+        JSONTokener tokener = new JSONTokener(json);
+        JSONObject jsonObject = new JSONObject(tokener);
         String[] keyelement = key.split("\\.");
         for (int i = 0; i < (keyelement.length - 1); i++) {
             jsonObject = (JSONObject) jsonObject.get(keyelement[i]);
