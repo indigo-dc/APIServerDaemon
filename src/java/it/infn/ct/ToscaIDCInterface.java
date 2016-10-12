@@ -27,6 +27,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -39,6 +40,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.text.ParseException;
+import java.util.Properties;
 import java.util.Random;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -82,6 +84,10 @@ public class ToscaIDCInterface {
      * HTTP code 404.
      */
     public static final int HTTP_204 = 201;
+    /**
+     * ToscaIDC properties file name.
+     */
+    private static final String TOSCAIDC_PROPFILE = "ToscaIDC.properties";
 
     /**
      * APIServerDaemon database connection URL.
@@ -164,14 +170,31 @@ public class ToscaIDCInterface {
      * Input and output files array.
      */
     private String[] files = null;
-
+    /**
+     * ToscaIDC properties PTVEndPoint
+     */
+    private String PTVEndPoint = "";
+    /**
+     * ToscaIDC properties PTVUser
+     */
+    private String PTVUser = "";
+    /**
+     * ToscaIDC properties PTVPass
+     */
+    private String PTVPass = "";
+    
     /**
      * Empty constructor for ToscaIDCInterface.
      */
     public ToscaIDCInterface() {
         LOG.debug("Initializing ToscaIDCInterface");
-        System.setProperty("saga.factory",
-                "fr.in2p3.jsaga.impl.SagaFactoryImpl");
+        // Load ToscaIDC properties file
+        try {
+            getToscaIDCProperties();
+        } catch (IOException ex) {
+            LOG.error("Unable to load properties file: '"
+                    + TOSCAIDC_PROPFILE + "'");
+        }
     }
 
     /**
@@ -220,6 +243,38 @@ public class ToscaIDCInterface {
         return toscaCommand.getActionInfo()
              + FS + toscaCommand.getTaskId() + "_toscaIDC.json";
     }
+
+public void getToscaIDCProperties() throws IOException {
+    InputStream inputStream = null;
+    
+    try {
+        Properties prop = new Properties();
+
+        inputStream =
+                getClass().getClassLoader().getResourceAsStream(TOSCAIDC_PROPFILE);
+
+        if (inputStream != null) {
+                prop.load(inputStream);
+        } else {
+                throw new FileNotFoundException("ToscaIDC property file '"
+                       + TOSCAIDC_PROPFILE + "' not found in the classpath");
+        }
+
+        // ToscaIDC may require PTV settings
+        PTVEndPoint = prop.getProperty("fgapisrv_ptvendpoint");
+        PTVUser     = prop.getProperty("fgapisrv_ptvuser");
+        PTVPass     = prop.getProperty("fgapisrv_ptvpass");
+
+        LOG.debug("PTV Settings - Endpoint: '" + PTVEndPoint
+                + "' User: '" + PTVUser
+                + "' Password: '" + PTVPass + "'");
+    } catch (Exception e) {
+            LOG.error("Unable to load PTV settings: '"
+                    + TOSCAIDC_PROPFILE + "'");
+    } finally {
+            inputStream.close();
+    }
+}
 
 /**
  * Load from <task_id>.json file command parameters.
@@ -712,7 +767,15 @@ public final void mkOutputDir() {
         LOG.debug("tosca endpoint: '" + toscaEndPoint + "'");
         String tUUID = tiiDB.getToscaId(toscaCommand);
         LOG.debug("tosca UUID: '" + tUUID + "'");
-        String tToken = tiiDB.getToken(toscaCommand);
+        String[] taskTokenSubject =
+                tiiDB.getToken(toscaCommand).split(",");
+        String tToken = taskTokenSubject[0];
+        String tSubject = taskTokenSubject[1];
+        if (tSubject.length() > 0) {
+            // Token having a subject require a fresh token from PTV
+            tToken = getPTVToken(tSubject);
+            LOG.debug("PTV Token is: '" + tToken + "'");
+        }
         LOG.debug("tosca Token: '" + tToken + "'");
         String toscaDeploymentInfo = getToscaDeployment(tUUID, tToken);
         LOG.debug("tosca deployment info: '" + toscaDeploymentInfo + "'");
@@ -847,6 +910,27 @@ public final void mkOutputDir() {
             LOG.error("Unable to save info file: '" + informtativeFile
                     + "' data: '" + infoData + "'");
         }
+    }
+
+    /**
+     * Retrieve a valid Token from PTV service related to a give subject.
+     * @param tSubject
+     * @return New valiud token
+     */
+    private String getPTVToken(String tSubject) {
+        // Add here the equivalent code of:
+        // curl <ptv_host>:<ptv_port>/get-token \
+        // -u 'ptv_user:ptv_password' \
+        // -d subject='the_subject'
+        // Then handle the output JSON:
+        //{
+        //  "token": "eyJraWQi...", 
+        //  "subject": "the_subject", 
+        //  "groups": null, 
+        //  "error": null
+        // }
+        // returning the token value
+        return "not implemented yet!";
     }
 
 }

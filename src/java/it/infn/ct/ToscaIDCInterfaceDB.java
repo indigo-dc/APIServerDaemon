@@ -468,6 +468,7 @@ public class ToscaIDCInterfaceDB {
      */
     final String getToken(final APIServerDaemonCommand toscaCommand) {
         String token = "";
+        String subject = "";
 
         if (!connect()) {
             LOG.fatal("Not connected to database");
@@ -478,6 +479,7 @@ public class ToscaIDCInterfaceDB {
             String sql;
 
             sql = "select tk.token" + LS
+                    + "  ,tk.subject" + LS
                     + "from as_queue aq," + LS
                     + "     task t," + LS
                     + "     fg_token tk" + LS
@@ -492,6 +494,7 @@ public class ToscaIDCInterfaceDB {
             resultSet = preparedStatement.executeQuery();
             if (resultSet.next()) {
                 token = resultSet.getString("tk.token");
+                subject = resultSet.getString("tk.subject");
             }
         } catch (SQLException e) {
             LOG.fatal(e.toString());
@@ -499,7 +502,7 @@ public class ToscaIDCInterfaceDB {
             closeSQLActivity();
         }
 
-        return token;
+        return token + "," + subject;
     }
 
 }
