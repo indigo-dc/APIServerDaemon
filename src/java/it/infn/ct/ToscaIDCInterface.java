@@ -171,18 +171,18 @@ public class ToscaIDCInterface {
      */
     private String[] files = null;
     /**
-     * ToscaIDC properties PTVEndPoint
+     * ToscaIDC properties ptvEndPoint.
      */
-    private String PTVEndPoint = "";
+    private String ptvEndPoint = "";
     /**
-     * ToscaIDC properties PTVUser
+     * ToscaIDC properties ptvUser.
      */
-    private String PTVUser = "";
+    private String ptvUser = "";
     /**
-     * ToscaIDC properties PTVPass
+     * ToscaIDC properties ptvPass.
      */
-    private String PTVPass = "";
-    
+    private String ptvPass = "";
+
     /**
      * Empty constructor for ToscaIDCInterface.
      */
@@ -243,15 +243,19 @@ public class ToscaIDCInterface {
         return toscaCommand.getActionInfo()
              + FS + toscaCommand.getTaskId() + "_toscaIDC.json";
     }
-
-public void getToscaIDCProperties() throws IOException {
+/**
+ * Load the ToscaIDC.properties file.
+ * @throws IOException - Raise exception if no properties are extracted
+ */
+public final void getToscaIDCProperties() throws IOException {
     InputStream inputStream = null;
-    
+
     try {
         Properties prop = new Properties();
 
         inputStream =
-                getClass().getClassLoader().getResourceAsStream(TOSCAIDC_PROPFILE);
+                getClass().getClassLoader().
+                        getResourceAsStream(TOSCAIDC_PROPFILE);
 
         if (inputStream != null) {
                 prop.load(inputStream);
@@ -261,13 +265,13 @@ public void getToscaIDCProperties() throws IOException {
         }
 
         // ToscaIDC may require PTV settings
-        PTVEndPoint = prop.getProperty("fgapisrv_ptvendpoint");
-        PTVUser     = prop.getProperty("fgapisrv_ptvuser");
-        PTVPass     = prop.getProperty("fgapisrv_ptvpass");
+        ptvEndPoint = prop.getProperty("fgapisrv_ptvendpoint");
+        ptvUser     = prop.getProperty("fgapisrv_ptvuser");
+        ptvPass     = prop.getProperty("fgapisrv_ptvpass");
 
-        LOG.debug("PTV Settings - Endpoint: '" + PTVEndPoint
-                + "' User: '" + PTVUser
-                + "' Password: '" + PTVPass + "'");
+        LOG.debug("PTV Settings - Endpoint: '" + ptvEndPoint
+                + "' User: '" + ptvUser
+                + "' Password: '" + ptvPass + "'");
     } catch (Exception e) {
             LOG.error("Unable to load PTV settings: '"
                     + TOSCAIDC_PROPFILE + "'");
@@ -398,9 +402,6 @@ public final void loadJSONTask() {
             switch (paramName) {
             case "tosca_endpoint":
                 toscaEndPoint = new URL(paramValue);
-                toscaCommand.setRunTimeData("tosca_endpoint",
-                        toscaEndPoint.toString(),
-                        "TOSCA endpoint", "", "");
                 LOG.debug("tosca_endpoint: '" + toscaEndPoint + "'");
                 break;
             case "tosca_template":
@@ -548,6 +549,14 @@ public final void mkOutputDir() {
                         + "(ToscaIDC) with id: '"
                         + toscaId + "' - status: '"
                         + submitStatus + "'");
+
+                toscaCommand.setRunTimeData("tosca_endpoint",
+                        toscaEndPoint.toString(),
+                        "TOSCA endpoint", "", "");
+
+                LOG.debug("Registered tosca_endpooint: '"
+                        + toscaEndPoint.toString() + "'"
+                        + "in runtime_data '");
             }
         } catch (Exception e) {
             LOG.fatal("Unable to register tosca_id: '" + toscaUUID + "'");
@@ -914,19 +923,19 @@ public final void mkOutputDir() {
 
     /**
      * Retrieve a valid Token from PTV service related to a give subject.
-     * @param tSubject
+     * @param tSubject - Subject of the Portal user
      * @return New valiud token
      */
-    private String getPTVToken(String tSubject) {
+    private String getPTVToken(final String tSubject) {
         // Add here the equivalent code of:
         // curl <ptv_host>:<ptv_port>/get-token \
         // -u 'ptv_user:ptv_password' \
         // -d subject='the_subject'
         // Then handle the output JSON:
         //{
-        //  "token": "eyJraWQi...", 
-        //  "subject": "the_subject", 
-        //  "groups": null, 
+        //  "token": "eyJraWQi...",
+        //  "subject": "the_subject",
+        //  "groups": null,
         //  "error": null
         // }
         // returning the token value
