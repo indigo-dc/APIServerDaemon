@@ -42,6 +42,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.text.ParseException;
 import java.util.Properties;
 import java.util.Random;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
@@ -182,6 +183,14 @@ public class ToscaIDCInterface {
      * ToscaIDC properties ptvPass.
      */
     private String ptvPass = "";
+    /**
+     * PTV get-token endpoint.
+     */
+    private String ptvGetToken = "get-token";
+    /**
+     * PTV check-token endpoint.
+     */
+    private String ptvCheckToken = "check-token";
 
     /**
      * Empty constructor for ToscaIDCInterface.
@@ -926,7 +935,7 @@ public final void mkOutputDir() {
      * @param tSubject - Subject of the Portal user
      * @return New valiud token
      */
-    private String getPTVToken(final String tSubject) {
+    public String getPTVToken(final String tSubject) {
         // Add here the equivalent code of:
         // curl <ptv_host>:<ptv_port>/get-token \
         // -u 'ptv_user:ptv_password' \
@@ -939,8 +948,54 @@ public final void mkOutputDir() {
         //  "error": null
         // }
         // returning the token value
-        return "not implemented yet!";
+        URL ptvGetTokenURL = null;
+        String jsonAnswer = "";
+
+        // Basic authentication
+        try {
+            ptvGetTokenURL = new URL(ptvEndPoint + "/" + ptvGetToken);
+            String encoding =
+                    Base64.encodeBase64String(
+                            (ptvUser + ":" + ptvPass).getBytes());
+
+            HttpURLConnection conn =
+                    (HttpURLConnection) ptvGetTokenURL.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("charset", "utf-8");
+            conn.setRequestProperty("Authorization",
+                                          "Basic " + encoding);
+            conn.setDoOutput(true);
+            OutputStreamWriter wr =
+                    new OutputStreamWriter(conn.getOutputStream());
+            wr.write("subject=" + tSubject);
+            wr.flush();
+            wr.close();
+            InputStream content = (InputStream) conn.getInputStream();
+            BufferedReader in   =
+                new BufferedReader(new InputStreamReader(content));
+            String line;
+            while ((line = in.readLine()) != null) {
+                jsonAnswer += line;
+            }
+            LOG.debug("PTV get-token JSON: '" + jsonAnswer + "'");
+        } catch (Exception ex) {
+            LOG.error("Unable to contact PTV end-point: '"
+                    + ptvGetTokenURL.toString() + "'");
+        }
+
+        return jsonAnswer;
     }
 
+    /**
+     * Class testings.
+     * @param args - Argument list
+     */
+    public static void main(final String[] args) {
+        ToscaIDCInterface tIDCif = new ToscaIDCInterface();
+        System.out.println("PTV get-token: '"
+                + tIDCif.getPTVToken("AAABBBCCCDDDEEEFFF")
+                + "'");
+    }
 }
-

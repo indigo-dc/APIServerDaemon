@@ -14,6 +14,7 @@
   <property name="dist.home"      value="${basedir}/dist"/>
   <property name="src.home"       value="${basedir}/src"/>
   <property name="web.home"       value="${basedir}/web"/>
+  <property name="test.home"      value="${basedir}/src/java/test"/>
 
   <target name="help">
     <echo>You can use the following targets:</echo>
@@ -37,7 +38,7 @@
     <fileset dir="${appserver.home}/lib">
       <include name="*.jar"/>
     </fileset>
-<!--
+<!-- @@@
     <fileset dir="${app.libs}">
       <include name="*.jar"/>
     </fileset>
@@ -47,13 +48,14 @@
     </fileset>
   </path>
 
-  <target name="all" depends="clean, resolve, check, compile, dist"
+  <target name="all" depends="clean, resolve, check, compile, dist, test"
           description="Clean work dirs, then compile and create a WAR"/>
 
   <target name="clean"
           description="Delete old work and dist directories">
     <delete dir="${work.home}"/>
     <delete dir="${dist.home}"/>
+    <delete dir="${test.home}/classes"/>
   </target>
 
   <target name="check" depends="resolve"
@@ -76,6 +78,7 @@
 <!-- @@@
     <mkdir  dir="${app.libs}"/>
 -->
+    <mkdir  dir="${test.home}/classes"/>
     <!-- Copy static HTML and JSP files to work dir -->
     <copy todir="${work.home}">
       <fileset dir="${web.home}"/>
@@ -136,6 +139,22 @@
 
         <taskdef resource="org/apache/ivy/ant/antlib.xml"
                  uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+    </target>
+
+    <target name="test" depends="dist">
+        <copy file="${work.home}/WEB-INF/classes/it/infn/ct/ToscaIDC.properties" tofile="${work.home}/WEB-INF/classes/ToscaIDC.properties"/>
+        <copy file="${src.home}/java/test/log4j.properties" tofile="${work.home}/WEB-INF/classes/log4j.properties"/>
+        <junit printsummary="on" haltonfailure="yes" fork="true">
+            <sysproperty key="log4j.configuration" value="file:${work.home}/WEB-INF/classes/log4j.properties"/>
+            <classpath>
+                <path refid="compile.classpath"/>
+                <pathelement location="${work.home}/WEB-INF/classes"/>
+            </classpath>
+            <formatter type="brief" usefile="false" />
+            <batchtest>
+                <fileset dir="${test.home}" includes="**/*Test.java" />
+            </batchtest>
+        </junit> 
     </target>
 
 </project>
