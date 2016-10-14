@@ -60,7 +60,7 @@ public class ToscaIDCInterface {
      * Logger object.
      */
     private static final Logger LOG =
-            Logger.getLogger(APIServerDaemonController.class.getName());
+            Logger.getLogger(ToscaIDCInterface.class.getName());
     /**
      * Line separator constant.
      */
@@ -683,9 +683,9 @@ public final void mkOutputDir() {
     }
 
     /**
-     * Read values from the json.
+     * Return the specified key value from a given json string.
      *
-     * @param json -The json from where to
+     * @param json -The json from where to extract the key value
      * @param key - The element to return. It can retrieve nested elements
      *              providing the full chain as
      *              &lt;element&gt;.&lt;element&gt;.&lt;element&gt;
@@ -933,7 +933,7 @@ public final void mkOutputDir() {
     /**
      * Retrieve a valid Token from PTV service related to a give subject.
      * @param tSubject - Subject of the Portal user
-     * @return New valiud token
+     * @return New valid token
      */
     public String getPTVToken(final String tSubject) {
         // Add here the equivalent code of:
@@ -950,14 +950,14 @@ public final void mkOutputDir() {
         // returning the token value
         URL ptvGetTokenURL = null;
         String jsonAnswer = "";
+        String newToken = "";
 
-        // Basic authentication
+        // Contact PTV with Basic authentication
         try {
             ptvGetTokenURL = new URL(ptvEndPoint + "/" + ptvGetToken);
             String encoding =
                     Base64.encodeBase64String(
                             (ptvUser + ":" + ptvPass).getBytes());
-
             HttpURLConnection conn =
                     (HttpURLConnection) ptvGetTokenURL.openConnection();
             conn.setRequestMethod("POST");
@@ -965,7 +965,7 @@ public final void mkOutputDir() {
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setRequestProperty("charset", "utf-8");
             conn.setRequestProperty("Authorization",
-                                          "Basic " + encoding);
+                                    "Basic " + encoding);
             conn.setDoOutput(true);
             OutputStreamWriter wr =
                     new OutputStreamWriter(conn.getOutputStream());
@@ -980,22 +980,16 @@ public final void mkOutputDir() {
                 jsonAnswer += line;
             }
             LOG.debug("PTV get-token JSON: '" + jsonAnswer + "'");
-        } catch (Exception ex) {
+            // Now get token info from JSON
+            newToken = getDocumentValue(jsonAnswer, "token");
+        } catch (ParseException ex) {
+            LOG.error("Unable to parse returned JSON: '"
+                    + jsonAnswer + "'");
+        } catch (IOException ex) {
             LOG.error("Unable to contact PTV end-point: '"
                     + ptvGetTokenURL.toString() + "'");
         }
-
-        return jsonAnswer;
-    }
-
-    /**
-     * Class testings.
-     * @param args - Argument list
-     */
-    public static void main(final String[] args) {
-        ToscaIDCInterface tIDCif = new ToscaIDCInterface();
-        System.out.println("PTV get-token: '"
-                + tIDCif.getPTVToken("AAABBBCCCDDDEEEFFF")
-                + "'");
+        LOG.debug("New token is: '" + newToken + "'");
+        return newToken;
     }
 }
