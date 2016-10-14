@@ -1,6 +1,7 @@
 <ivy-module version="2.0">
 	<info organisation="com.github.sevntu.checkstyle" module="sample" />
 	<dependencies>
+		<dependency org="org.mockito" name="mockito-all" rev="1.10.19"/>
 		<dependency org="junit" name="junit" rev="4.12"/>
 		<dependency org="org.json" name="json" rev="20160810"/>
                 <dependency org="org.apache.commons" name="commons-io" rev="1.3.2"/>

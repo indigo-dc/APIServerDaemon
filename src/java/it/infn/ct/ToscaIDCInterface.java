@@ -935,7 +935,7 @@ public final void mkOutputDir() {
      * @param tSubject - Subject of the Portal user
      * @return New valid token
      */
-    public String getPTVToken(final String tSubject) {
+    public final String getPTVToken(final String tSubject) {
         // Add here the equivalent code of:
         // curl <ptv_host>:<ptv_port>/get-token \
         // -u 'ptv_user:ptv_password' \
