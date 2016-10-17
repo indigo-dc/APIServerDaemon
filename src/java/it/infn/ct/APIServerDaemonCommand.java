@@ -667,4 +667,24 @@ public class APIServerDaemonCommand {
             cmdTaskId = cmdTaskId;
         }
     }
+
+    /**
+     * Return the command related to an action == SUBMIT related to the
+     * current command.
+     * @return The APIServerDaemon commnand related to the SUBMIT action of the
+     *         given command
+     */
+    public final APIServerDaemonCommand getSubmitCommand() {
+       APIServerDaemonCommand subCmd = null;
+       APIServerDaemonDB asdDB = null;
+       try {
+            LOG.debug("Opening connection for get submit command'");
+            asdDB = new APIServerDaemonDB(asdConnectionURL);
+            subCmd = asdDB.getSubmitCommand(this.getTaskId());
+        } catch (Exception e) {
+            LOG.fatal("Unable get submit command for task having id: '"
+                    + getTaskId() + "'");
+        }
+       return subCmd;
+    }
 }

@@ -765,6 +765,16 @@ public final void mkOutputDir() {
     }
 
     /**
+     * Return the TOSCA UUID associated to the given Command.
+     * @param asdCommand - The command where to extract the UUID field
+     * @return TOSCA UUID
+     */
+    public final String getToscaUUID(
+            final APIServerDaemonCommand asdCommand) {
+        return tiiDB.toscaEndPoint(toscaCommand);
+    }
+
+    /**
      * GetStatus of TOSCA submission.
      *
      * @return Status o TOSCA UUID
@@ -901,6 +911,8 @@ public final void mkOutputDir() {
                 LOG.error("Unable to remove resource: '"
                         + uuid + "'");
             }
+            // update target status
+            tiiDB.updateToscaStatus(tiiDB.getTaskIdByUUID(uuid), "RELEASED");
         } catch (IOException ex) {
             LOG.error("Connection error with the service at "
                     + toscaEndPoint.toString());
