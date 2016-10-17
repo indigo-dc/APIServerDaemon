@@ -773,7 +773,10 @@ public class APIServerDaemonDB {
             // statement=connect.createStatement();
             statement.execute(sql);
             // Delete entries in task
-            sql = "delete from task where id = ?;";
+            // !!! Removing tasks causes dangerous task_id recycle; using 
+            //     status update to 'PURGED' instead.
+            //sql = "delete from task where id = ?;";
+            sql = "update task set status = 'PURGED' where id = ?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, taskId);
             preparedStatement.execute();
