@@ -563,6 +563,10 @@ public final void mkOutputDir() {
                         toscaEndPoint.toString(),
                         "TOSCA endpoint", "", "");
 
+                toscaCommand.setRunTimeData("tosca_uuid",
+                        toscaUUID,
+                        "TOSCA UUID", "", "");
+
                 LOG.debug("Registered tosca_endpooint: '"
                         + toscaEndPoint.toString() + "'"
                         + "in runtime_data '");
