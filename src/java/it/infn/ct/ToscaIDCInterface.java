@@ -263,8 +263,7 @@ public final void getToscaIDCProperties() throws IOException {
         Properties prop = new Properties();
 
         inputStream =
-                getClass().getClassLoader().
-                        getResourceAsStream(TOSCAIDC_PROPFILE);
+                this.getClass().getResourceAsStream(TOSCAIDC_PROPFILE);
 
         if (inputStream != null) {
                 prop.load(inputStream);
