@@ -512,10 +512,15 @@ public final void mkOutputDir() {
         // Load command parameters from <task_id>.json file
         loadJSONTask();
 
-        toscaToken = tiiDB.getToken(toscaCommand);
+        String[] taskTokenSubject =
+                tiiDB.getToken(toscaCommand).split(",");
+        toscaToken = taskTokenSubject[0];
+        String subject = "" + taskTokenSubject[1];
+
         LOG.debug("Token for toscaCommand having id: '"
                 + toscaCommand.getTaskId()
-                + "' is: '" + toscaToken + "'");
+                + "' is: '" + toscaToken
+                + "' - subject: '" + subject + "'");
 
         // Submit the job
         toscaUUID = submitOrchestrator();
@@ -566,8 +571,16 @@ public final void mkOutputDir() {
                         toscaUUID,
                         "TOSCA UUID", "", "");
 
+                if (subject.length() > 0) {
+                    toscaCommand.setRunTimeData("subject",
+                            subject,
+                            "PTV subject field", "", "");
+                }
+
                 LOG.debug("Registered tosca_endpooint: '"
-                        + toscaEndPoint.toString() + "'"
+                        + toscaEndPoint.toString() + "' - UUID: '"
+                        + toscaUUID + "' - subject: '"
+                        + subject + "' "
                         + "in runtime_data '");
             }
         } catch (Exception e) {

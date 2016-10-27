@@ -283,6 +283,7 @@ public class APIServerDaemonCommand {
      */
     public final void trash() {
         setStatus("FAILED");
+        setTargetStatus("FAILED");
 
         APIServerDaemonDB asdDB = null;
 
