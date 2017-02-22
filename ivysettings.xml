@@ -7,7 +7,6 @@
 			root="http://sevntu-checkstyle.github.com/sevntu.checkstyle/maven2/" />
 		<ibiblio name="maven.in2p3.fr" m2compatible="true"
                         root="http://maven.in2p3.fr/" />
-
 		<chain name="default" returnFirst="true">
 			<resolver ref="public" />
 			<resolver ref="sevntu-checkstyle" />
