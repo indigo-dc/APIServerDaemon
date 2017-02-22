@@ -1,0 +1,4 @@
+/var/lib/tomcat7/webapps/APIServerDaemon/META-INF/context.xml
+/var/lib/tomcat7/webapps/APIServerDaemon/WEB-INF/web.xml
+/var/lib/tomcat7/webapps/APIServerDaemon/WEB-INF/classes/it/infn/ct/GridEngineDaemon.properties
+/var/lib/tomcat7/webapps/APIServerDaemon/WEB-INF/classes/it/infn/ct/APIServerDaemon.properties
