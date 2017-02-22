@@ -1,11 +1,11 @@
-Package: FGAPIServerDaemin
+Package: FGAPIServerDaemon
 Version: 0.0.6-b
 Section: web
 Priority: optional
 Architecture: all
 Essential: no
 Installed-Size: 1
-Depends: tomcat7 (>= 7.0.0)
+Depends: tomcat7 (>= 7.0.0), openjdk-7-jdk
 Maintainer: Marco Fargetta <marco.fargetta@ct.infn.it>
 Description: Future Gateway backend service
  The package provide the executor service responsible to 
