@@ -1,6 +1,6 @@
 Package: FGAPIServerDaemon
 Version: 0.0.6-b
-Section: web
+Section: misc
 Priority: optional
 Architecture: all
 Essential: no
