@@ -495,7 +495,7 @@ public class APIServerDaemonDB {
             resultSet = statement.executeQuery(sql);
 
             while (resultSet.next()) {
-                dbVer = resultSet.getString("dbver");
+                dbVer = resultSet.getString("version");
                 LOG.debug("DBVer: '" + dbVer + "'");
             }
 
