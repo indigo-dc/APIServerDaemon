@@ -96,6 +96,9 @@
 
   <target name="dist" depends="compile"
           description="Create WAR file for binary distribution">
+    <copy todir="${work.home}/WEB-INF/lib/">
+      <fileset dir="${app.baselibs}"/>
+    </copy>
     <jar jarfile="${dist.home}/${app.name}.war"
          basedir="${work.home}"/>
   </target>
