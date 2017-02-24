@@ -4,7 +4,7 @@ Section: misc
 Priority: optional
 Architecture: all
 Essential: no
-Installed-Size: 36
+Installed-Size: 35
 Depends: tomcat7 (>= 7.0.0), openjdk-7-jdk
 Maintainer: Marco Fargetta <marco.fargetta@ct.infn.it>
 Description: Future Gateway backend service

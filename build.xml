@@ -11,7 +11,7 @@
   <property name="src.home"       value="${basedir}/src"/>
   <property name="web.home"       value="${basedir}/web"/>
   <property name="test.home"      value="${basedir}/src/java/test"/>
-  <property name="deb.home"      value="${basedir}/ubuntu"/>
+  <property name="deb.home"      value="${basedir}/package/ubuntu"/>
 
   <target name="help">
     <echo>You can use the following targets:</echo>
