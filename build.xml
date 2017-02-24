@@ -93,6 +93,11 @@
     <copy todir="${deb.home}/var/lib/tomcat7/webapps/APIServerDaemon">
       <fileset dir="${work.home}" />
     </copy>
+    <copy todir="${deb.home}/var/lib/tomcat7/webapps/APIServerDaemon/WEB-INF/lib">
+      <fileset dir="${app.baselibs}">
+        <exclude name="javax.servlet*.java"/>
+      </fileset>
+    </copy>
     <exec executable="dpkg-deb" failonerror="true">
       <arg value="--build"/>
       <arg value="${deb.home}"/>
@@ -115,7 +120,7 @@
   <!-- ivy -->
   <target name="resolve" description="retrieve dependencies with ivy" depends="init-ivy">
     	<ivy:settings file="ivysettings.xml" />
-        <ivy:retrieve />    	
+        <ivy:retrieve />
     </target>
 
   <property name="ivy.install.version" value="2.1.0-rc2" />
