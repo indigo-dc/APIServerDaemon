@@ -490,12 +490,12 @@ public class APIServerDaemonDB {
         try {
             String sql;
 
-            sql = "select max(version) as dbver from db_patches;";
+            sql = "select version from db_patches order by id desc limit 1;";
             statement = connect.createStatement();
             resultSet = statement.executeQuery(sql);
 
             while (resultSet.next()) {
-                dbVer = resultSet.getString("dbver");
+                dbVer = resultSet.getString("version");
                 LOG.debug("DBVer: '" + dbVer + "'");
             }
 
