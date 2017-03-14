@@ -1,0 +1,13 @@
+Package: FGAPIServerDaemon
+Version: 0.0.6-b
+Section: misc
+Priority: optional
+Architecture: all
+Essential: no
+Installed-Size: 35
+Depends: tomcat7 (>= 7.0.0), openjdk-7-jdk
+Maintainer: Marco Fargetta <marco.fargetta@ct.infn.it>
+Description: Future Gateway backend service
+ The package provide the executor service responsible to 
+ interact with remote e-Infrastructure in the FutureGateway framework
+ small program!

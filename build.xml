@@ -5,14 +5,13 @@
   <!-- Define the properties used by the build -->
   <property environment="env"/>
   <property name="app.name"       value="APIServerDaemon"/>
-  <property name="app.libs"       value="${basedir}/web/WEB-INF/lib"/>
   <property name="app.baselibs"   value="${basedir}/lib"/>
-  <property name="appserver.home" value="${env.CATALINA_HOME}" />
   <property name="work.home"      value="${basedir}/work"/>
   <property name="dist.home"      value="${basedir}/dist"/>
   <property name="src.home"       value="${basedir}/src"/>
   <property name="web.home"       value="${basedir}/web"/>
   <property name="test.home"      value="${basedir}/src/java/test"/>
+  <property name="deb.home"      value="${basedir}/package/ubuntu"/>
 
   <target name="help">
     <echo>You can use the following targets:</echo>
@@ -22,6 +21,7 @@
     <echo>  clean   : Deletes work directories</echo>
     <echo>  compile : Compiles servlets into class files</echo>
     <echo>  dist    : Packages artifacts into a deployable WAR</echo>
+    <echo>  deb     : Create Ubuntu package. It works only on Ubuntu platform</echo>
     <echo></echo>
     <echo>For example, to clean, compile, and package all at once, run:</echo>
     <echo>prompt> ant all </echo>
@@ -29,16 +29,6 @@
 
   <!-- Define the CLASSPATH -->
   <path id="compile.classpath">
-    <fileset dir="${appserver.home}/bin">
-      <include name="*.jar"/>
-    </fileset>
-    <pathelement location="${appserver.home}/lib"/>
-    <fileset dir="${appserver.home}/lib">
-      <include name="*.jar"/>
-    </fileset>
-    <fileset dir="${app.libs}">
-      <include name="*.jar"/>
-    </fileset>
     <fileset dir="${app.baselibs}">
       <include name="*.jar"/>
     </fileset>
@@ -56,6 +46,12 @@
 
   <target name="check" depends="resolve"
           description="Codestyle check with checkstyle">
+    <get src="https://github.com/csgf/grid-and-cloud-engine/releases/download/1.5.12-fg/grid-and-cloud-engine-threadpool-1.5.12-fg.jar"
+         dest="lib"
+    />
+    <get src="https://github.com/csgf/grid-and-cloud-engine/releases/download/1.5.12-fg/grid-and-cloud-engine_M-1.5.12-fg.jar"
+         dest="lib"
+    />
       <taskdef resource="com/puppycrawl/tools/checkstyle/ant/checkstyle-ant-task.properties">
           <classpath refid="compile.classpath"/>
       </taskdef>
@@ -71,7 +67,6 @@
     <mkdir  dir="${dist.home}"/>
     <mkdir  dir="${work.home}/WEB-INF/classes"/>
     <mkdir  dir="${app.baselibs}"/>
-    <mkdir  dir="${app.libs}"/>
     <mkdir  dir="${test.home}/classes"/>
     <!-- Copy static HTML and JSP files to work dir -->
     <copy todir="${work.home}">
@@ -93,6 +88,22 @@
 
   </target>
 
+  <target name="deb" depends="check, compile">
+    <mkdir  dir="${deb.home}/var/lib/tomcat7/webapps/APIServerDaemon"/>
+    <copy todir="${deb.home}/var/lib/tomcat7/webapps/APIServerDaemon">
+      <fileset dir="${work.home}" />
+    </copy>
+    <copy todir="${deb.home}/var/lib/tomcat7/webapps/APIServerDaemon/WEB-INF/lib">
+      <fileset dir="${app.baselibs}">
+        <exclude name="javax.servlet*.java"/>
+      </fileset>
+    </copy>
+    <exec executable="dpkg-deb" failonerror="true">
+      <arg value="--build"/>
+      <arg value="${deb.home}"/>
+      <arg value="${dist.home}"/>
+    </exec>
+  </target>
 
   <target name="dist" depends="compile"
           description="Create WAR file for binary distribution">
@@ -109,7 +120,7 @@
   <!-- ivy -->
   <target name="resolve" description="retrieve dependencies with ivy" depends="init-ivy">
     	<ivy:settings file="ivysettings.xml" />
-        <ivy:retrieve />    	
+        <ivy:retrieve />
     </target>
 
   <property name="ivy.install.version" value="2.1.0-rc2" />
