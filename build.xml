@@ -5,6 +5,7 @@
   <!-- Define the properties used by the build -->
   <property environment="env"/>
   <property name="app.name"       value="APIServerDaemon"/>
+  <property name="app.libs"       value="${basedir}/web/WEB-INF/lib"/>
   <property name="app.baselibs"   value="${basedir}/lib"/>
   <property name="work.home"      value="${basedir}/work"/>
   <property name="dist.home"      value="${basedir}/dist"/>
@@ -30,6 +31,9 @@
   <!-- Define the CLASSPATH -->
   <path id="compile.classpath">
     <fileset dir="${app.baselibs}">
+      <include name="*.jar"/>
+    </fileset>
+    <fileset dir="${app.libs}">
       <include name="*.jar"/>
     </fileset>
   </path>
@@ -67,6 +71,7 @@
     <mkdir  dir="${dist.home}"/>
     <mkdir  dir="${work.home}/WEB-INF/classes"/>
     <mkdir  dir="${app.baselibs}"/>
+    <mkdir  dir="${app.libs}"/>
     <mkdir  dir="${test.home}/classes"/>
     <!-- Copy static HTML and JSP files to work dir -->
     <copy todir="${work.home}">
@@ -113,9 +118,6 @@
     <jar jarfile="${dist.home}/${app.name}.war"
          basedir="${work.home}"/>
   </target>
-
-
-
 
   <!-- ivy -->
   <target name="resolve" description="retrieve dependencies with ivy" depends="init-ivy">
