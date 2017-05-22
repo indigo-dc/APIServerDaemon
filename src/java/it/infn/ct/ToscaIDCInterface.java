@@ -815,10 +815,17 @@ public final void mkOutputDir() {
                 tiiDB.getToken(toscaCommand).split(",");
         String tToken = taskTokenSubject[0];
         String tSubject = taskTokenSubject[1];
+        LOG.debug("Last token: " + tToken + "'" + LS
+                + "Subject   : " + tSubject + "'");
         if (tSubject.length() > 0) {
             // Token having a subject require a fresh token from PTV
             tToken = getPTVToken(tSubject);
             LOG.debug("PTV Token is: '" + tToken + "'");
+        }
+        if (tToken.length() == 0) {
+            // Return an empty token if not received form PTV
+            LOG.error("No token is available from PTV");
+            return "";
         }
         LOG.debug("tosca Token: '" + tToken + "'");
         String toscaDeploymentInfo = getToscaDeployment(tUUID, tToken);
@@ -990,7 +997,6 @@ public final void mkOutputDir() {
                     (HttpURLConnection) ptvGetTokenURL.openConnection();
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);
-            conn.setRequestProperty("Content-Type", "application/json");
             conn.setRequestProperty("charset", "utf-8");
             conn.setRequestProperty("Authorization",
                                     "Basic " + encoding);
