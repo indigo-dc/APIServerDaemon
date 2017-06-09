@@ -241,10 +241,24 @@ public class GridEngineInterfaceDB {
         try {
             String sql;
 
+            // Lock AGI table
+            sql = "lock tables ActiveGridInteractions write;";
+            statement = connect.createStatement();
+            statement.execute(sql);
+
             sql = "delete from ActiveGridInteractions" + LS + "where id = ?;";
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(1, agiId);
-            resultSet = preparedStatement.executeQuery();
+            preparedStatement.execute();
+            preparedStatement.close();
+            preparedStatement = null;
+
+            // Unlock AGI table
+            sql = "unlock tables;";
+            statement.execute(sql);
+
+            LOG.debug("Successfully deleted entry in AGI table "
+                    + "having agi_id: '" + agiId + "'");
         } catch (SQLException e) {
             LOG.fatal(e.toString());
         } finally {
