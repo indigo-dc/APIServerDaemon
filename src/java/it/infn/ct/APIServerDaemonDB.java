@@ -342,7 +342,8 @@ public class APIServerDaemonDB {
                 + "                   ,status = ?" + LS
                 + "                   ,target_status = ?" + LS
                 + "                   ,last_change = now()" + LS
-                + "where task_id=?" + LS + "  and action=?";
+                + "where task_id=?" + LS
+                + "  and action=?";
             int paramNum = 1;
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(paramNum++, command.getTargetId());
@@ -591,10 +592,12 @@ public class APIServerDaemonDB {
                 APIServerDaemonCommand asCommand = iterCmds.next();
 
                 sql = "update as_queue set status = 'PROCESSING'" + LS
-                        + "                   ,last_change = now()" + LS
-                        + "where task_id=?";
+                    + "                   ,last_change = now()" + LS
+                    + "where task_id=?" + LS
+                    + "  and action=?";
                 preparedStatement = connect.prepareStatement(sql);
                 preparedStatement.setInt(1, asCommand.getTaskId());
+                preparedStatement.setString(2, asCommand.getAction());
                 preparedStatement.execute();
                 preparedStatement.close();
                 preparedStatement = null;
