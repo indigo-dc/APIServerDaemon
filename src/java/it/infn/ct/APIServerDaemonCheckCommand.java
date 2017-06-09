@@ -137,8 +137,8 @@ public class APIServerDaemonCheckCommand implements Runnable {
         try {
             Process delInfoDir =
                     Runtime.getRuntime().exec("rm -rf " + infoDir);
-
             delInfoDir.waitFor();
+            LOG.debug("Removed successfully infoDIR: '" + infoDir + "'");
         } catch (Exception e) {
             LOG.fatal("Error removing infoDIR: '" + infoDir + "'");
         }

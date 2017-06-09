@@ -966,20 +966,20 @@ public class APIServerDaemonDB {
             String sql;
 
             sql = "insert into runtime_data (task_id,    " + LS
-                    + "                        data_id,    " + LS
-                    + "                        data_name,  " + LS
-                    + "                        data_value, " + LS
-                    + "                        data_desc,  " + LS
-                    + "                        data_proto, " + LS
-                    + "                        data_type,  " + LS
-                    + "                        creation,   " + LS
-                    + "                        last_change)" + LS
-                    + "select ?,(select if(max(data_id) is null," + LS
-                    + "                    1," + LS
-                    + "                    max(data_id)+1)" + LS
-                    + "          from runtime_data rd" + LS
-                    + "          where rd.task_id=?)," + LS
-                    + "      ?,?,?,?,?,now(),now();";
+                + "                          data_id,    " + LS
+                + "                          data_name,  " + LS
+                + "                          data_value, " + LS
+                + "                          data_desc,  " + LS
+                + "                          data_proto, " + LS
+                + "                          data_type,  " + LS
+                + "                          creation,   " + LS
+                + "                          last_change)" + LS
+                + "select ?,(select if(max(data_id) is null," + LS
+                + "                    1," + LS
+                + "                    max(data_id)+1)" + LS
+                + "          from runtime_data rd" + LS
+                + "          where rd.task_id=?)," + LS
+                + "      ?,?,?,?,?,now(),now();";
             preparedStatement = connect.prepareStatement(sql);
             int paramNum = 1;
             preparedStatement.setInt(paramNum++, command.getTaskId());
