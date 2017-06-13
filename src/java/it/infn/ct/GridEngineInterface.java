@@ -698,14 +698,16 @@ public class GridEngineInterface {
 
                     LOG.info("Entering SSH adaptor ...");
                     try {
-                        // Password is not mandatory; if it does not exists
-                        // the GridEngine will use server' keys to attempt
-                        // the ssh connection, thus only the user is needed
+                        // Password is not mandatory; if it does not exist
+                        // or is an empty string or is NULL the GridEngine
+                        // will attempt to use the server' private key to
+                        // to establish the SSH connection. The private key
+                        // have to be placed normallu in the tomcat'
+                        // $CATALINA_HOME/.ssh folder.
                         password = geCredentials.getString("password");
                     } catch (Exception e) {
                         LOG.warn("No password parameter given for task: '"
                                + gedCommand.getTaskId() + "'");
-                        password = "";
                     }
                     try {
                         // Retrieve username and prepare SSH infrastructure
