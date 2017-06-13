@@ -694,7 +694,7 @@ public class GridEngineInterface {
                 // SSH Adaptor
                 case "ssh":
                     String username = null;
-                    String password = null;
+                    String password = "";
 
                     LOG.info("Entering SSH adaptor ...");
                     try {
