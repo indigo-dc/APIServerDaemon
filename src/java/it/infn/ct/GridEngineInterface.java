@@ -693,12 +693,23 @@ public class GridEngineInterface {
 
                 // SSH Adaptor
                 case "ssh":
-                    try {
-                        LOG.info("Entering SSH adaptor ...");
+                    String username = null;
+                    String password = null;
 
-                        // Credential values
-                        String username = geCredentials.getString("username");
-                        String password = geCredentials.getString("password");
+                    LOG.info("Entering SSH adaptor ...");
+                    try {
+                        // Password is not mandatory; if it does not exists
+                        // the GridEngine will use server' keys to attempt
+                        // the ssh connection, thus only the user is needed
+                        password = geCredentials.getString("password");
+                    } catch (Exception e) {
+                        LOG.warn("No password parameter given for task: '"
+                               + gedCommand.getTaskId() + "'");
+                        password = "";
+                    }
+                    try {
+                        // Retrieve username and prepare SSH infrastructure
+                        username = geCredentials.getString("username");
                         String[] sshEndPoint = {resourceManagers};
 
                         infrastructures[0] = new InfrastructureInfo(
