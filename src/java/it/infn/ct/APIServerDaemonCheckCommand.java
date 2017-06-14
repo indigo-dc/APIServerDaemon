@@ -133,12 +133,22 @@ public class APIServerDaemonCheckCommand implements Runnable {
      */
     private void removeInfoDir() {
         String infoDir = asdCommand.getActionInfo();
+        Process delInfoDir;
 
         try {
-            Process delInfoDir =
+            // WARNING - Since Tomcat may operate as tomcat user
+            // and the infoDir belongs to futuregateway user
+            // it will be not possible to remove the top level
+            // folder. Only the files contained in the infoDir
+            // will be removed but tomcat user has to belong to
+            // the futuregateway group.
+            // Allocated directories can be removed by processing
+            // the ASDB tasks table looking for all PURGED task
+            // records
+            delInfoDir =
                     Runtime.getRuntime().exec("rm -rf " + infoDir);
-
             delInfoDir.waitFor();
+            LOG.debug("Removed successfully infoDIR: '" + infoDir + "'");
         } catch (Exception e) {
             LOG.fatal("Error removing infoDIR: '" + infoDir + "'");
         }

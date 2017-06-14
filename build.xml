@@ -73,6 +73,7 @@
     <mkdir  dir="${app.baselibs}"/>
     <mkdir  dir="${app.libs}"/>
     <mkdir  dir="${test.home}/classes"/>
+    <mkdir  dir="${work.home}"/>
     <!-- Copy static HTML and JSP files to work dir -->
     <copy todir="${work.home}">
       <fileset dir="${web.home}"/>

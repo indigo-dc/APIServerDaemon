@@ -342,7 +342,8 @@ public class APIServerDaemonDB {
                 + "                   ,status = ?" + LS
                 + "                   ,target_status = ?" + LS
                 + "                   ,last_change = now()" + LS
-                + "where task_id=?" + LS + "  and action=?";
+                + "where task_id=?" + LS
+                + "  and action=?";
             int paramNum = 1;
             preparedStatement = connect.prepareStatement(sql);
             preparedStatement.setInt(paramNum++, command.getTargetId());
@@ -591,10 +592,12 @@ public class APIServerDaemonDB {
                 APIServerDaemonCommand asCommand = iterCmds.next();
 
                 sql = "update as_queue set status = 'PROCESSING'" + LS
-                        + "                   ,last_change = now()" + LS
-                        + "where task_id=?";
+                    + "                   ,last_change = now()" + LS
+                    + "where task_id=?" + LS
+                    + "  and action=?";
                 preparedStatement = connect.prepareStatement(sql);
                 preparedStatement.setInt(1, asCommand.getTaskId());
+                preparedStatement.setString(2, asCommand.getAction());
                 preparedStatement.execute();
                 preparedStatement.close();
                 preparedStatement = null;
@@ -963,20 +966,20 @@ public class APIServerDaemonDB {
             String sql;
 
             sql = "insert into runtime_data (task_id,    " + LS
-                    + "                        data_id,    " + LS
-                    + "                        data_name,  " + LS
-                    + "                        data_value, " + LS
-                    + "                        data_desc,  " + LS
-                    + "                        data_proto, " + LS
-                    + "                        data_type,  " + LS
-                    + "                        creation,   " + LS
-                    + "                        last_change)" + LS
-                    + "select ?,(select if(max(data_id) is null," + LS
-                    + "                    1," + LS
-                    + "                    max(data_id)+1)" + LS
-                    + "          from runtime_data rd" + LS
-                    + "          where rd.task_id=?)," + LS
-                    + "      ?,?,?,?,?,now(),now();";
+                + "                          data_id,    " + LS
+                + "                          data_name,  " + LS
+                + "                          data_value, " + LS
+                + "                          data_desc,  " + LS
+                + "                          data_proto, " + LS
+                + "                          data_type,  " + LS
+                + "                          creation,   " + LS
+                + "                          last_change)" + LS
+                + "select ?,(select if(max(data_id) is null," + LS
+                + "                    1," + LS
+                + "                    max(data_id)+1)" + LS
+                + "          from runtime_data rd" + LS
+                + "          where rd.task_id=?)," + LS
+                + "      ?,?,?,?,?,now(),now();";
             preparedStatement = connect.prepareStatement(sql);
             int paramNum = 1;
             preparedStatement.setInt(paramNum++, command.getTaskId());
