@@ -672,8 +672,8 @@ public final void mkOutputDir() {
                     + conn.getResponseMessage());
             if (conn.getResponseCode() == HTTP_201) {
                 BufferedReader br =
-                        new BufferedReader(
-                                new InputStreamReader(conn.getInputStream()));
+                    new BufferedReader(
+                        new InputStreamReader(conn.getInputStream()));
                 orchestratorResult = new StringBuilder();
                 String ln;
                 while ((ln = br.readLine()) != null) {
@@ -684,8 +684,15 @@ public final void mkOutputDir() {
                 tUUID = getDocumentValue(orchestratorDoc, "uuid");
                 LOG.debug("Created resource has UUID: '" + tUUID + "'");
             } else {
-                LOG.warn("Orchestrator return code is: "
-                        + conn.getResponseCode());
+                BufferedReader br =
+                    new BufferedReader(
+                        new InputStreamReader(conn.getErrorStream()));
+                orchestratorResult = new StringBuilder();
+                String ln;
+                while ((ln = br.readLine()) != null) {
+                    orchestratorResult.append(ln);
+                }
+                LOG.debug("Orchestrator result: " + orchestratorResult);
             }
         } catch (IOException ex) {
             LOG.error("Connection error with the service at "
