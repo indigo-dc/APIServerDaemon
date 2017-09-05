@@ -537,7 +537,7 @@ public final void mkOutputDir() {
                 if ((toscaUUID != null) && (toscaUUID.length() > 0)) {
                     tiiDB.updateToscaId(toscaTargetId, toscaUUID);
                 } else {
-                    submitStatus = "ABORTED";
+                    submitStatus = "";
                 }
 
                 toscaCommand.setTargetStatus(submitStatus);
@@ -550,7 +550,7 @@ public final void mkOutputDir() {
                         + "table for submission: '" + toscaUUID + "'");
 
                 if (toscaUUID.length() == 0) {
-                    submitStatus = "ABORTED";
+                    submitStatus = "";
                 }
 
                 toscaCommand.setTargetStatus(submitStatus);
@@ -832,6 +832,10 @@ public final void mkOutputDir() {
         if (tToken.length() == 0) {
             // Return an empty token if not received form PTV
             LOG.error("No token is available from PTV");
+            return "";
+        }
+        if (tUUID == null || tUUID.length() == 0) {
+            LOG.debug("No status for empty resource id");
             return "";
         }
         LOG.debug("tosca Token: '" + tToken + "'");
