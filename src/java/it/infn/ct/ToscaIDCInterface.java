@@ -230,7 +230,7 @@ public class ToscaIDCInterface {
         if (tiiDB == null) {
             LOG.error("Unable to instantiate ToscaIDCInterface DB class");
         } else {
-            LOG.debug("Syccessfully instantiate ToscaIDCInterface DB class");
+            LOG.debug("Successfully instantiate ToscaIDCInterface DB class");
         }
     }
 
@@ -947,9 +947,12 @@ public final void mkOutputDir() {
             }
             // update target status
             tiiDB.updateToscaStatus(tiiDB.getTaskIdByUUID(uuid), "RELEASED");
+            LOG.debug("Resource having UUID: '"
+                    + uuid + "' successfully released");
         } catch (IOException ex) {
-            LOG.error("Connection error with the service at "
-                    + toscaEndPoint.toString());
+            LOG.error("Error attempting to release resource having UUID: '"
+                    + uuid + "' to the TOSCA endpoint: '"
+                    + toscaEndPoint.toString() + "'");
             LOG.error(ex);
         }
     }
