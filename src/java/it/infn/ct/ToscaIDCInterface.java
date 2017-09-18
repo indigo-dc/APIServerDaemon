@@ -906,6 +906,8 @@ public final void mkOutputDir() {
             }
         } else if (status.equals("CREATE_IN_PROGRESS")) {
             status = "RUNNING";
+        } else if (status.equals("DELETE_IN_PROGRESS")) {
+            status = "DONE";
         } else {
             // status = "UNKNOWN";
             LOG.error("Unhespected ToscaIDC status: '" + status + "'");
@@ -918,21 +920,55 @@ public final void mkOutputDir() {
         return status;
     }
 
+
     /**
      * Delete deployment having the given UUID.
      *
-     * @param uuid - Tosca orchestrator UUID
      */
-    protected final void deleteToscaDeployment(final String uuid) {
+    protected final void deleteToscaDeployment() {
+        LOG.debug("Entering IDC deleteDeployment ...");
+
+        // Load command parameters from <task_id>.json file
+        loadJSONTask();
+
+        try {
+            toscaEndPoint = new URL(tiiDB.toscaEndPoint(toscaCommand));
+        } catch (MalformedURLException ex) {
+            LOG.error("Unable to get endpoint from command: '"
+                    + toscaCommand + "'");
+        }
+        LOG.debug("tosca endpoint: '" + toscaEndPoint + "'");
+        String tUUID = tiiDB.getToscaId(toscaCommand);
+        LOG.debug("tosca UUID: '" + tUUID + "'");
+        String[] taskTokenSubject =
+                tiiDB.getToken(toscaCommand).split(",");
+        String tToken = taskTokenSubject[0];
+        String tSubject = taskTokenSubject[1];
+        LOG.debug("Last token: " + tToken + "'" + LS
+                + "Subject   : " + tSubject + "'");
+        if (tSubject.length() > 0) {
+            // Token having a subject require a fresh token from PTV
+            tToken = getPTVToken(tSubject);
+            LOG.debug("PTV Token is: '" + tToken + "'");
+        }
+        if (tToken.length() == 0) {
+            // Return an empty token if not received form PTV
+            LOG.error("No token is available from PTV");
+            return;
+        }
+        LOG.debug("tosca Token: '" + tToken + "'");
+        //String toscaDeploymentInfo = getToscaDeployment(tUUID, tToken);
+        //LOG.debug("tosca deployment info: '" + toscaDeploymentInfo + "'");
+
         StringBuilder deployment = new StringBuilder();
         HttpURLConnection conn;
+        LOG.debug("Deleting deployment: '" + tUUID + "'");
         try {
             URL deploymentEndpoint =
-                    new URL(toscaEndPoint.toString() + "/" + uuid);
+                    new URL(toscaEndPoint.toString() + "/" + tUUID);
             conn = (HttpURLConnection) deploymentEndpoint.openConnection();
             conn.setRequestMethod("DELETE");
-            conn.setRequestProperty("Authorization", "Bearer " + toscaToken);
-            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + tToken);
             conn.setRequestProperty("charset", "utf-8");
             LOG.debug("Orchestrator status code: "
                     + conn.getResponseCode());
@@ -940,21 +976,31 @@ public final void mkOutputDir() {
                     + conn.getResponseMessage());
             if (conn.getResponseCode() == HTTP_204) {
                 LOG.debug("Successfully removed resource: '"
-                        + uuid + "'");
+                        + tUUID + "'");
             } else {
                 LOG.error("Unable to remove resource: '"
-                        + uuid + "'");
+                        + tUUID + "'");
             }
             // update target status
-            tiiDB.updateToscaStatus(tiiDB.getTaskIdByUUID(uuid), "RELEASED");
+            tiiDB.updateToscaStatus(tiiDB.getTaskIdByUUID(tUUID), "RELEASED");
             LOG.debug("Resource having UUID: '"
-                    + uuid + "' successfully released");
-        } catch (IOException ex) {
+                    + tUUID + "' successfully released");
+            // Get SUBMIT command and change its status to CANCELLED
+            // while the STATUSCH record set to DONE
+            APIServerDaemonCommand subCmd = toscaCommand.getSubmitCommand();
+            subCmd.setStatus("CANCELLED");
+            subCmd.update();
+            toscaCommand.setStatus("DONE");
+            toscaCommand.update();
+        } catch (Exception ex) {
             LOG.error("Error attempting to release resource having UUID: '"
-                    + uuid + "' to the TOSCA endpoint: '"
+                    + tUUID + "' to the TOSCA endpoint: '"
                     + toscaEndPoint.toString() + "'");
+            toscaCommand.setStatus("ABORTED");
+            toscaCommand.update();
             LOG.error(ex);
         }
+        LOG.debug("Leaving IDC deleteDeployment ...");
     }
 
     /**
