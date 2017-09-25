@@ -172,9 +172,13 @@ public class ToscaIDCInterface {
      */
     private String[] files = null;
     /**
-     * ToscaIDC properties ptvEndPoint.
+     * ToscaIDC properties apiFrontEnd.
      */
-    private String ptvEndPoint = "";
+    private String apiFrontEnd = "";
+    /**
+     * ToscaIDC properties ptvTokenSrv.
+     */
+    private String ptvTokenSrv = "";
     /**
      * ToscaIDC properties ptvUser.
      */
@@ -184,13 +188,9 @@ public class ToscaIDCInterface {
      */
     private String ptvPass = "";
     /**
-     * PTV get-token endpoint.
+     * ToscaIDC callback URL.
      */
-    private String ptvGetToken = "get-token";
-    /**
-     * PTV check-token endpoint.
-     */
-    private String ptvCheckToken = "check-token";
+    private String callbackURL = "";
 
     /**
      * Empty constructor for ToscaIDCInterface.
@@ -273,15 +273,18 @@ public final void getToscaIDCProperties() throws IOException {
         }
 
         // ToscaIDC may require PTV settings
-        ptvEndPoint = prop.getProperty("fgapisrv_ptvendpoint");
+        apiFrontEnd = prop.getProperty("fgapisrv_frontend");
+        ptvTokenSrv = prop.getProperty("fgapisrv_ptvtokensrv");
         ptvUser     = prop.getProperty("fgapisrv_ptvuser");
         ptvPass     = prop.getProperty("fgapisrv_ptvpass");
 
-        LOG.debug("PTV Settings - Endpoint: '" + ptvEndPoint
-                + "' User: '" + ptvUser
-                + "' Password: '" + ptvPass + "'");
+        LOG.debug("API Front-end endpoint: '" + apiFrontEnd + "'");
+        LOG.debug("PTV Settings: "
+                + "Token service: '" + ptvTokenSrv + "'"
+                + "User: '" + ptvUser + "'"
+                + "Password: '" + ptvPass + "'");
     } catch (Exception e) {
-            LOG.error("Unable to load PTV settings: '"
+        LOG.error("Unable to load ToscaIDC configuration settings: '"
                     + TOSCAIDC_PROPFILE + "'");
     } finally {
             inputStream.close();
@@ -605,6 +608,7 @@ public final void mkOutputDir() {
         String tUUID = "";
         String[] toscaParams = toscaParameters.split("&");
         String tParams = "";
+        String tCallback = "";
         for (int i = 0; i < toscaParams.length; i++) {
             String[] paramArgs = toscaParams[i].split("=");
             if (paramArgs[0].trim().equals("params")) {
@@ -633,18 +637,35 @@ public final void mkOutputDir() {
                 LOG.debug("Parameters json file '"
                         + toscaParametersJson + "' successfully parsed");
                 break;
+            } else if (paramArgs[0].trim().equals("callback")) {
+                String callbackFlag = paramArgs[1].trim();
+                if (callbackFlag.equalsIgnoreCase("yes")) {
+                    callbackURL = apiFrontEnd
+                                + "/callback/" + toscaCommand.getTaskId();
+                    LOG.debug("Setting up callback to: '"
+                              + callbackURL + "'");
+                } else {
+                    LOG.warn("Not using orchestrator callback");
+                }
+            } else {
+                LOG.warn("Unknow paremeter '" + paramArgs[0].trim() + "'");
             }
         }
         if (toscParametersValues.length() > 0) {
             tParams = "\"parameters\": " + toscParametersValues + ", ";
         }
-        postData.append("{ " + tParams + "\"template\": \"");
+        if (!callbackURL.equals("")) {
+            tCallback = "\"callback\": " + callbackURL + ", ";
+        }
+        postData.append("{ " + tCallback + tParams + "\"template\": \"");
         String toscaTemplateContent = "";
         LOG.debug("Escaping toscaTemplate file '" + toscaTemplate + "'");
         try {
             toscaTemplateContent =
                     new String(Files.readAllBytes(
-                            Paths.get(toscaTemplate))).replace("\n", "\\n");
+                            Paths.get(toscaTemplate)))
+                                .replace("\n", "\\n")
+                                .replace("\"", "\\\"");
         } catch (IOException ex) {
             LOG.error("Template '" + toscaTemplate + "'is not readable");
             LOG.error(ex);
@@ -798,6 +819,29 @@ public final void mkOutputDir() {
     }
 
     /**
+     * True if task has the callback mechanism enabled
+     * loadJSONTask must be called before.
+     *
+     * @return True if callback is enabled
+     */
+    public final boolean isCallbackEnabled() {
+        boolean result = false;
+        if (toscaParameters != null && toscaParameters.length() > 0) {
+            String[] params = toscaParameters.split("&");
+            for (int i = 0; i < params.length; i++) {
+                String[] pfields = params[i].split("=");
+                String pname = pfields[0].trim();
+                String pvalue = pfields[1].trim();
+                if (pname.equals("callback")
+                 && pvalue.equalsIgnoreCase("yes")) {
+                    result = true;
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
      * GetStatus of TOSCA submission.
      *
      * @return Status o TOSCA UUID
@@ -808,6 +852,13 @@ public final void mkOutputDir() {
         // Load command parameters from <task_id>.json file
         loadJSONTask();
 
+        // Skip orchestrator query for callback enabled tasks
+        if (isCallbackEnabled()) {
+            LOG.debug("Task '"
+                     + toscaCommand.getTaskId()
+                     + "' has callback mechanism enabled; skip getstatus");
+            return "";
+        }
         String status = toscaCommand.getTargetStatus();
         try {
             toscaEndPoint = new URL(tiiDB.toscaEndPoint(toscaCommand));
@@ -1049,7 +1100,7 @@ public final void mkOutputDir() {
 
         // Contact PTV with Basic authentication
         try {
-            ptvGetTokenURL = new URL(ptvEndPoint + "/" + ptvGetToken);
+            ptvGetTokenURL = new URL(ptvTokenSrv);
             String encoding =
                     Base64.encodeBase64String(
                             (ptvUser + ":" + ptvPass).getBytes());
