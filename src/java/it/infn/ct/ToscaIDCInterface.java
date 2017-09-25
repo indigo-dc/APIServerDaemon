@@ -636,7 +636,6 @@ public final void mkOutputDir() {
                 }
                 LOG.debug("Parameters json file '"
                         + toscaParametersJson + "' successfully parsed");
-                break;
             } else if (paramArgs[0].trim().equals("callback")) {
                 String callbackFlag = paramArgs[1].trim();
                 if (callbackFlag.equalsIgnoreCase("yes")) {
@@ -654,7 +653,7 @@ public final void mkOutputDir() {
         if (toscParametersValues.length() > 0) {
             tParams = "\"parameters\": " + toscParametersValues + ", ";
         }
-        if (!callbackURL.equals("")) {
+        if (callbackURL.length() > 0) {
             tCallback = "\"callback\": " + callbackURL + ", ";
         }
         postData.append("{ " + tCallback + tParams + "\"template\": \"");
