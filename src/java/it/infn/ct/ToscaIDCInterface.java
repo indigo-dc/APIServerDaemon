@@ -841,6 +841,39 @@ public final void mkOutputDir() {
     }
 
     /**
+     * Get status of TOSCA from callback file.
+     *
+     * @param callbackFile Callback file name
+     * @return Status of TOSCA from callback file
+     */
+    public final String getCallbackStatus(final String callbackFile) {
+        String callbackStatus = "";
+        org.json.JSONObject callbackInfo = null;
+        try {
+            // Processing the JSON file
+            LOG.debug("Reading callback filename: '" + callbackFile + "'");
+            InputStream is = new FileInputStream(callbackFile);
+            String jsonTxt = IOUtils.toString(is);
+            callbackInfo =
+                (org.json.JSONObject) new org.json.JSONObject(jsonTxt);
+            LOG.debug("Loaded callback info:\n" + LS + callbackInfo);
+            // Extracting status
+            callbackStatus = callbackInfo.getString("status");
+        } catch (IOException ex) {
+            LOG.debug("Impossible to read callback file: '"
+                    + callbackFile + "'");
+        } catch (org.json.JSONException ex) {
+            LOG.debug("Impossible to parse callback file: '"
+                    + callbackFile + "'");
+        } catch (Exception ex) {
+            LOG.debug("Exception reading callback file: '"
+                    + callbackFile + "'");
+            LOG.debug("Exception: " + ex.toString());
+        }
+        return callbackStatus;
+    }
+
+    /**
      * GetStatus of TOSCA submission.
      *
      * @return Status o TOSCA UUID
@@ -853,10 +886,16 @@ public final void mkOutputDir() {
 
         // Skip orchestrator query for callback enabled tasks
         if (isCallbackEnabled()) {
+            String callbackFile = toscaCommand.getActionInfo()
+                                + FS + "callback."
+                                + toscaCommand.getTaskId();
             LOG.debug("Task '"
                      + toscaCommand.getTaskId()
-                     + "' has callback mechanism enabled; skip getstatus");
-            return "";
+                     + "' has callback mechanism enabled; "
+                     + "trying to get callback info from: '"
+                     + callbackFile
+                     + "' file");
+            return getCallbackStatus(callbackFile);
         }
         String status = toscaCommand.getTargetStatus();
         try {
