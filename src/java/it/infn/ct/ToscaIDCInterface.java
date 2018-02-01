@@ -172,9 +172,13 @@ public class ToscaIDCInterface {
      */
     private String[] files = null;
     /**
-     * ToscaIDC properties ptvEndPoint.
+     * ToscaIDC properties apiFrontEnd.
      */
-    private String ptvEndPoint = "";
+    private String apiFrontEnd = "";
+    /**
+     * ToscaIDC properties ptvTokenSrv.
+     */
+    private String ptvTokenSrv = "";
     /**
      * ToscaIDC properties ptvUser.
      */
@@ -184,13 +188,9 @@ public class ToscaIDCInterface {
      */
     private String ptvPass = "";
     /**
-     * PTV get-token endpoint.
+     * ToscaIDC callback URL.
      */
-    private String ptvGetToken = "get-token";
-    /**
-     * PTV check-token endpoint.
-     */
-    private String ptvCheckToken = "check-token";
+    private String callbackURL = "";
 
     /**
      * Empty constructor for ToscaIDCInterface.
@@ -230,7 +230,7 @@ public class ToscaIDCInterface {
         if (tiiDB == null) {
             LOG.error("Unable to instantiate ToscaIDCInterface DB class");
         } else {
-            LOG.debug("Syccessfully instantiate ToscaIDCInterface DB class");
+            LOG.debug("Successfully instantiate ToscaIDCInterface DB class");
         }
     }
 
@@ -273,15 +273,18 @@ public final void getToscaIDCProperties() throws IOException {
         }
 
         // ToscaIDC may require PTV settings
-        ptvEndPoint = prop.getProperty("fgapisrv_ptvendpoint");
+        apiFrontEnd = prop.getProperty("fgapisrv_frontend");
+        ptvTokenSrv = prop.getProperty("fgapisrv_ptvtokensrv");
         ptvUser     = prop.getProperty("fgapisrv_ptvuser");
         ptvPass     = prop.getProperty("fgapisrv_ptvpass");
 
-        LOG.debug("PTV Settings - Endpoint: '" + ptvEndPoint
-                + "' User: '" + ptvUser
-                + "' Password: '" + ptvPass + "'");
+        LOG.debug("API Front-end endpoint: '" + apiFrontEnd + "'");
+        LOG.debug("PTV Settings: "
+                + "Token service: '" + ptvTokenSrv + "'"
+                + "User: '" + ptvUser + "'"
+                + "Password: '" + ptvPass + "'");
     } catch (Exception e) {
-            LOG.error("Unable to load PTV settings: '"
+        LOG.error("Unable to load ToscaIDC configuration settings: '"
                     + TOSCAIDC_PROPFILE + "'");
     } finally {
             inputStream.close();
@@ -537,7 +540,7 @@ public final void mkOutputDir() {
                 if ((toscaUUID != null) && (toscaUUID.length() > 0)) {
                     tiiDB.updateToscaId(toscaTargetId, toscaUUID);
                 } else {
-                    submitStatus = "ABORTED";
+                    submitStatus = "";
                 }
 
                 toscaCommand.setTargetStatus(submitStatus);
@@ -550,7 +553,7 @@ public final void mkOutputDir() {
                         + "table for submission: '" + toscaUUID + "'");
 
                 if (toscaUUID.length() == 0) {
-                    submitStatus = "ABORTED";
+                    submitStatus = "";
                 }
 
                 toscaCommand.setTargetStatus(submitStatus);
@@ -605,6 +608,7 @@ public final void mkOutputDir() {
         String tUUID = "";
         String[] toscaParams = toscaParameters.split("&");
         String tParams = "";
+        String tCallback = "";
         for (int i = 0; i < toscaParams.length; i++) {
             String[] paramArgs = toscaParams[i].split("=");
             if (paramArgs[0].trim().equals("params")) {
@@ -632,19 +636,35 @@ public final void mkOutputDir() {
                 }
                 LOG.debug("Parameters json file '"
                         + toscaParametersJson + "' successfully parsed");
-                break;
+            } else if (paramArgs[0].trim().equals("callback")) {
+                String callbackFlag = paramArgs[1].trim();
+                if (callbackFlag.equalsIgnoreCase("yes")) {
+                    callbackURL = apiFrontEnd
+                                + "/callback/" + toscaCommand.getTaskId();
+                    LOG.debug("Setting up callback to: '"
+                              + callbackURL + "'");
+                } else {
+                    LOG.warn("Not using orchestrator callback");
+                }
+            } else {
+                LOG.warn("Unknow paremeter '" + paramArgs[0].trim() + "'");
             }
         }
         if (toscParametersValues.length() > 0) {
             tParams = "\"parameters\": " + toscParametersValues + ", ";
         }
-        postData.append("{ " + tParams + "\"template\": \"");
+        if (callbackURL.length() > 0) {
+            tCallback = "\"callback\": " + callbackURL + ", ";
+        }
+        postData.append("{ " + tCallback + tParams + "\"template\": \"");
         String toscaTemplateContent = "";
         LOG.debug("Escaping toscaTemplate file '" + toscaTemplate + "'");
         try {
             toscaTemplateContent =
                     new String(Files.readAllBytes(
-                            Paths.get(toscaTemplate))).replace("\n", "\\n");
+                            Paths.get(toscaTemplate)))
+                                .replace("\n", "\\n")
+                                .replace("\"", "\\\"");
         } catch (IOException ex) {
             LOG.error("Template '" + toscaTemplate + "'is not readable");
             LOG.error(ex);
@@ -672,8 +692,8 @@ public final void mkOutputDir() {
                     + conn.getResponseMessage());
             if (conn.getResponseCode() == HTTP_201) {
                 BufferedReader br =
-                        new BufferedReader(
-                                new InputStreamReader(conn.getInputStream()));
+                    new BufferedReader(
+                        new InputStreamReader(conn.getInputStream()));
                 orchestratorResult = new StringBuilder();
                 String ln;
                 while ((ln = br.readLine()) != null) {
@@ -684,8 +704,15 @@ public final void mkOutputDir() {
                 tUUID = getDocumentValue(orchestratorDoc, "uuid");
                 LOG.debug("Created resource has UUID: '" + tUUID + "'");
             } else {
-                LOG.warn("Orchestrator return code is: "
-                        + conn.getResponseCode());
+                BufferedReader br =
+                    new BufferedReader(
+                        new InputStreamReader(conn.getErrorStream()));
+                orchestratorResult = new StringBuilder();
+                String ln;
+                while ((ln = br.readLine()) != null) {
+                    orchestratorResult.append(ln);
+                }
+                LOG.debug("Orchestrator result: " + orchestratorResult);
             }
         } catch (IOException ex) {
             LOG.error("Connection error with the service at "
@@ -791,6 +818,62 @@ public final void mkOutputDir() {
     }
 
     /**
+     * True if task has the callback mechanism enabled
+     * loadJSONTask must be called before.
+     *
+     * @return True if callback is enabled
+     */
+    public final boolean isCallbackEnabled() {
+        boolean result = false;
+        if (toscaParameters != null && toscaParameters.length() > 0) {
+            String[] params = toscaParameters.split("&");
+            for (int i = 0; i < params.length; i++) {
+                String[] pfields = params[i].split("=");
+                String pname = pfields[0].trim();
+                String pvalue = pfields[1].trim();
+                if (pname.equals("callback")
+                 && pvalue.equalsIgnoreCase("yes")) {
+                    result = true;
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get status of TOSCA from callback file.
+     *
+     * @param callbackFile Callback file name
+     * @return Status of TOSCA from callback file
+     */
+    public final String getCallbackStatus(final String callbackFile) {
+        String callbackStatus = "";
+        org.json.JSONObject callbackInfo = null;
+        try {
+            // Processing the JSON file
+            LOG.debug("Reading callback filename: '" + callbackFile + "'");
+            InputStream is = new FileInputStream(callbackFile);
+            String jsonTxt = IOUtils.toString(is);
+            callbackInfo =
+                (org.json.JSONObject) new org.json.JSONObject(jsonTxt);
+            LOG.debug("Loaded callback info:\n" + LS + callbackInfo);
+            // Extracting status
+            callbackStatus = callbackInfo.getString("status");
+        } catch (IOException ex) {
+            LOG.debug("Impossible to read callback file: '"
+                    + callbackFile + "'");
+        } catch (org.json.JSONException ex) {
+            LOG.debug("Impossible to parse callback file: '"
+                    + callbackFile + "'");
+        } catch (Exception ex) {
+            LOG.debug("Exception reading callback file: '"
+                    + callbackFile + "'");
+            LOG.debug("Exception: " + ex.toString());
+        }
+        return callbackStatus;
+    }
+
+    /**
      * GetStatus of TOSCA submission.
      *
      * @return Status o TOSCA UUID
@@ -801,6 +884,19 @@ public final void mkOutputDir() {
         // Load command parameters from <task_id>.json file
         loadJSONTask();
 
+        // Skip orchestrator query for callback enabled tasks
+        if (isCallbackEnabled()) {
+            String callbackFile = toscaCommand.getActionInfo()
+                                + FS + "callback."
+                                + toscaCommand.getTaskId();
+            LOG.debug("Task '"
+                     + toscaCommand.getTaskId()
+                     + "' has callback mechanism enabled; "
+                     + "trying to get callback info from: '"
+                     + callbackFile
+                     + "' file");
+            return getCallbackStatus(callbackFile);
+        }
         String status = toscaCommand.getTargetStatus();
         try {
             toscaEndPoint = new URL(tiiDB.toscaEndPoint(toscaCommand));
@@ -825,6 +921,10 @@ public final void mkOutputDir() {
         if (tToken.length() == 0) {
             // Return an empty token if not received form PTV
             LOG.error("No token is available from PTV");
+            return "";
+        }
+        if (tUUID == null || tUUID.length() == 0) {
+            LOG.debug("No status for empty resource id");
             return "";
         }
         LOG.debug("tosca Token: '" + tToken + "'");
@@ -895,6 +995,8 @@ public final void mkOutputDir() {
             }
         } else if (status.equals("CREATE_IN_PROGRESS")) {
             status = "RUNNING";
+        } else if (status.equals("DELETE_IN_PROGRESS")) {
+            status = "DONE";
         } else {
             // status = "UNKNOWN";
             LOG.error("Unhespected ToscaIDC status: '" + status + "'");
@@ -907,21 +1009,55 @@ public final void mkOutputDir() {
         return status;
     }
 
+
     /**
      * Delete deployment having the given UUID.
      *
-     * @param uuid - Tosca orchestrator UUID
      */
-    protected final void deleteToscaDeployment(final String uuid) {
+    protected final void deleteToscaDeployment() {
+        LOG.debug("Entering IDC deleteDeployment ...");
+
+        // Load command parameters from <task_id>.json file
+        loadJSONTask();
+
+        try {
+            toscaEndPoint = new URL(tiiDB.toscaEndPoint(toscaCommand));
+        } catch (MalformedURLException ex) {
+            LOG.error("Unable to get endpoint from command: '"
+                    + toscaCommand + "'");
+        }
+        LOG.debug("tosca endpoint: '" + toscaEndPoint + "'");
+        String tUUID = tiiDB.getToscaId(toscaCommand);
+        LOG.debug("tosca UUID: '" + tUUID + "'");
+        String[] taskTokenSubject =
+                tiiDB.getToken(toscaCommand).split(",");
+        String tToken = taskTokenSubject[0];
+        String tSubject = taskTokenSubject[1];
+        LOG.debug("Last token: " + tToken + "'" + LS
+                + "Subject   : " + tSubject + "'");
+        if (tSubject.length() > 0) {
+            // Token having a subject require a fresh token from PTV
+            tToken = getPTVToken(tSubject);
+            LOG.debug("PTV Token is: '" + tToken + "'");
+        }
+        if (tToken.length() == 0) {
+            // Return an empty token if not received form PTV
+            LOG.error("No token is available from PTV");
+            return;
+        }
+        LOG.debug("tosca Token: '" + tToken + "'");
+        //String toscaDeploymentInfo = getToscaDeployment(tUUID, tToken);
+        //LOG.debug("tosca deployment info: '" + toscaDeploymentInfo + "'");
+
         StringBuilder deployment = new StringBuilder();
         HttpURLConnection conn;
+        LOG.debug("Deleting deployment: '" + tUUID + "'");
         try {
             URL deploymentEndpoint =
-                    new URL(toscaEndPoint.toString() + "/" + uuid);
+                    new URL(toscaEndPoint.toString() + "/" + tUUID);
             conn = (HttpURLConnection) deploymentEndpoint.openConnection();
             conn.setRequestMethod("DELETE");
-            conn.setRequestProperty("Authorization", "Bearer " + toscaToken);
-            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + tToken);
             conn.setRequestProperty("charset", "utf-8");
             LOG.debug("Orchestrator status code: "
                     + conn.getResponseCode());
@@ -929,18 +1065,31 @@ public final void mkOutputDir() {
                     + conn.getResponseMessage());
             if (conn.getResponseCode() == HTTP_204) {
                 LOG.debug("Successfully removed resource: '"
-                        + uuid + "'");
+                        + tUUID + "'");
             } else {
                 LOG.error("Unable to remove resource: '"
-                        + uuid + "'");
+                        + tUUID + "'");
             }
             // update target status
-            tiiDB.updateToscaStatus(tiiDB.getTaskIdByUUID(uuid), "RELEASED");
-        } catch (IOException ex) {
-            LOG.error("Connection error with the service at "
-                    + toscaEndPoint.toString());
+            tiiDB.updateToscaStatus(tiiDB.getTaskIdByUUID(tUUID), "RELEASED");
+            LOG.debug("Resource having UUID: '"
+                    + tUUID + "' successfully released");
+            // Get SUBMIT command and change its status to CANCELLED
+            // while the STATUSCH record set to DONE
+            APIServerDaemonCommand subCmd = toscaCommand.getSubmitCommand();
+            subCmd.setStatus("CANCELLED");
+            subCmd.update();
+            toscaCommand.setStatus("DONE");
+            toscaCommand.update();
+        } catch (Exception ex) {
+            LOG.error("Error attempting to release resource having UUID: '"
+                    + tUUID + "' to the TOSCA endpoint: '"
+                    + toscaEndPoint.toString() + "'");
+            toscaCommand.setStatus("ABORTED");
+            toscaCommand.update();
             LOG.error(ex);
         }
+        LOG.debug("Leaving IDC deleteDeployment ...");
     }
 
     /**
@@ -989,7 +1138,7 @@ public final void mkOutputDir() {
 
         // Contact PTV with Basic authentication
         try {
-            ptvGetTokenURL = new URL(ptvEndPoint + "/" + ptvGetToken);
+            ptvGetTokenURL = new URL(ptvTokenSrv);
             String encoding =
                     Base64.encodeBase64String(
                             (ptvUser + ":" + ptvPass).getBytes());

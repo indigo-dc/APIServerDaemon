@@ -421,7 +421,7 @@ public class ToscaIDCInterfaceDB {
     /**
      * Get toscaEndPoint.
      * Return the TOSCA URL endpoint related to the given task_id. Since
-     * mode task ids may exists on the tosca_idc table, it will be returned
+     * more task ids may exists on the tosca_idc table, it will be returned
      * the one related to the last inserted record.
      *
      * @param toscaCommand - Queue command

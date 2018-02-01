@@ -327,18 +327,16 @@ class APIServerDaemonProcessCommand implements Runnable {
         case "ToscaIDC":
             ToscaIDCInterface tidcInterface =
                     new ToscaIDCInterface(asdConfig, asdCommand);
-            int toscaIDCId = tidcInterface.submitTosca();
-
-            if (asdCommand.getTargetStatus() == "CANCELLED") {
-              String uuid = tidcInterface.getToscaUUID(asdCommand);
-              tidcInterface.deleteToscaDeployment(uuid);
-              // Get SUBMIT command and change its status to CANCELLED
-              APIServerDaemonCommand subCmd = asdCommand.getSubmitCommand();
-              subCmd.setStatus("CANCELLED");
-              subCmd.update();
+            LOG.debug("ToscaIDC delete");
+            if (asdCommand.getTargetStatus().equals("CANCELLED")) {
+              tidcInterface.deleteToscaDeployment();
+              LOG.debug("Status changed for command (ToscaIDC): "
+                      + asdCommand.toString());
+            } else {
+                LOG.debug("Not handled status: '"
+                         + asdCommand.getTargetStatus()
+                         + "' for ToscaIDC status change");
             }
-            LOG.debug("Status changed for command (ToscaIDC): "
-                    + asdCommand.toString());
             break;
 
         // case "<other_target>"

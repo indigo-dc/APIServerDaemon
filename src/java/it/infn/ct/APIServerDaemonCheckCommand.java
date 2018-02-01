@@ -72,28 +72,34 @@ public class APIServerDaemonCheckCommand implements Runnable {
      * Queue entries commands supported by executor interfaces.
      */
     private enum Commands {
-        /**
-         * This command cleans any task entry and file system allocation.
+                /**
+         * Release all task resources and any reference to it.
          */
         CLEAN,
         /**
-         * Triggers the executor for a submission action.
+         * Submit a task on a targeted infrastructure.
          */
         SUBMIT,
         /**
-         * Get status action(*).
-         * (*) This command is directly handled by G&C Eng Executor interface
+         * Get the status of a task (unused; no reference to API specs).
          */
         GETSTATUS,
         /**
-         * Get output action(*).
-         * (*) This command is directly handled by G&C Eng Executor interface
+         * Get the output of a task (unused; no reference to API specs).
          */
         GETOUTPUT,
         /**
-         * Terminate an executing task.
+         * Cancel the execution of a task (unused; no reference to API specs).
          */
         CANCEL,
+        /**
+         * Delete the reference of a task (unused; for fole based task DELETE).
+         */
+        DELETE,
+        /**
+         * Status change command.
+         */
+        STATUSCH
     }
 
     /**
