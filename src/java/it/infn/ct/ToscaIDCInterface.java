@@ -84,7 +84,7 @@ public class ToscaIDCInterface {
     /**
      * HTTP code 404.
      */
-    public static final int HTTP_204 = 201;
+    public static final int HTTP_204 = 204;
     /**
      * ToscaIDC properties file name.
      */
